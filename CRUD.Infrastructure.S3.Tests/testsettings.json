@@ -1,0 +1,7 @@
+{
+  "S3": {
+    // Часть в секретах
+    "LogsDirectory": "Logs",
+    "LogsInS3Directory": "WebApi/Logs"
+  }
+}

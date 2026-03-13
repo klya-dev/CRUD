@@ -1,0 +1,28 @@
+﻿* {
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+	font-family: Arial;
+    height: 100%;
+}
+
+b, strong {
+    font-weight: bold; /* У бутстрапа не очень смотрится с шрифтом Arial*/
+}
+
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.container {
+    flex: 1 0 auto;
+}
+
+.footer {
+    flex: 0 0 auto;
+}

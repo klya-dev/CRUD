@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+	
+  <PropertyGroup>
+  	<UserSecretsId>769ec179-dcc5-4444-b31c-50e9fd02a769</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+  	<Protobuf Include="Protos\emailsender.proto" GrpcServices="Server" />
+  </ItemGroup>	
+	
+  <ItemGroup>
+	<PackageReference Include="CRUD.Shared" Version="1.0.1" />
+    <PackageReference Include="CRUD.Infrastructure.S3" Version="1.0.1" />
+    <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
+    <PackageReference Include="MailKit" Version="4.13.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.8" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.14.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.15.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.13.1-beta.1" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.13.1" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.EventCounters" Version="1.13.0-alpha.1" />
+    <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageReference Include="stbychkov.AutoLoggerMessage" Version="1.0.13" />
+  </ItemGroup>	
+
+</Project>

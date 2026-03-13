@@ -1,0 +1,366 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="InvalidLoginOrPasswordTitle" xml:space="preserve">
+    <value>Неверный логин или пароль.</value>
+  </data>
+  <data name="InvalidLoginOrPasswordDetail" xml:space="preserve">
+    <value>Введён неверный логин или пароль. Проверьте корректность введённых данных и попробуйте снова.</value>
+  </data>
+  <data name="UsernameAlreadyTakenTitle" xml:space="preserve">
+    <value>Имя пользователя занято.</value>
+  </data>
+  <data name="UsernameAlreadyTakenDetail" xml:space="preserve">
+    <value>Указанное имя пользователя уже используется другим пользователем. Пожалуйста, выберите другое имя.</value>
+  </data>
+  <data name="UserNotFoundTitle" xml:space="preserve">
+    <value>Пользователь не найден.</value>
+  </data>
+  <data name="UserNotFoundDetail" xml:space="preserve">
+    <value>Пользователь с указанными данными не найден. Проверьте правильность введённой информации.</value>
+  </data>
+  <data name="InvalidPasswordTitle" xml:space="preserve">
+    <value>Неверный пароль.</value>
+  </data>
+  <data name="InvalidPasswordDetail" xml:space="preserve">
+    <value>Введённый пароль неверен. Пожалуйста, попробуйте ещё раз или воспользуйтесь восстановлением пароля.</value>
+  </data>
+  <data name="TestParams" xml:space="preserve">
+    <value>$A$ меньше, чем $B$, но больше, чем $C$.</value>
+  </data>
+  <data name="NoChangesDetectedDetail" xml:space="preserve">
+    <value>Попытка обновления не привела к изменениям, так как переданные данные совпадают с текущими. Проверьте введённые данные и попробуйте снова.</value>
+  </data>
+  <data name="NoChangesDetectedTitle" xml:space="preserve">
+    <value>Нет изменений для применения.</value>
+  </data>
+  <data name="ConcurrencyConflictsTitle" xml:space="preserve">
+    <value>Конфликты параллельности.</value>
+  </data>
+  <data name="ConcurrencyConflictsDetail" xml:space="preserve">
+    <value>Ваша транзакция не может быть завершена из-за конфликта с другой активной транзакцией. Попробуйте позже.</value>
+  </data>
+  <data name="DoesNotMatchSignatureTitle" xml:space="preserve">
+    <value>Не подходит сигнатура файла.</value>
+  </data>
+  <data name="DoesNotMatchSignatureDetail" xml:space="preserve">
+    <value>Файл имеет неверный формат. Пожалуйста, проверьте, что загружаемый файл соответствует необходимым требованиям и форматам.</value>
+  </data>
+  <data name="OneOrMoreValidationErrorsOccurred" xml:space="preserve">
+    <value>Произошла одна или несколько ошибок проверки.</value>
+  </data>
+  <data name="EmptyUniqueIdentifierTitle" xml:space="preserve">
+    <value>Пустой уникальный идентификатор (GUID).</value>
+  </data>
+  <data name="EmptyUniqueIdentifierDetail" xml:space="preserve">
+    <value>Указанный уникальный идентификатор (GUID) не может быть пустым (состоящим из нулей). Пожалуйста, предоставьте корректный уникальный идентификатор для продолжения операции.</value>
+  </data>
+  <data name="PublicationNotFoundTitle" xml:space="preserve">
+    <value>Публикация не найдена.</value>
+  </data>
+  <data name="PublicationNotFoundDetail" xml:space="preserve">
+    <value>Публикация с указанными данными не найдена. Проверьте правильность введённой информации.</value>
+  </data>
+  <data name="AuthorNotFoundTitle" xml:space="preserve">
+    <value>Автор не найден.</value>
+  </data>
+  <data name="AuthorNotFoundDetail" xml:space="preserve">
+    <value>Автор с указанными данными не найден. Проверьте правильность введённой информации.</value>
+  </data>
+  <data name="UserIsNotAuthorOfThisPublicationTitle" xml:space="preserve">
+    <value>Пользователь не является автором этой публикации.</value>
+  </data>
+  <data name="UserIsNotAuthorOfThisPublicationDetail" xml:space="preserve">
+    <value>Указанный пользователь не является автором этой публикации. Проверьте правильность введённой информации.</value>
+  </data>
+  <data name="UserAlreadyHasPremiumTitle" xml:space="preserve">
+    <value>Пользователь уже имеет премиум.</value>
+  </data>
+  <data name="UserAlreadyHasPremiumDetail" xml:space="preserve">
+    <value>У данного пользователя уже приобретён премиум. Купить ещё раз, нет возможности.</value>
+  </data>
+  <data name="UserDoesNotHavePremiumTitle" xml:space="preserve">
+    <value>Пользователь не имеет премиум.</value>
+  </data>
+  <data name="UserDoesNotHavePremiumDetail" xml:space="preserve">
+    <value>У пользователя нет активной подписки на премиум-услуги. Пожалуйста, проверьте свой аккаунт или приобретите подходящий пакет, чтобы получить доступ к дополнительным функциям.</value>
+  </data>
+  <data name="InvalidApiKeyTitle" xml:space="preserve">
+    <value>Неверный API-ключ.</value>
+  </data>
+  <data name="InvalidApiKeyDetail" xml:space="preserve">
+    <value>Предоставленный API-ключ недействителен или неправилен. Убедитесь, что вы используете корректный ключ, и повторите попытку.</value>
+  </data>
+  <data name="FailedToReceiveFileTitle" xml:space="preserve">
+    <value>Не удалось получить файл.</value>
+  </data>
+  <data name="FailedToReceiveFileDetail" xml:space="preserve">
+    <value>Запрашиваемый файл не может быть получен. Повторите попытку позже.</value>
+  </data>
+  <data name="FailedToCreateFileTitle" xml:space="preserve">
+    <value>Не удалось создать файл.</value>
+  </data>
+  <data name="FailedToCreateFileDetail" xml:space="preserve">
+    <value>Файл не был создан. Повторите поездку позже.</value>
+  </data>
+  <data name="FileNotFoundTitle" xml:space="preserve">
+    <value>Файл не найден.</value>
+  </data>
+  <data name="FileNotFoundDetail" xml:space="preserve">
+    <value>Файл не найден. Проверьте правильность введённой информации.</value>
+  </data>
+  <data name="FileSizeLimitExceededTitle" xml:space="preserve">
+    <value>Превышен лимит размера файла.</value>
+  </data>
+  <data name="FileSizeLimitExceededDetail" xml:space="preserve">
+    <value>Размер загружаемого файла превышает максимально допустимые $A$ МБ. Пожалуйста, уменьшите размер файла и попробуйте снова.</value>
+  </data>
+  <data name="FileAlreadyExistsTitle" xml:space="preserve">
+    <value>Файл уже существует.</value>
+  </data>
+  <data name="FileAlreadyExistsDetail" xml:space="preserve">
+    <value>Запрашиваемый файл с указанным именем уже существует в системе. Пожалуйста, проверьте свои данные и выберите другое имя файла или удалите существующий файл, прежде чем попытаться снова.</value>
+  </data>
+  <data name="EmailAlreadyTakenTitle" xml:space="preserve">
+    <value>Email занят.</value>
+  </data>
+  <data name="EmailAlreadyTakenDetail" xml:space="preserve">
+    <value>Указанный адрес электронной почты уже используется другим пользователем. Выберите другой адрес электронной почты.</value>
+  </data>
+  <data name="PhoneNumberAlreadyTakenTitle" xml:space="preserve">
+    <value>Номер телефона занят.</value>
+  </data>
+  <data name="PhoneNumberAlreadyTakenDetail" xml:space="preserve">
+    <value>Указанный номер телефона уже используется другим пользователем. Выберите другой номер телефона.</value>
+  </data>
+  <data name="UserAlreadyConfirmedEmailTitle" xml:space="preserve">
+    <value>Пользователь уже подтвердил электронную почту.</value>
+  </data>
+  <data name="UserHasNotConfirmedEmailTitle" xml:space="preserve">
+    <value>Пользователь не подтвердил электронную почту.</value>
+  </data>
+  <data name="UserAlreadyConfirmedPhoneNumberTitle" xml:space="preserve">
+    <value>Пользователь уже подтвердил номер телефона.</value>
+  </data>
+  <data name="UserHasNotConfirmedPhoneNumberTitle" xml:space="preserve">
+    <value>Пользователь не подтвердил номер телефона.</value>
+  </data>
+  <data name="UserAlreadyConfirmedEmailDetail" xml:space="preserve">
+    <value>Электронная почта этого пользователя уже была подтверждена. Нет необходимости выполнять повторное подтверждение.</value>
+  </data>
+  <data name="UserHasNotConfirmedEmailDetail" xml:space="preserve">
+    <value>Пользователь должен подтвердить свою электронную почту, чтобы активировать все функции. Пожалуйста, проверьте почту на наличие ссылки для подтверждения.</value>
+  </data>
+  <data name="UserAlreadyConfirmedPhoneNumberDetail" xml:space="preserve">
+    <value>Номер телефона этого пользователя уже был подтвержден. Дополнительные попытки подтверждения не требуются.</value>
+  </data>
+  <data name="UserHasNotConfirmedPhoneNumberDetail" xml:space="preserve">
+    <value>Пользователь должен подтвердить свой номер телефона, чтобы обеспечить дополнительную безопасность и доступ к сервисам. Проверьте SMS для получения кода подтверждения.</value>
+  </data>
+  <data name="InvalidTokenTitle" xml:space="preserve">
+    <value>Неверный или невалидный токен.</value>
+  </data>
+  <data name="InvalidTokenDetail" xml:space="preserve">
+    <value>Предоставленный токен недействителен или неправилен. Убедитесь, что вы используете корректный токен, и повторите попытку.</value>
+  </data>
+  <data name="InvalidCodeTitle" xml:space="preserve">
+    <value>Неверный код.</value>
+  </data>
+  <data name="InvalidCodeDetail" xml:space="preserve">
+    <value>Предоставленный код недействителен или неправилен. Убедитесь, что вы используете корректный код, и повторите попытку.</value>
+  </data>
+  <data name="CodeAlreadySentTitle" xml:space="preserve">
+    <value>Код уже отправлен.</value>
+  </data>
+  <data name="CodeAlreadySentDetail" xml:space="preserve">
+    <value>Вы уже запросили код, пожалуйста, подождите $A$ минут, прежде чем попытаться снова.</value>
+  </data>
+  <data name="LetterAlreadySentTitle" xml:space="preserve">
+    <value>Письмо уже отправлено.</value>
+  </data>
+  <data name="LetterAlreadySentDetail" xml:space="preserve">
+    <value>Вы уже запросили письмо, пожалуйста, подождите $A$ минут, прежде чем повторить попытку.</value>
+  </data>
+  <data name="OrderNotFoundTitle" xml:space="preserve">
+    <value>Заказ не найден.</value>
+  </data>
+  <data name="OrderNotFoundDetail" xml:space="preserve">
+    <value>Заказ не найден. Проверьте правильность введённой информации.</value>
+  </data>
+  <data name="PaymentNotCompletedTitle" xml:space="preserve">
+    <value>Оплата не завершена.</value>
+  </data>
+  <data name="PaymentNotCompletedDetail" xml:space="preserve">
+    <value>Оплата не завершена. Убедитесь, что вы оплатили платёж, возможно, требуется подтверждение с нашей стороны.</value>
+  </data>
+  <data name="OrderAlreadyIssuedOrCanceledTitle" xml:space="preserve">
+    <value>Заказ уже выдан или отменён.</value>
+  </data>
+  <data name="OrderAlreadyIssuedOrCanceledDetail" xml:space="preserve">
+    <value>Ваш заказ уже выдан или отменён. Для дополнительной информацией обращайтесь в техническую поддержку.</value>
+  </data>
+  <data name="FailedToCreatePaymentTitle" xml:space="preserve">
+    <value>Не удалось создать платёж.</value>
+  </data>
+  <data name="FailedToCreatePaymentDetail" xml:space="preserve">
+    <value>Не удалось создать платёж. Возможно, проблема на стороне провайдера, мы уже решаем проблему.</value>
+  </data>
+  <data name="OrderCannotBeIssuedTitle" xml:space="preserve">
+    <value>Заказ не может быть выдан.</value>
+  </data>
+  <data name="OrderCannotBeIssuedDetail" xml:space="preserve">
+    <value>Заказ не может быть выдан. Возможно, аккаунт получателя удалён или возникли иные проблемы. Обратитесь в техническую поддержку.</value>
+  </data>
+  <data name="ProductNotFoundTitle" xml:space="preserve">
+    <value>Продукт не найден.</value>
+  </data>
+  <data name="ProductNotFoundDetail" xml:space="preserve">
+    <value>Продукт с указанными данными не найден. Проверьте правильность введённой информации.</value>
+  </data>
+  <data name="IncorrectRequestTitle" xml:space="preserve">
+    <value>Некорректный запрос.</value>
+  </data>
+  <data name="IncorrectRequestDetail" xml:space="preserve">
+    <value>Отправленный запрос некорректен, проверьте сигнатуру эндпоинта.</value>
+  </data>
+  <data name="RateLimitExceededTitle" xml:space="preserve">
+    <value>Превышен лимит скорости.</value>
+  </data>
+  <data name="RateLimitExceededDetail" xml:space="preserve">
+    <value>Превышен лимит скорости, слишком много запросов. Попробуйте позже.</value>
+  </data>
+  <data name="EmptyFileTitle" xml:space="preserve">
+    <value>Отправленный файл является пустым.</value>
+  </data>
+  <data name="EmptyFileDetail" xml:space="preserve">
+    <value>Вы отправили пустой файл, пожалуйста выберите не пустой файл и повторите попытку.</value>
+  </data>
+  <data name="NotificationNotFoundTitle" xml:space="preserve">
+    <value>Уведомление не найдено.</value>
+  </data>
+  <data name="NotificationNotFoundDetail" xml:space="preserve">
+    <value>Уведомление не найдено. Проверьте правильность введённой информации.</value>
+  </data>
+  <data name="UserNotificationNotFoundTitle" xml:space="preserve">
+    <value>Уведомление пользователя не найдено.</value>
+  </data>
+  <data name="UserNotificationNotFoundDetail" xml:space="preserve">
+    <value>Уведомление пользователя не найдено. Проверьте правильность введённой информации.</value>
+  </data>
+</root>

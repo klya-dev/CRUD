@@ -1,0 +1,79 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Мои публикации</title>
+    <link rel="stylesheet" href="/lib/bootstrap-icons/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/bootswatchTheme.css" />
+    <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+    <iframe src="../header.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
+
+    <div class="wrapper">
+        <div class="container mt-5">
+            <main role="main" class="pb-3">
+                <h1 class="text-center mb-3 mypubs-h1">Мои публикации</h1>
+                <div class="publications-div">
+                    <button class="btn btn-info" onclick='getPublications()'>Загрузить мои статьи</button>
+                    <div class="publications row pb-3">
+
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <iframe src="../footer.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
+    </div>
+
+    <script src="../main.js"></script>
+    <script src="../js/publications.js"></script>
+
+    <script>
+        if (sessionStorage.getItem(accessToken) == null) {
+            document.querySelector('.publications-div').style.display = "none";
+            document.querySelector('.mypubs-h1').innerText = "Мои публикации. НЕОБХОДИМО зарегистрироваться или войти в аккаунт";
+        }
+
+        async function getPublications() {
+            const response = await fetch(server + "/publications/get/all/author", {
+                method: "GET",
+                headers: {
+                    "Accept": "application/json",
+                    "Authorization": "Bearer " + sessionStorage.getItem(accessToken)  // Передача токена в заголовке
+                }
+            });
+
+            if (response.ok === true) {
+                const data = await response.json();
+
+                let publications = document.querySelector('.publications');
+                let output = '';
+                data.forEach(pub => {
+                    output +=
+                        `<div class="card mt-3" style="width: 18rem;">
+                                <img class="card-img-top" src="../images/card.svg" alt="Card image cap">
+                                <div class="card-body">
+                                    <h5 class="card-title">${pub.title}</h5>
+                                    <p class="card-text">${pub.content}</p>
+                                    <p class="card-text"><small>Автор: ${pub.authorFirstname}</small></p>
+                                    <p class="card-text"><small>Дата: ${pub.date}</small></p>
+                                    <a href="/publications/open.html?id=${pub.id}" class="btn btn-primary">Читать</a>
+                                    <a href="#" onclick="deletePublication('${pub.id}')" class="btn btn-danger">Удалить</a>
+                                    <a href="/publications.html?id=${pub.id}" class="btn btn-secondary">Обновить</a>
+                                </div>
+                            </div><br>`;
+                });
+
+                publications.innerHTML = output;
+            }
+            else {
+                var errorMessage = await responseError(response);
+                alert(errorMessage)
+            }
+        }
+    </script>
+
+    <script src="/lib/bootstrap/bootstrap.bundle.min.js"></script>
+</body>
+</html>

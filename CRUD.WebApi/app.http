@@ -1,0 +1,10 @@
+# https://learn.microsoft.com/ru-ru/aspnet/core/test/http-files?view=aspnetcore-10.0
+
+# Bruno пока что не поддерживает HTTP/2, поэтому использую файл .http
+# Swagger тоже не всегда отправляет HTTP/2
+
+@hostname=localhost
+@port=7260
+@host={{hostname}}:{{port}}
+
+GET https://{{host}}/v1/publications?count=1 HTTP/2

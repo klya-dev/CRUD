@@ -1,0 +1,39 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API</title>
+    <link rel="stylesheet" href="lib/bootstrap-icons/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="bootswatchTheme.css" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <iframe src="header.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
+
+    <div class="wrapper">
+        <div class="container mt-5">
+            <main role="main" class="pb-3">
+                <h1 class="text-center mb-3">API</h1>
+
+                <div>
+                    <b id="endpoint_settings"><u>Информация</u></b>
+                    <p>
+                        Мой API - мы компания, постинг статей, у нас два клиента, сайт наш, и наше приложение, также есть доступ для сторонних приложений
+                        Т.е у меня должно быть минимум два API (считай контроллера), один для свояков, для собственных продуктов, один для сторонних сервисов
+                        <br><br>
+                        Если по функционалу, то у своих продуктов, это возможность написать комент, поставить лайк, написать статью и тд
+                        <br><br>
+                        А у сторонних:
+                        Какой-то сторонний сервис, например, пишет статьи и сразу выкладывает эти статьи через API, на все популярные платформы дзен, ВК, мой клиент.
+                        А чо круто, написал один раз много данных по потребностям каждого популярного апи, нажал кнопку и одна статья сразу запостилась у всех и вся
+                        Т.е я должен принять все данные по статьи: автора, содержимое и тд
+                        Но также я должен проверять существует ли пользователь у меня на сервере, т.к, чтобы выкладывать статьи у меня, должен быть зареган пользователь, т.к от его лица постится статья. Эту часть лора уже будет легко продумать
+                    </p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <iframe src="footer.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
+</body>
+</html>

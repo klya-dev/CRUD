@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+  	<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+  	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+  	<NoWarn>$(NoWarn);1591</NoWarn> <!-- Отключает предупреждения об отсутствии документации для всех публичных членов -->
+
+	<PackageOutputPath>..\nugets</PackageOutputPath>
+  	<PackageVersion>1.0.1</PackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" Version="4.0.18.7" />
+    <PackageReference Include="CRUD.Shared" Version="1.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.12" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,113 @@
+{
+  "Kestrel": {
+    "Endpoints": {
+      "Https": {
+        "Url": "https://localhost:7260",
+        "Protocols": "Http1AndHttp2"
+      },
+      "Http": {
+        "Url": "http://localhost:5171",
+        "Protocols": "Http1"
+      }
+    }
+  },
+  "Program": {
+    "SkipLogging": true,
+    "SkipInitializers": true
+  },
+  "Serilog": {
+    "Using": [ "Serilog.Sinks.Console", "Serilog.Sinks.File" ],
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft": "Warning",
+        "System": "Warning",
+        "Microsoft.Hosting.Lifetime": "Information"
+      }
+    },
+    "Enrich": [ "FromLogContext", "WithMachineName", "WithProcessId", "WithThreadId" ],
+    "Properties": {
+      "ApplicationName": "CRUD" // Кастомное свойство, можно использовать в template в Program.cs
+    }
+  },
+  "S3": {
+    "LogsDirectory": "Logs",
+    "LogsInS3Directory": "WebApi/Logs"
+  },
+  "S3Initializer": {
+    "ArchiveInS3Directory": "archive"
+  },
+  "EmailSender": {
+    "ServiceURL": "https://localhost:7261",
+    "HealthzEndpoint": "healthz",
+    "UseUnixDomainSocketGRPC": false,
+    "FileNameInTempFolder": "socket.tmp"
+  },
+  "AvatarManager": {
+    "AvatarsInS3Directory": "avatars",
+    "DefaultAvatarPath": "avatars/default.png",
+    "MaxFileSize": 10485760,
+    "MaxFileSizeString": "10"
+  },
+  "AppHost": "localhost:7260",
+  "Auth": {
+    "PrivateKeyPath": "E:\\Projects\\Web\\CRUD\\CRUD.Tests\\test_files\\private_test_key.pem", // Тестовые ключи
+    "PublicKeyPath": "E:\\Projects\\Web\\CRUD\\CRUD.Tests\\test_files\\public_test_key.pem",
+    "KeyId": "key-v1",
+    "Issuer": "https://localhost:7260"
+  },
+  "AuthWebApi": {
+    "Audience": "https://localhost:7260",
+    "Expires": "00:10:00",
+    "ExpiresRefreshToken": "7.00:00:00",
+    "MaxCountRefreshTokens": 3
+  },
+  "AuthEmailSender": {
+    "Audience": "https://localhost:7261",
+    "Expires": "00:10:00"
+  },
+  "BackgroundServices": {
+    "SaveLogsToS3BackgroundService": {
+      "Timer": "1.00:00:00"
+    },
+    "DeleteExpiredRequestsBackgroundService": {
+      "Timer": "1.00:00:00"
+    },
+    "RevokeExpiredRefreshTokensBackgroundService": {
+      "Timer": "00:10:00"
+    }
+  },
+  "Requests": {
+    "ChangePasswordRequest": {
+      "Expires": "00:07:00",
+      "Timeout": "00:01:00"
+    },
+    "ConfirmEmailRequest": {
+      "Expires": "00:10:00",
+      "Timeout": "00:01:00"
+    },
+    "VerificationPhoneNumberRequest": {
+      "Expires": "00:10:00",
+      "Timeout": "00:10:00",
+      "LengthCode": 6
+    }
+  },
+  "RateLimiter": {
+    "Global": { // Не больше 1000 запросов в минуту (для тестов намного больше, чем в проде. А для тестов RateLimiter'а я всё равно переопределяю значения)
+      "PermitLimit": 1000,
+      "Window": 60,
+      "QueueLimit": 0
+    },
+    "PublicationsGet": { // Не больше 1200 запросов в минуту
+      "PermitLimit": 1200,
+      "Window": 60,
+      "QueueLimit": 0
+    }
+  },
+  "Metrics": {
+    "PrometheusURL": "http://localhost:9090"
+  },
+  "Clients": {
+    "WebClientURLs": [ "https://localhost:7217" ]
+  }
+}

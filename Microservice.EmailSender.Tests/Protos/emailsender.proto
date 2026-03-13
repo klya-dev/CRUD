@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option csharp_namespace = "Microservice.EmailSender.Tests"; // namespace для сгенерированных файлов C# из .proto
+
+package emailsender; // Используется для генерации URL (/emailsender.GrpcEmailSender/Enqueue), полезен для версионирования, считай как Id
+
+// Микросервис отправки электронных писем.
+service GrpcEmailSender {
+	// Добавляет письмо в очередь для отправки.
+	rpc Enqueue (EnqueueLetterRequest) returns (EnqueueLetterReply);
+}
+
+// Запрос на добавление электронного письма в очередь.
+message EnqueueLetterRequest {
+	// Идентификатор письма (GUID).
+	string Id = 1;
+
+	// Электронная почта получателя.
+	string email = 2;
+
+	// Заголовок письма.
+	string subject = 3;
+
+	// Тело письма.
+	string body = 4;
+}
+
+// Ответ на добавление электронного письма в очередь.
+message EnqueueLetterReply {
+	// Пустой
+}
+
+// Старая версия с nullable string error_message
+//import "google/protobuf/wrappers.proto"; // Импортируем nullable типы (https://learn.microsoft.com/ru-ru/aspnet/core/grpc/protobuf?view=aspnetcore-10.0#nullable-types)
+// Ответ, содержащий успешность добавления электронного письма в очередь.
+//message EnqueueLetterReply {
+//	// Успешно ли выполнился метод.
+//	bool is_success = 1; // Стандарт через нижнее подчёркивание (https://protobuf.dev/programming-guides/style)
+//
+//	// Ошибка сервиса. 
+//	google.protobuf.StringValue error_message = 2; // string допускающий null. А точнее простой string, но если присвоить null, то исключение не выбросится
+//}

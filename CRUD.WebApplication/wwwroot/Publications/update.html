@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Изменить статью</title>
+    <link rel="stylesheet" href="/lib/bootstrap-icons/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/bootswatchTheme.css" />
+    <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+    <iframe src="../header.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
+
+    <div class="wrapper">
+        <div class="container mt-5">
+            <main role="main" class="pb-3">
+                <h1 class="text-center mb-3">Изменить статью</h1>
+                <div class="text-center">
+                    <div class="d-flex align-items-center justify-content-center row">
+                        <label>Введите название</label>
+                        <input id="title" class="form-control w-50" />
+                    </div>
+                    <div class="d-flex align-items-center justify-content-center row">
+                        <label>Введите содержимое</label><br />
+                        <textarea id="content" class="form-control w-75" style="height: 750px"></textarea>
+                    </div>
+                    <div class="mt-3 d-flex align-items-center justify-content-center row">
+                        <input class="btn btn-info w-50" type="submit" id="submit" value="Изменить" />
+                        <a href="../index.html" class="btn btn-outline-danger text-decoration-none w-25">Домой</a>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <iframe src="../footer.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
+    </div>
+
+    <script src="../main.js"></script>
+    <script src="../js/publications.js"></script>
+    <script>
+        var url = window.location.search;
+        const urlParams = new URLSearchParams(url);
+        const publicationId = urlParams.get('id');
+
+        document.getElementById("submit").addEventListener("click", async e => {
+            e.preventDefault();
+
+            await updatePublication(publicationId);
+        });
+    </script>
+
+    <script src="/lib/bootstrap/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Профиль</title>
+    <link rel="stylesheet" href="../lib/bootstrap-icons/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="../bootswatchTheme.css" />
+    <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+    <iframe src="../header.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
+
+    <div class="wrapper">
+        <div class="container mt-5">
+            <main role="main" class="pb-3">
+                <h1 class="text-center mb-3 profile-h1">Профиль</h1>
+                <div class="profile-div">
+                    <form class="text-center">
+                        <span id="updateAccount_errors" class="text-danger"></span>
+                        <div class="d-flex align-items-center justify-content-center row">
+                            <label>Введите имя</label>
+                            <input id="firstname" class="form-control w-50" />
+                        </div>
+                        <div class="d-flex align-items-center justify-content-center row">
+                            <label>Введите username</label>
+                            <input id="username" class="form-control w-50" />
+                        </div>
+                        <div class="d-flex align-items-center justify-content-center row">
+                            <label>Введите язык</label>
+                            <input id="language_code" class="form-control w-50" />
+                        </div>
+                        <div class="mt-3 d-flex align-items-center justify-content-center row">
+                            <input class="btn btn-info w-50" type="submit" id="submit" value="Изменить" />
+                        </div>
+                    </form>
+                    <a href="#" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">Удалить аккаунт</a>
+                    <div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="deleteAccountModalLabel">Удалить аккаунт</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form>
+                                        <span id="deleteAccount_errors" class="text-danger"></span>
+                                        <p>
+                                            <label>Введите пароль</label><br />
+                                            <input class="form-control" id="deleteAccount_password" />
+                                        </p>
+                                        <input class="btn btn-info" type="submit" id="submitDeleteAccount" value="Удалить аккаунт" />
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="#" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#changePasswordModal">Изменить пароль</a>
+                    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="changePasswordModalLabel">Изменить пароль</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form>
+                                        <span id="changePassword_errors" class="text-danger"></span>
+                                        <p>
+                                            <label>Введите пароль</label><br />
+                                            <input class="form-control" id="changePassword_password" />
+                                        </p>
+                                        <p>
+                                            <label>Введите новый пароль</label><br />
+                                            <input class="form-control" id="changePassword_newPassword" />
+                                        </p>
+                                        <input class="btn btn-info" type="submit" id="submitChangePassword" value="Изменить пароль" />
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <br />
+                    <br />
+                    <a href="#" class="btn btn-warning" onclick="showApiKeys();">Показать API-ключи</a>
+                    <div class="apiKeys-div d-none">
+                        <label class="form-label" for="apiKey">API-ключ</label>
+                        <input class="form-control" id="apiKey" type="text" placeholder="9B8+o5hgu0qxEz/u2AddEg==" disabled="">
+
+                        <label class="form-label" for="apiKeyDisposable">Одноразовый API-ключ</label>
+                        <input class="form-control" id="apiKeyDisposable" type="text" placeholder="Dj7k7XdpCUC3k0UipHGm2w==" disabled="">
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <iframe src="../footer.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
+    </div>
+
+    <script src="../main.js"></script>
+
+    <script>
+        if (sessionStorage.getItem(accessToken) == null) {
+            document.querySelector('.profile-div').style.display = "none";
+            document.querySelector('.profile-h1').innerText = "Профиль. НЕОБХОДИМО зарегистрироваться или войти в аккаунт";
+        }
+
+        async function getUser() {
+            const response = await fetch(server + "/users/current", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + sessionStorage.getItem(accessToken),
+                    "Accept-Language": currentCulture
+                }
+            });
+            if (response.ok === true) {
+                const data = await response.json();
+
+                document.getElementById("firstname").value = data.firstname;
+                document.getElementById("username").value = data.username;
+                document.getElementById("language_code").value = data.languageCode;
+            }
+            else {
+                var errorMessage = await responseError(response);
+                alert(errorMessage);
+            }
+        }
+
+        window.onload = async function () {
+            await getUser();
+        };
+
+        document.getElementById("submit").addEventListener("click", async e => {
+            e.preventDefault();
+
+            await updateUser();
+        });
+
+        async function updateUser() {
+            const response = await fetch(server + "/users", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + sessionStorage.getItem(accessToken),
+                    "Accept-Language": currentCulture
+                },
+                body: JSON.stringify({
+                    firstname: document.getElementById("firstname").value,
+                    username: document.getElementById("username").value,
+                    languageCode: document.getElementById("language_code").value
+                })
+            });
+            if (response.ok === true) {
+                alert("Профиль успешно обновлён")
+            }
+            else {
+                var errorMessage = await responseError(response);
+                document.getElementById("updateAccount_errors").innerText = errorMessage;
+            }
+        }
+
+        document.getElementById("submitDeleteAccount").addEventListener("click", async e => {
+            e.preventDefault();
+
+            await deleteUser();
+        });
+
+        async function deleteUser() {
+            const response = await fetch(server + "/users", {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + sessionStorage.getItem(accessToken),
+                    "Accept-Language": currentCulture
+                },
+                body: JSON.stringify({
+                    password: document.getElementById("deleteAccount_password").value
+                })
+            });
+            if (response.ok === true) {
+                alert("Аккаунт успешно удалён")
+            }
+            else {
+                var errorMessage = await responseError(response);
+                document.getElementById("deleteAccount_errors").innerText = errorMessage;
+            }
+        }
+
+        document.getElementById("submitChangePassword").addEventListener("click", async e => {
+            e.preventDefault();
+
+            await changePassword();
+        });
+
+        async function changePassword() {
+            const response = await fetch(server + "/password/change", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + sessionStorage.getItem(accessToken),
+                    "Accept-Language": currentCulture
+                },
+                body: JSON.stringify({
+                    password: document.getElementById("changePassword_password").value,
+                    newpassword: document.getElementById("changePassword_newPassword").value
+                })
+            });
+            if (response.ok === true) {
+                alert("Пароль успешно изменён")
+            }
+            else {
+                var errorMessage = await responseError(response);
+                document.getElementById("changePassword_errors").innerText = errorMessage;
+            }
+        }
+
+        async function showApiKeys() {
+            document.querySelector(".apiKeys-div").classList.remove("d-none");
+
+            // запрос на получение ключей
+        }
+    </script>
+
+    <script src="../lib/bootstrap/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Читать статью</title>
+    <link rel="stylesheet" href="/lib/bootstrap-icons/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/bootswatchTheme.css" />
+    <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+    <iframe src="../header.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
+
+    <div class="wrapper">
+        <div class="container mt-5">
+            <main role="main" class="pb-3">
+                <h1 class="text-center mb-3 title-pub"></h1>
+                <small class="authorFirstname-pub"></small>
+                <small class="date-pub"></small>
+                <p class="content-pub"></p>
+                <a href="#" >Другие статьи автора</a>
+            </main>
+        </div>
+
+        <iframe src="../footer.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
+    </div>
+
+    <script src="../main.js"></script>
+
+    <script>
+        var url = window.location.search;
+        const urlParams = new URLSearchParams(url);
+        const publicationId = urlParams.get('id');
+
+        async function getPublication() {
+            let response = await fetch(server + "/publications/get/" + publicationId, {
+                method: "GET",
+                headers: { "Content-Type": "application/json", "Accept-Language": currentCulture }
+            });
+            if (response.ok === true) {
+                const data = await response.json();
+                document.querySelector(".title-pub").innerText = data.title;
+                document.querySelector(".authorFirstname-pub").innerText = data.authorFirstName;
+                document.querySelector(".date-pub").innerText = data.date;
+                document.querySelector(".content-pub").innerText = data.content;
+            }
+            else {
+                var errorMessage = await responseError(response);
+                alert(errorMessage);
+            }
+        }
+        getPublication();
+    </script>
+
+    <script src="/lib/bootstrap/bootstrap.bundle.min.js"></script>
+</body>
+</html>

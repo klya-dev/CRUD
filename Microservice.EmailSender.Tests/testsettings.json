@@ -1,0 +1,62 @@
+{
+  "Kestrel": {
+    "Endpoints": {
+      "Https": {
+        "Url": "https://localhost:7261",
+        "Protocols": "Http1AndHttp2"
+      },
+      "Http": {
+        "Url": "http://localhost:5237",
+        "Protocols": "Http1"
+      }
+    }
+  },
+  "Program": {
+    "UseUnixDomainSocketGRPC": false,
+    "FileNameInTempFolder": "socket.tmp",
+    "SkipLogging": true
+  },
+  "Serilog": {
+    "Using": [ "Serilog.Sinks.Console", "Serilog.Sinks.File" ],
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft": "Warning",
+        "System": "Warning",
+        "Microsoft.Hosting.Lifetime": "Information"
+      }
+    },
+    "Enrich": [ "FromLogContext", "WithMachineName", "WithProcessId", "WithThreadId" ],
+    "Properties": {
+      "ApplicationName": "MSES" // Кастомное свойство, можно использовать в template в Program.cs
+    }
+  },
+  "S3": {
+    "LogsDirectory": "Logs",
+    "LogsInS3Directory": "EmailSender/Logs"
+  },
+  "EmailSenderBackgroundService": {
+    "SmtpClientsCount": 3,
+    "RetriesCount": 2,
+    "DefaultTimeout": "00:00:01",
+    "TimeoutCoefficient": 1.25,
+    "LimitLetters": 3,
+    "LimitLettersTime": "01:00:00"
+  },
+  "Auth": { // Нельзя менять на лету. В целом, это можно сделать, но я хочу оставить "обычный" вариант
+    "Issuer": "https://localhost:7260",
+    "Audience": "https://localhost:7261",
+    "JwksUrl": "https://localhost:7260/.well-known/jwks.json"
+  },
+  "BackgroundServices": {
+    "SaveLogsToS3BackgroundService": {
+      "Timer": "1.00:00:00"
+    }
+  },
+  "Metrics": {
+    "PrometheusURL": "http://localhost:9090"
+  },
+  "Clients": {
+    "WebClientURLs": [ "https://localhost:7260" ]
+  }
+}

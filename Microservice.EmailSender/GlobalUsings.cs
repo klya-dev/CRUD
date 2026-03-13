@@ -1,0 +1,16 @@
+﻿global using Microservice.EmailSender.Utilities;
+global using Microservice.EmailSender.Options;
+global using Microservice.EmailSender.Models;
+global using Microservice.EmailSender.Interfaces;
+global using Microservice.EmailSender.Interceptors;
+global using Microservice.EmailSender.Middlewares;
+global using Microservice.EmailSender.Services.Grpc;
+global using Microservice.EmailSender.Services;
+global using Microservice.EmailSender.Services.EmailSenderBackground;
+global using Microservice.EmailSender.Services.RabbitMqConsumer;
+global using Microsoft.Extensions.Options;
+global using Microsoft.AspNetCore.Diagnostics;
+global using MailKit.Net.Smtp;
+global using Microsoft.Extensions.Diagnostics.HealthChecks;
+global using CRUD.Shared;
+global using CRUD.Infrastructure.S3;

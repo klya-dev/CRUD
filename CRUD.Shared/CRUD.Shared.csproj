@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+  	<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+  	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+  	<NoWarn>$(NoWarn);1591</NoWarn> <!-- Отключает предупреждения об отсутствии документации для всех публичных членов -->
+	<NoWarn>$(NoWarn);1573</NoWarn> <!-- Отключает предупреждения об отсутствии совпадающего тега param. Например, это относится к this ILogger (метод расширения), ну а где-то я и правда забыл -->
+
+	<PackageOutputPath>..\nugets</PackageOutputPath>
+  	<PackageVersion>1.0.1</PackageVersion>
+  </PropertyGroup>	
+	
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="12.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.12" />
+  </ItemGroup>
+
+</Project>

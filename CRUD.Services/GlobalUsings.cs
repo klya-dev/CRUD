@@ -1,0 +1,21 @@
+﻿// Если using не используется, в сборку этот "лишний" using не попадёт (SharpLab.io)
+global using CRUD.Utility;
+global using CRUD.Utility.Options;
+global using Microsoft.Extensions.Options;
+global using CRUD.Models;
+global using Microsoft.Extensions.Logging;
+global using CRUD.DataAccess;
+global using CRUD.DataAccess.Converters;
+global using CRUD.DataAccess.Data;
+global using CRUD.DataAccess.DbInitializer;
+global using CRUD.Models.Dtos.User;
+global using CRUD.Models.Dtos.OAuth;
+global using CRUD.Models.Domains;
+global using CRUD.Models.Dtos.Publication;
+global using FluentValidation;
+global using Microsoft.EntityFrameworkCore;
+global using CRUD.Services.Interfaces;
+global using CRUD.Models.Validators;
+global using CRUD.Models.Dtos;
+global using CRUD.Shared;
+global using CRUD.Infrastructure.S3;

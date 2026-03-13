@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Главная</title>
+    <link rel="stylesheet" href="/lib/bootstrap-icons/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/bootswatchTheme.css" />
+    <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+    <iframe src="header.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
+
+    <div class="wrapper">
+        <div class="container mt-5">
+            <main role="main" class="pb-3">
+                <h1 class="text-center mb-3">Главная</h1>
+                <div>
+                    <button class="btn btn-info" onclick="buyPremium()">Купить премиум</button>
+                    <a class="btn btn-info" href="/publications.html">Написать статью</a>
+                    <a class="btn btn-info" href="/publications/mypubs.html">Мои статьи</a>
+                    <a class="btn btn-info" href="/best.html">Best</a>
+                    <a class="btn btn-info" href="/notifications.html">Уведомления</a>
+                    <br />
+                    <h2>Публикации</h2>
+                    <p id='publications-p'></p>
+                    <button class="btn btn-info" onclick='getPublications()'>Загрузить статьи</button>
+                    <div class="publications row pb-3">
+
+                    </div>
+                </div>
+            </main>
+
+            <form>
+                <span id="login_errors" class="text-danger"></span>
+                <p>
+                    <label>Введите username</label><br />
+                    <input class="form-control" id="login_username2" />
+                </p>
+                <p>
+                    <label>Введите пароль</label><br />
+                    <input class="form-control" id="login_password2" />
+                </p>
+                <input class="btn btn-info" type="submit" id="submitLogin2" value="Войти" />
+            </form>
+        </div>
+
+        <iframe src="footer.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
+    </div>
+
+    <script src="main.js"></script>
+    <script src="../js/publications.js"></script>
+
+    <script>
+        async function buyPremium() {
+            const response = await fetch(server + "/premiums", {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "Authorization": "Bearer " + sessionStorage.getItem(accessToken),  // Передача токена в заголовке
+                    "Accept-Language": currentCulture
+                }
+            });
+            if (response.ok === true) {
+                alert("Премиум успешно куплен")
+            }
+            else {
+                var errorMessage = await responseError(response);
+                alert(errorMessage);
+            }
+        }
+
+        async function getPublications() {
+            const response = await fetch(server + "/publications/get/all", {
+                method: "GET",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + sessionStorage.getItem(accessToken), "Accept-Language": currentCulture }
+            });
+            if (response.ok === true) {
+                const data = await response.json();
+
+                let publications = document.querySelector('.publications');
+                let output = '';
+                data.forEach(pub => {
+                    output +=
+                        `<div class="card mt-3" style="width: 18rem;">
+                                    <img class="card-img-top" src="images/card.svg" alt="Card image cap">
+                                    <div class="card-body">
+                                        <h5 class="card-title">${pub.title}</h5>
+                                        <p class="card-text">${pub.content}</p>
+                                        <p class="card-text"><small>Автор: ${pub.authorFirstname}</small></p>
+                                        <p class="card-text"><small>Дата: ${pub.date}</small></p>
+                                        <a href="/publications/open.html?id=${pub.id}" class="btn btn-primary">Читать</a>
+                                        ${IsInRole("Admin") ? `<a href="#" onclick="deletePublication('${pub.id}')" class="btn btn-danger">Удалить</a>` : ``}
+                                    </div>
+                                </div><br>`;
+                });
+
+                publications.innerHTML = output;
+            }
+            else {
+                var errorMessage = await responseError(response);
+                alert(errorMessage)
+            }
+        }
+    </script>
+
+    <script src="/lib/bootstrap/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,6 +1,9 @@
 {
   "S3": {
-    // Часть в секретах
+    "AccessKey": "CONFIGURED_IN_SECRETS_MANAGER",
+    "SecretKey": "CONFIGURED_IN_SECRETS_MANAGER",
+    "BucketName": "CONFIGURED_IN_SECRETS_MANAGER",
+    "ServiceURL": "CONFIGURED_IN_SECRETS_MANAGER",
     "LogsDirectory": "Logs",
     "LogsInS3Directory": "WebApi/Logs"
   }

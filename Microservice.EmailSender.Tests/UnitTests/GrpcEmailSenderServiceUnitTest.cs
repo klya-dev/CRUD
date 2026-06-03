@@ -2,7 +2,7 @@
 
 namespace Microservice.EmailSender.Tests.UnitTests;
 
-public class GrpcEmailSenderServiceUnitTest
+public sealed class GrpcEmailSenderServiceUnitTest
 {
     private readonly GrpcEmailSenderService _grpcEmailSenderService;
     private readonly Mock<ILogger<GrpcEmailSenderService>> _mockLogger;
@@ -36,7 +36,7 @@ public class GrpcEmailSenderServiceUnitTest
         _mockQueueEmail.Setup(x => x.EnqueueAsync(It.IsAny<Letter>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
         // Act
-        var result = await _grpcEmailSenderService.Enqueue(request, TestServerCallContext.Create());
+        var result = await _grpcEmailSenderService.Enqueue(request, TestServerCallContext.Create(cancellationToken: TestContext.Current.CancellationToken));
 
         // Assert
         Assert.NotNull(result);

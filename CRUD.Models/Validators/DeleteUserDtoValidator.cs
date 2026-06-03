@@ -6,9 +6,9 @@
 /// <remarks>
 /// Валидация реализована через Fluent Validation.
 /// </remarks>
-public class DeleteUserDtoValidator : AbstractValidator<DeleteUserDto>
+public sealed class DeleteUserDtoValidator : AbstractValidator<DeleteUserDto>
 {
-    public DeleteUserDtoValidator(IValidatorsLocalizer localizer)
+    public DeleteUserDtoValidator(IValidatorLocalizer localizer)
     {
         RuleFor(x => x.Password).Password(localizer);
     }

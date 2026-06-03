@@ -7,7 +7,7 @@ namespace CRUD.Services.BackgroundServices.RevokeExpiredRefreshTokensBackground;
 /// <summary>
 /// Сервис для отзыва/удаления истёкших Refresh-токенов в фоне.
 /// </summary>
-public class RevokeExpiredRefreshTokensBackgroundService : BackgroundService
+public sealed class RevokeExpiredRefreshTokensBackgroundService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly RevokeExpiredRefreshTokensBackgroundServiceOptions _options;
@@ -25,7 +25,7 @@ public class RevokeExpiredRefreshTokensBackgroundService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         // Получаем сервис
-        using var scope = _serviceProvider.CreateScope();
+        await using var scope = _serviceProvider.CreateAsyncScope();
         var revokeExpiredRefreshTokensBackgroundCore = scope.ServiceProvider.GetRequiredService<IRevokeExpiredRefreshTokensBackgroundCore>();
 
         await revokeExpiredRefreshTokensBackgroundCore.DoWorkAsync(ct); // При запуске приложения хочу выполнить итерацию (чтобы не ждать таймер)

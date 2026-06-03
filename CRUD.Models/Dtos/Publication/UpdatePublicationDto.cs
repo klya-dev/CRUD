@@ -5,26 +5,23 @@ namespace CRUD.Models.Dtos.Publication;
 /// <summary>
 /// DTO-модель для обновления данных публикации.
 /// </summary>
-public class UpdatePublicationDto
+public sealed record UpdatePublicationDto
 {
     /// <summary>
     /// Id публикации.
     /// </summary>
     [JsonPropertyName("publicationId")]
-    public required Guid PublicationId { get; set; }
+    public required Guid PublicationId { get; init; }
 
     /// <summary>
     /// Новый заголовок публикации.
     /// </summary>
-    /// <remarks>
-    /// Необязательно.
-    /// </remarks>
     [JsonPropertyName("title")]
-    public string? Title { get; set; }
+    public string? Title { get; init; }
 
     /// <summary>
     /// Новое содержание публикации.
     /// </summary>
     [JsonPropertyName("content")]
-    public string? Content { get; set; }
+    public string? Content { get; init; }
 }

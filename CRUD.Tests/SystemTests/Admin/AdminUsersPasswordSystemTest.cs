@@ -5,7 +5,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Admin;
 
-public class AdminUsersPasswordSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class AdminUsersPasswordSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -33,7 +33,7 @@ public class AdminUsersPasswordSystemTest : IClassFixture<TestWebApplicationFact
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Данные
         var data = new SetPasswordDto()
@@ -49,7 +49,7 @@ public class AdminUsersPasswordSystemTest : IClassFixture<TestWebApplicationFact
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -57,7 +57,7 @@ public class AdminUsersPasswordSystemTest : IClassFixture<TestWebApplicationFact
         Assert.Null(result.Content.Headers.ContentType);
 
         // Пароль и вправду обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
         Assert.True(_passwordHasher.Verify(data.NewPassword, userFromDbAfterUpdate.HashedPassword));
     }
 
@@ -82,7 +82,7 @@ public class AdminUsersPasswordSystemTest : IClassFixture<TestWebApplicationFact
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -90,8 +90,8 @@ public class AdminUsersPasswordSystemTest : IClassFixture<TestWebApplicationFact
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }

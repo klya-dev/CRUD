@@ -5,11 +5,10 @@ using Microsoft.Extensions.Caching.Hybrid;
 
 namespace CRUD.Tests.UnitTests;
 
-public class NotificationManagerUnitTest
+public sealed class NotificationManagerUnitTest
 {
     private readonly ApplicationDbContext _db;
 
-    private readonly Mock<IValidator<Notification>> _mockNotificationValidator;
     private readonly Mock<IValidator<GetUserNotificationsDto>> _mockGetUserNotificationsDtoValidator;
     private readonly Mock<IValidator<CreateNotificationDto>> _mockCreateNotificationDtoValidator;
     private readonly Mock<IValidator<CreateNotificationSelectedUsersDto>> _mockCreateNotificationSelectedUsersDtoValidator;
@@ -20,14 +19,12 @@ public class NotificationManagerUnitTest
         var db = DbContextGenerator.GenerateDbContextTestInMemory();
         _db = db;
 
-        _mockNotificationValidator = new();
         _mockGetUserNotificationsDtoValidator = new();
         _mockCreateNotificationDtoValidator = new();
         _mockCreateNotificationSelectedUsersDtoValidator = new();
 
         _notificationManager = new NotificationManager(
             db,
-            _mockNotificationValidator.Object,
             _mockGetUserNotificationsDtoValidator.Object,
             _mockCreateNotificationDtoValidator.Object,
             _mockCreateNotificationSelectedUsersDtoValidator.Object
@@ -53,46 +50,6 @@ public class NotificationManagerUnitTest
     }
 
 
-    [Fact] // Перед записью в базу должно выбросится исключение, о том, что Notification невалидный
-    public async Task CreateNotificationAsync_ThrowsInvalidOperationException_NotValidBeforeCreate()
-    {
-        // Arrange
-        string title = "title";
-        string content = "content";
-
-        var createNotificationDto = new CreateNotificationDto()
-        {
-            Title = title,
-            Content = content
-        };
-
-        // Нет ошибок
-        var validationResultCreateNotificationDto = new ValidationResult();
-
-        // Какие-то ошибки
-        var validationResultNotification = new ValidationResult()
-        {
-            Errors =
-            [
-                new ValidationFailure("PropertyName", "ErrorMessage")
-            ]
-        };
-
-        _mockCreateNotificationDtoValidator.Setup(x => x.ValidateAsync(createNotificationDto, default)).ReturnsAsync(validationResultCreateNotificationDto);
-        _mockNotificationValidator.Setup(x => x.ValidateAsync(It.IsAny<Notification>(), default)).ReturnsAsync(validationResultNotification); // Возвращаем ошибки валидации на любого Notification'а, который впихивается в ValidateAsync
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _notificationManager.CreateNotificationAsync(createNotificationDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(Notification), validationResultNotification.Errors), ex.Message);
-    }
-
     [Fact]
     public async Task CreateNotificationAsync_NullObject_ThrowsArgumentNullException()
     {
@@ -111,50 +68,6 @@ public class NotificationManagerUnitTest
         Assert.Contains(nameof(createNotificationDto), ex.ParamName);
     }
 
-
-    [Fact] // Перед записью в базу должно выбросится исключение, о том, что Notification невалидный
-    public async Task CreateNotificationAsyncbyCreateNotificationSelectedUsersDto_ThrowsInvalidOperationException_NotValidBeforeCreate()
-    {
-        // Arrange
-        string title = "title";
-        string content = "content";
-
-        var createNotificationSelectedUsersDto = new CreateNotificationSelectedUsersDto()
-        {
-            UserIds = [Guid.NewGuid()],
-            Notification = new CreateNotificationDto()
-            {
-                Title = title,
-                Content = content
-            }
-        };
-
-        // Нет ошибок
-        var validationResultCreateNotificationSelectedUsersDto = new ValidationResult();
-
-        // Какие-то ошибки
-        var validationResultNotification = new ValidationResult()
-        {
-            Errors =
-            [
-                new ValidationFailure("PropertyName", "ErrorMessage")
-            ]
-        };
-
-        _mockCreateNotificationSelectedUsersDtoValidator.Setup(x => x.ValidateAsync(createNotificationSelectedUsersDto, default)).ReturnsAsync(validationResultCreateNotificationSelectedUsersDto);
-        _mockNotificationValidator.Setup(x => x.ValidateAsync(It.IsAny<Notification>(), default)).ReturnsAsync(validationResultNotification); // Возвращаем ошибки валидации на любого Notification'а, который впихивается в ValidateAsync
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _notificationManager.CreateNotificationAsync(createNotificationSelectedUsersDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(Notification), validationResultNotification.Errors), ex.Message);
-    }
 
     [Fact]
     public async Task CreateNotificationAsyncbyCreateNotificationSelectedUsersDto_NullObject_ThrowsArgumentNullException()

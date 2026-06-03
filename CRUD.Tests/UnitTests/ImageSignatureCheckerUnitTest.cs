@@ -1,6 +1,6 @@
 ﻿namespace CRUD.Tests.UnitTests;
 
-public class ImageSignatureCheckerUnitTest
+public sealed class ImageSignatureCheckerUnitTest
 {
     private readonly ImageSingnatureChecker _imageSingnatureChecker;
 

@@ -6,9 +6,9 @@
 /// <remarks>
 /// Валидация реализована через Fluent Validation.
 /// </remarks>
-public class UpdateUserDtoValidator : AbstractValidator<UpdateUserDto>
+public sealed class UpdateUserDtoValidator : AbstractValidator<UpdateUserDto>
 {
-    public UpdateUserDtoValidator(IValidatorsLocalizer localizer)
+    public UpdateUserDtoValidator(IValidatorLocalizer localizer)
     {
         RuleFor(x => x.Firstname).Firstname(localizer);
         RuleFor(x => x.Username).Username(localizer);

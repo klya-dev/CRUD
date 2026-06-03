@@ -39,10 +39,40 @@ public interface IAvatarManager
     Task<ServiceResult<(Stream Stream, string FileExtension)>> GetAvatarAsync(Guid userId, CancellationToken ct = default);
 
     /// <summary>
+    /// Получает аватарку пользователя ссылкой по его Id.
+    /// </summary>
+    /// <remarks>
+    /// <para>Дата истечения срока действия URL по умолчанию час.</para>
+    /// 
+    /// Возможные исключения:
+    /// <list type="bullet">
+    /// <item>
+    /// <term>Если <paramref name="userId"/> является <see cref="Guid.Empty"/></term>
+    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
+    /// </item>
+    /// </list>
+    /// 
+    /// Возможные ошибки сервиса:
+    /// <list type="bullet">
+    /// <item>
+    /// <term>Пользователь не найден</term>
+    /// <description><see cref="ErrorMessages.UserNotFound"/>.</description>
+    /// </item>
+    /// </list>
+    /// 
+    /// </remarks>
+    /// <param name="userId">Id пользователя.</param>
+    /// <param name="expires">Дата истечения срока действия URL в формате UTC (по умолчанию 1 час).</param>
+    /// <param name="ct">Токен отмены.</param>
+    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
+    /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
+    /// <returns><see cref="ServiceResult"/> результат сервиса cо строкой URL объекта.</returns>
+    Task<ServiceResult<string>> GetPresignedUrlAvatarAsync(Guid userId, DateTime? expires = null, CancellationToken ct = default);
+
+    /// <summary>
     /// Устанавливает аватарку пользователю.
     /// </summary>
     /// <remarks>
-    /// <para>Для валидации <see cref="User"/> используется <see cref="IValidator{User}"/>.</para>
     /// 
     /// Возможные исключения:
     /// <list type="bullet">
@@ -52,10 +82,6 @@ public interface IAvatarManager
     /// </item>
     /// <item>
     /// <term>Если <paramref name="userId"/> является <see cref="Guid.Empty"/></term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="User"/>, сущность окажется невалидна, изменения не последуют</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
     /// <item>
@@ -78,6 +104,10 @@ public interface IAvatarManager
     /// <term>Пользователь не найден</term>
     /// <description><see cref="ErrorMessages.UserNotFound"/>.</description>
     /// </item>
+    /// <item>
+    /// <term>Конфликт параллельности</term>
+    /// <description><see cref="ErrorMessages.ConcurrencyConflicts"/>.</description>
+    /// </item>
     /// </list>
     /// 
     /// </remarks>
@@ -85,7 +115,7 @@ public interface IAvatarManager
     /// <param name="stream">Поток файла.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="stream"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если после изменений данных сущности <see cref="User"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
     /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
@@ -110,7 +140,7 @@ public interface IAvatarManager
     /// <list type="bullet">
     /// <item>
     /// <term>Все возможные ошибки из</term>
-    /// <description><see cref="IS3Manager.DeleteObjectAsync(string, CancellationToken)"/>.</description>
+    /// <description><see cref="IS3Manager.DeleteObjectAsync(string, Action{Amazon.S3.Model.DeleteObjectRequest}?, CancellationToken)"/>.</description>
     /// </item>
     /// </list>
     /// 

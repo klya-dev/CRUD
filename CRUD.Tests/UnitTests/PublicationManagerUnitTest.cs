@@ -1,24 +1,20 @@
-﻿#nullable disable
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 
 namespace CRUD.Tests.UnitTests;
 
-public class PublicationManagerUnitTest
+public sealed class PublicationManagerUnitTest
 {
-    // #nullable disable
-
     private readonly ApplicationDbContext _db;
 
-    private readonly Mock<IValidator<Publication>> _mockPublicationValidator;
     private readonly Mock<IValidator<GetPublicationsDto>> _mockGetPublicationsDtoValidator;
     private readonly Mock<IValidator<GetPaginatedListDto>> _mockGetPaginatedListDtoValidator;
     private readonly Mock<IValidator<GetAuthorsDto>> _mockGetAuthorsDtoValidator;
     private readonly Mock<IValidator<UpdatePublicationDto>> _mockUpdatePublicationDtoValidator;
     private readonly Mock<IValidator<UpdatePublicationFullDto>> _mockUpdatePublicationFullDtoValidator;
     private readonly Mock<IValidator<CreatePublicationDto>> _mockCreatePublicationDtoValidator;
-    private readonly Mock<HtmlHelper> _mockHtmlHelper;
+    private readonly Mock<IHtmlHelper> _mockHtmlHelper;
     private readonly Mock<HybridCache> _mockHybridCache;
     private readonly PublicationManager _publicationManager;
 
@@ -27,7 +23,6 @@ public class PublicationManagerUnitTest
         var db = DbContextGenerator.GenerateDbContextTestInMemory();
         _db = db;
 
-        _mockPublicationValidator = new();
         _mockGetPublicationsDtoValidator = new();
         _mockGetPaginatedListDtoValidator = new();
         _mockGetAuthorsDtoValidator = new();
@@ -39,7 +34,6 @@ public class PublicationManagerUnitTest
 
         _publicationManager = new PublicationManager(
             db,
-            _mockPublicationValidator.Object,
             _mockGetPublicationsDtoValidator.Object,
             _mockGetPaginatedListDtoValidator.Object,
             _mockGetAuthorsDtoValidator.Object,
@@ -159,61 +153,6 @@ public class PublicationManagerUnitTest
         Assert.Contains(ErrorMessages.EmptyUniqueIdentifier, ex.Message);
     }
 
-    [Fact] // Перед записью в базу должно выбросится исключение, о том, что Publication невалидный
-    public async Task UpdatePublicationAsync_ThrowsInvalidOperationException_NotValidBeforeUpdate()
-    {
-        // Arrange
-        string title = "Title";
-        string content = TestConstants.PublicationContent;
-
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
-
-        var publicationIdGuid = publication.Id;
-        var updatePublicationDto = new UpdatePublicationDto()
-        {
-            Title = title,
-            Content = content,
-            PublicationId = publicationIdGuid
-        };
-        var userIdGuid = user.Id;
-
-        // Какие-то ошибки
-        var validationResultPublication = new ValidationResult()
-        {
-            Errors =
-            [
-                new ValidationFailure("PropertyName", "ErrorMessage")
-            ]
-        };
-
-        // Проходит валидацию
-        _mockUpdatePublicationDtoValidator.Setup(x => x.ValidateAsync(updatePublicationDto, default)).ReturnsAsync(new ValidationResult());
-
-        // Не проходит валидацию
-        _mockPublicationValidator.Setup(x => x.ValidateAsync(It.IsAny<Publication>(), default)).ReturnsAsync(validationResultPublication); // Возвращаем ошибки валидации на любого Publication'а, который впихивается в ValidateAsync
-
-        // Пользователь является автором публикации
-        //_mockHybridCache.Setup(x => x.GetOrCreateAsync<bool>(It.IsAny<string>(), It.IsAny<Func<CancellationToken, ValueTask<bool>>>())).ReturnsAsync(false);
-        //await _mockHybridCache.Object.SetAsync(
-        //    $"{CacheKeys.IsAuthorThisPublication}-{userIdGuid}:{publicationIdGuid}", true);
-        _mockHybridCache.Setup(x => x.GetOrCreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Func<string, CancellationToken, ValueTask<bool>>>(), It.IsAny<HybridCacheEntryOptions>(), It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _publicationManager.UpdatePublicationAsync(userIdGuid, updatePublicationDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(Publication), validationResultPublication.Errors), ex.Message);
-    }
-
     [Fact]
     public async Task UpdatePublicationAsync_NullObject_ThrowsArgumentNullException()
     {
@@ -307,49 +246,8 @@ public class PublicationManagerUnitTest
         Assert.Contains(ErrorMessages.EmptyUniqueIdentifier, ex.Message);
 
         // Публикация и вправду не создалась | нахожу по автору и по DTO
-        var publicationFromDbAfterCreate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.AuthorId == userIdGuid && x.Title == title && x.Content == content);
+        var publicationFromDbAfterCreate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.AuthorId == userIdGuid && x.Title == title && x.Content == content, TestContext.Current.CancellationToken);
         Assert.Null(publicationFromDbAfterCreate);
-    }
-
-    [Fact] // Перед записью в базу должно выбросится исключение, о том, что Publication невалидный
-    public async Task CreatePublicationAsync_ThrowsInvalidOperationException_NotValidBeforeCreate()
-    {
-        // Arrange
-        string title = "Title";
-        string content = TestConstants.PublicationContent;
-
-        var createPublicationDto = new CreatePublicationDto()
-        {
-            Title = title,
-            Content = content
-        };
-        var userIdGuid = Guid.NewGuid();
-
-        // Нет ошибок
-        var validationResultCreatePublicationDto = new ValidationResult();
-
-        // Какие-то ошибки
-        var validationResultPublication = new ValidationResult()
-        {
-            Errors =
-            [
-                new ValidationFailure("PropertyName", "ErrorMessage")
-            ]
-        };
-
-        _mockCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(createPublicationDto, default)).ReturnsAsync(validationResultCreatePublicationDto);
-        _mockPublicationValidator.Setup(x => x.ValidateAsync(It.IsAny<Publication>(), default)).ReturnsAsync(validationResultPublication); // Возвращаем ошибки валидации на любого Publication'а, который впихивается в ValidateAsync
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _publicationManager.CreatePublicationAsync(userIdGuid, createPublicationDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(Publication), validationResultPublication.Errors), ex.Message);
     }
 
     [Fact]
@@ -444,7 +342,7 @@ public class PublicationManagerUnitTest
         var publicationIdGuid = Guid.Parse(publicationId);
 
         // Act
-        var result = await _publicationManager.IsAuthorThisPublicationAsync(userIdGuid, publicationIdGuid);
+        var result = await _publicationManager.IsAuthorThisPublicationAsync(userIdGuid, publicationIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(result);

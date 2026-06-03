@@ -3,13 +3,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRUD.Tests.UnitTests;
 
-public class PasswordChangerUnitTest
+public sealed class PasswordChangerUnitTest
 {
     private readonly PasswordChanger _passwordChanger;
     private readonly ApplicationDbContext _db;
     private readonly Mock<IValidator<ChangePasswordDto>> _mockChangePasswordDtoValidator;
     private readonly Mock<IValidator<SetPasswordDto>> _mockSetPasswordDtoValidator;
-    private readonly Mock<IValidator<User>> _mockUserValidator;
     private readonly Mock<IChangePasswordRequestManager> _mockChangePasswordRequestManager;
     private readonly Mock<IPasswordHasher> _mockPasswordHasher;
 
@@ -20,11 +19,10 @@ public class PasswordChangerUnitTest
 
         _mockChangePasswordDtoValidator = new();
         _mockSetPasswordDtoValidator = new();
-        _mockUserValidator = new();
         _mockChangePasswordRequestManager = new();
         _mockPasswordHasher = new();
 
-        _passwordChanger = new PasswordChanger(db, _mockChangePasswordDtoValidator.Object, _mockSetPasswordDtoValidator.Object, _mockUserValidator.Object, _mockChangePasswordRequestManager.Object, _mockPasswordHasher.Object);
+        _passwordChanger = new PasswordChanger(db, _mockChangePasswordDtoValidator.Object, _mockSetPasswordDtoValidator.Object, _mockChangePasswordRequestManager.Object, _mockPasswordHasher.Object);
     }
 
     [Fact]

@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 namespace CRUD.Infrastructure.S3;
 
 /// <inheritdoc cref="ISaveLogsToS3BackgroundCore"/>
-public partial class SaveLogsToS3BackgroundCore : ISaveLogsToS3BackgroundCore
+public sealed partial class SaveLogsToS3BackgroundCore : ISaveLogsToS3BackgroundCore
 {
     private readonly IS3Manager _s3Manager;
     private readonly S3Options _s3Options;
@@ -43,7 +43,7 @@ public partial class SaveLogsToS3BackgroundCore : ISaveLogsToS3BackgroundCore
             var fileName = Path.GetFileName(path);
 
             // Проверяем подходит ли имя файла к формату
-            if (!LogFileNameRegex().IsMatch(fileName))
+            if (!LogFileNameRegex.IsMatch(fileName))
             {
                 _logger.LogWarning("Файл-лог \"{fileName}\" не подходит по формату.", fileName);
                 continue;
@@ -63,7 +63,7 @@ public partial class SaveLogsToS3BackgroundCore : ISaveLogsToS3BackgroundCore
             await using (var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 var key = _s3Options.LogsInS3Directory + "/" + fileName; // Ключ объекта в S3
-                var result = await _s3Manager.CreateObjectAsync(file, key, ct);
+                var result = await _s3Manager.CreateObjectAsync(key, file, checkExists: true, ct: ct); // Обязательно проверяем существование лога в S3, т.к перезапись уже существующих логов может обернуться не очень хорошо 
 
                 // Если ошибка при загрузке в облачное хранилище
                 if (result.ErrorMessage != null)
@@ -78,6 +78,6 @@ public partial class SaveLogsToS3BackgroundCore : ISaveLogsToS3BackgroundCore
         }
     }
 
-    [GeneratedRegex(@"log-\d{4}\d{2}\d{2}\.txt$")]
-    private static partial Regex LogFileNameRegex();
+    [GeneratedRegex(@"log-\d{4}\d{2}\d{2}\.txt$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex LogFileNameRegex { get; }
 }

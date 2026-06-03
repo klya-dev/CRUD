@@ -44,7 +44,7 @@ public static partial class StringExtensions
     /// <returns>Очищенная строка.</returns>
     public static string ReplaceExtraSpaces(this string value)
     {
-        return AnySpacesWithoutNewLinesRegex().Replace(value, " ");
+        return AnySpacesWithoutNewLinesRegex.Replace(value, " ");
     }
 
     /// <summary>
@@ -56,12 +56,12 @@ public static partial class StringExtensions
     /// <returns>Очищенная строка.</returns>
     public static string ReplaceExtraNewLines(this string value)
     {
-        return AnyNewLinesRegex().Replace(value, "\n");
+        return AnyNewLinesRegex.Replace(value, "\n");
     }
 
-    [GeneratedRegex(@"[^\S\r\n]+")] // Любые символы пробела, без учёта переноса строк (https://stackoverflow.com/questions/3469080/match-whitespace-but-not-newlines)
-    private static partial Regex AnySpacesWithoutNewLinesRegex();
+    [GeneratedRegex(@"[^\S\r\n]+", RegexOptions.None, matchTimeoutMilliseconds: 1000)] // Любые символы пробела, без учёта переноса строк (https://stackoverflow.com/questions/3469080/match-whitespace-but-not-newlines)
+    private static partial Regex AnySpacesWithoutNewLinesRegex { get; }
 
-    [GeneratedRegex(@"[\r\n]+")] // Любые переносы строк
-    private static partial Regex AnyNewLinesRegex();
+    [GeneratedRegex(@"[\r\n]+", RegexOptions.None, matchTimeoutMilliseconds: 1000)] // Любые переносы строк
+    private static partial Regex AnyNewLinesRegex { get; }
 }

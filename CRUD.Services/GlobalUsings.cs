@@ -7,7 +7,7 @@ global using Microsoft.Extensions.Logging;
 global using CRUD.DataAccess;
 global using CRUD.DataAccess.Converters;
 global using CRUD.DataAccess.Data;
-global using CRUD.DataAccess.DbInitializer;
+global using CRUD.DataAccess.Initialization;
 global using CRUD.Models.Dtos.User;
 global using CRUD.Models.Dtos.OAuth;
 global using CRUD.Models.Domains;

@@ -6,9 +6,9 @@
 /// <remarks>
 /// Валидация реализована через Fluent Validation.
 /// </remarks>
-public class CreatePublicationDtoValidator : AbstractValidator<CreatePublicationDto>
+public sealed class CreatePublicationDtoValidator : AbstractValidator<CreatePublicationDto>
 {
-    public CreatePublicationDtoValidator(IValidatorsLocalizer localizer)
+    public CreatePublicationDtoValidator(IValidatorLocalizer localizer)
     {
         RuleFor(x => x.Title).Title(localizer);
         RuleFor(x => x.Content).Content(localizer);

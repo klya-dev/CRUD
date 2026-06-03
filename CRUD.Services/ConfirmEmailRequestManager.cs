@@ -4,20 +4,18 @@ using Microsoft.Extensions.Options;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IConfirmEmailRequestManager"/>
-public class ConfirmEmailRequestManager : IConfirmEmailRequestManager
+public sealed class ConfirmEmailRequestManager : IConfirmEmailRequestManager
 {
     private readonly ApplicationDbContext _db;
     private readonly ITokenManager _tokenManager;
-    private readonly IValidator<ConfirmEmailRequest> _confirmEmailRequestValidator;
     private readonly ConfirmEmailRequestOptions _options;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IQueueEmail _queueEmail;
 
-    public ConfirmEmailRequestManager(ApplicationDbContext db, ITokenManager tokenManager, IValidator<ConfirmEmailRequest> confirmEmailRequestValidator, IOptions<ConfirmEmailRequestOptions> options, IHttpContextAccessor httpContextAccessor, IQueueEmail queueEmail)
+    public ConfirmEmailRequestManager(ApplicationDbContext db, ITokenManager tokenManager, IOptions<ConfirmEmailRequestOptions> options, IHttpContextAccessor httpContextAccessor, IQueueEmail queueEmail)
     {
         _db = db;
         _tokenManager = tokenManager;
-        _confirmEmailRequestValidator = confirmEmailRequestValidator;
         _options = options.Value;
         _httpContextAccessor = httpContextAccessor;
         _queueEmail = queueEmail;
@@ -59,11 +57,6 @@ public class ConfirmEmailRequestManager : IConfirmEmailRequestManager
             CreatedAt = createdAt,
             Expires = createdAt.Add(_options.Expires),
         };
-
-        // Проверка валидности данных перед записью в базу
-        var validationResult = await _confirmEmailRequestValidator.ValidateAsync(confirmEmailRequest, ct);
-        if (!validationResult.IsValid)
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(ConfirmEmailRequest), validationResult.Errors));
 
         // Записываем токен в базу
         await _db.ConfirmEmailRequests.AddAsync(confirmEmailRequest, ct);

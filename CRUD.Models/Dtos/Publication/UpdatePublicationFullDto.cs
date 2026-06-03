@@ -5,26 +5,23 @@ namespace CRUD.Models.Dtos.Publication;
 /// <summary>
 /// DTO-модель для обновления полных данных публикации.
 /// </summary>
-public class UpdatePublicationFullDto
+public sealed record UpdatePublicationFullDto
 {
     /// <summary>
     /// Новый заголовок публикации.
     /// </summary>
     [JsonPropertyName("title")]
-    public string? Title { get; set; }
+    public string? Title { get; init; }
 
     /// <summary>
     /// Новое содержание публикации.
     /// </summary>
     [JsonPropertyName("content")]
-    public string? Content { get; set; }
+    public string? Content { get; init; }
 
     /// <summary>
     /// Новая дата в формате <see cref="DateTimeFormats.WithTicks"/>.
     /// </summary>
-    /// <remarks>
-    /// Необязательно.
-    /// </remarks>
     [JsonPropertyName("createdAt")]
-    public string? CreatedAt { get; set; }
+    public string? CreatedAt { get; init; }
 }

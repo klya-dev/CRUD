@@ -5,7 +5,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Admin;
 
-public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -29,11 +29,11 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id); // Дата с 7 знаками после запятой
-        var publicationCreatedAt = (await _db.Publications.AsNoTracking().FirstAsync(x => x.Id == publication.Id)).CreatedAt; // Дата с 6 знаками после запятой (7ой - это 0), т.к из базы
+        var publication = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken); // Дата с 7 знаками после запятой
+        var publicationCreatedAt = (await _db.Publications.AsNoTracking().FirstAsync(x => x.Id == publication.Id, TestContext.Current.CancellationToken)).CreatedAt; // Дата с 6 знаками после запятой (7ой - это 0), т.к из базы
         var expectedDto = new PublicationFullDto()
         {
             Id = publication.Id,
@@ -65,7 +65,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -73,8 +73,8 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.Deserialize<PublicationFullDto>();
 
         Assert.NotNull(response);
@@ -97,7 +97,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -105,8 +105,8 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.PUBLICATION_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -118,7 +118,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         var client = _factory.HttpClient;
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, null);
+        var publication = await DI.CreatePublicationAsync(_db, null, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_PUBLICATIONS_PUBLICATION_ID_URL, publication.Id);
@@ -126,7 +126,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -134,8 +134,8 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.Deserialize<PublicationFullDto>();
 
         Assert.NotNull(response);
@@ -155,12 +155,12 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         string content = "new" + TestConstants.PublicationContent;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, userIdGuid, title: title);
+        var publication = await DI.CreatePublicationAsync(_db, userIdGuid, title: title, ct: TestContext.Current.CancellationToken);
 
         var publicationIdGuid = publication.Id;
         var data = new UpdatePublicationFullDto()
@@ -177,7 +177,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -185,7 +185,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Null(result.Content.Headers.ContentType);
 
         // Публикация и вправду обновилась
-        var publicationFromDbAfterUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid);
+        var publicationFromDbAfterUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
         Assert.Equal(data.Title, publicationFromDbAfterUpdate.Title);
         Assert.Equal(data.Content, publicationFromDbAfterUpdate.Content);
     }
@@ -197,11 +197,11 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, userIdGuid);
+        var publication = await DI.CreatePublicationAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
         var publicationIdGuid = publication.Id;
 
         var data = new UpdatePublicationFullDto()
@@ -219,7 +219,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -227,7 +227,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Null(result.Content.Headers.ContentType);
 
         // Публикация и вправду обновилась
-        var publicationFromDbAfterUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid);
+        var publicationFromDbAfterUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
         Assert.Equal(data.Title, publicationFromDbAfterUpdate.Title);
         Assert.Equal(data.Content, publicationFromDbAfterUpdate.Content);
         Assert.Equal(data.CreatedAt, publicationFromDbAfterUpdate.CreatedAt.ToString(DateTimeFormats.WithTicks));
@@ -240,11 +240,11 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, userIdGuid);
+        var publication = await DI.CreatePublicationAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
         var publicationIdGuid = publication.Id;
 
         var data = new UpdatePublicationFullDto()
@@ -253,7 +253,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
             Content = publication.Content
         };
 
-        var publicationFromDbBeforeUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid);
+        var publicationFromDbBeforeUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_PUBLICATIONS_PUBLICATION_ID_URL, publication.Id);
@@ -263,7 +263,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -271,13 +271,13 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.NO_CHANGES_DETECTED, jsonDocument.RootElement.GetProperty("code").GetString());
 
         // Публикация и вправду не обновилась
-        var publicationFromDbAfterUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid);
+        var publicationFromDbAfterUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
         Assert.Equivalent(publicationFromDbBeforeUpdate, publicationFromDbAfterUpdate);
     }
 
@@ -291,7 +291,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         string content = "new" + TestConstants.PublicationContent;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var publicationIdGuid = Guid.NewGuid();
         var data = new UpdatePublicationFullDto()
@@ -308,7 +308,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -316,8 +316,8 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.PUBLICATION_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -333,10 +333,10 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
 
         // Добавляем по
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id, title: title, content: content);
+        var publication = await DI.CreatePublicationAsync(_db, user.Id, title: title, content: content, ct: TestContext.Current.CancellationToken);
 
         var publicationIdGuid = publication.Id;
         var data = new UpdatePublicationFullDto()
@@ -345,7 +345,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
             Content = content
         };
         var userIdGuid = user.Id;
-        var publicationFromDbBeforeUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid);
+        var publicationFromDbBeforeUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_PUBLICATIONS_PUBLICATION_ID_URL, publication.Id);
@@ -355,7 +355,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -363,13 +363,13 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.NO_CHANGES_DETECTED, jsonDocument.RootElement.GetProperty("code").GetString());
 
         // Публикация и вправду не обновилась
-        var publicationFromDbAfterUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid);
+        var publicationFromDbAfterUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
         Assert.Equivalent(publicationFromDbBeforeUpdate, publicationFromDbAfterUpdate);
     }
 
@@ -381,11 +381,11 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, userIdGuid);
+        var publication = await DI.CreatePublicationAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
         var publicationIdGuid = publication.Id;
 
         // Запрос
@@ -395,7 +395,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -403,7 +403,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Null(result.Content.Headers.ContentType);
 
         // Публикация и вправду удалилась
-        var publicationFromDbAfterDelete = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid);
+        var publicationFromDbAfterDelete = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
         Assert.Null(publicationFromDbAfterDelete);
     }
 
@@ -414,7 +414,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var publicationIdGuid = Guid.NewGuid();
 
@@ -425,7 +425,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -433,8 +433,8 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.PUBLICATION_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -447,15 +447,15 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, userIdGuid);
+        var publication = await DI.CreatePublicationAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
         var publicationIdGuid = publication.Id;
 
         // Добавляем публикацию в базу
-        var publication2 = await DI.CreatePublicationAsync(_db, userIdGuid);
+        var publication2 = await DI.CreatePublicationAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_PUBLICATIONS_AUTHORS_USER_ID_URL, userIdGuid);
@@ -463,7 +463,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -471,7 +471,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Null(result.Content.Headers.ContentType);
 
         // Публикации и вправду удалились
-        var publicationsFromDbAfterDelete = await _db.Publications.AsNoTracking().Where(x => x.AuthorId == userIdGuid).ToListAsync();
+        var publicationsFromDbAfterDelete = await _db.Publications.AsNoTracking().Where(x => x.AuthorId == userIdGuid).ToListAsync(TestContext.Current.CancellationToken);
         Assert.Empty(publicationsFromDbAfterDelete);
     }
 
@@ -484,10 +484,10 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         var userIdGuid = Guid.NewGuid();
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db); // Автор публикации
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken); // Автор публикации
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
+        var publication = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_PUBLICATIONS_AUTHORS_USER_ID_URL, userIdGuid);
@@ -495,7 +495,7 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -503,8 +503,8 @@ public class AdminPublicationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }

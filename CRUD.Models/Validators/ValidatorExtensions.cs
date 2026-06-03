@@ -19,18 +19,18 @@ public static class ValidatorExtensions
     /// <para>Используется регулярное выражение "^[а-яА-ЯёЁ]+$".</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> Cyrillic<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> Cyrillic<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
             return ruleBuilder
                 .Matches("^[а-яА-ЯёЁ]+$")
-                .WithMessage(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.OnlyCyrillic));
+                .WithMessage(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.OnlyCyrillic));
         }
 
         return ruleBuilder
                 .Matches("^[а-яА-ЯёЁ]+$")
-                .WithMessage(localizer[ValidatorsLocalizerConstants.OnlyCyrillic]);
+                .WithMessage(localizer[ValidatorLocalizerConstants.OnlyCyrillic]);
     }
 
     /// <summary>
@@ -40,18 +40,18 @@ public static class ValidatorExtensions
     /// <para>Используется регулярное выражение "^[a-z]+$".</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> SmallCaseLatin<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> SmallCaseLatin<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
             return ruleBuilder
                 .Matches("^[a-z]+$")
-                .WithMessage(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.OnlySmallCaseLatin));
+                .WithMessage(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.OnlySmallCaseLatin));
         }
 
         return ruleBuilder
             .Matches("^[a-z]+$")
-            .WithMessage(localizer[ValidatorsLocalizerConstants.OnlySmallCaseLatin]);
+            .WithMessage(localizer[ValidatorLocalizerConstants.OnlySmallCaseLatin]);
     }
 
     /// <summary>
@@ -61,18 +61,18 @@ public static class ValidatorExtensions
     /// <para>Используется регулярное выражение "^[a-zA-z0-9_-]+$".</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> LatinNumbersDashes<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> LatinNumbersDashes<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
             return ruleBuilder
                 .Matches("^[a-zA-z0-9_-]+$")
-                .WithMessage(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.OnlyLatinNumbersDashes));
+                .WithMessage(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.OnlyLatinNumbersDashes));
         }
 
         return ruleBuilder
             .Matches("^[a-zA-z0-9_-]+$")
-            .WithMessage(localizer[ValidatorsLocalizerConstants.OnlyLatinNumbersDashes]);
+            .WithMessage(localizer[ValidatorLocalizerConstants.OnlyLatinNumbersDashes]);
     }
 
     /// <summary>
@@ -82,18 +82,18 @@ public static class ValidatorExtensions
     /// <para>Используется регулярное выражение "^[a-zA-Z0-9!;%:?*_+=\-@#$^&#38;]+$".</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> LatinNumbersSpecialCharacters<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> LatinNumbersSpecialCharacters<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
             return ruleBuilder
                 .Matches(@"^[a-zA-Z0-9!;%:?*_+=\-@#$^&]+$")
-                .WithMessage(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.OnlyLatinNumbersSpecialCharacters));
+                .WithMessage(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.OnlyLatinNumbersSpecialCharacters));
         }
 
         return ruleBuilder
             .Matches(@"^[a-zA-Z0-9!;%:?*_+=\-@#$^&]+$")
-            .WithMessage(localizer[ValidatorsLocalizerConstants.OnlyLatinNumbersSpecialCharacters]);
+            .WithMessage(localizer[ValidatorLocalizerConstants.OnlyLatinNumbersSpecialCharacters]);
     }
 
     /// <summary>
@@ -103,18 +103,18 @@ public static class ValidatorExtensions
     /// <para>Используется регулярное выражение "^[0-9]+$".</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> Numbers<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> Numbers<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
             return ruleBuilder
                 .Matches(@"^[0-9]+$")
-                .WithMessage(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.OnlyNumbers));
+                .WithMessage(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.OnlyNumbers));
         }
 
         return ruleBuilder
             .Matches(@"^[0-9]+$")
-            .WithMessage(localizer[ValidatorsLocalizerConstants.OnlyNumbers]);
+            .WithMessage(localizer[ValidatorLocalizerConstants.OnlyNumbers]);
     }
 
     /// <summary>
@@ -140,7 +140,7 @@ public static class ValidatorExtensions
     /// <para>Значение <see langword="null"/> игнорируется.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string?> NotWhiteSpace<T>(this IRuleBuilder<T, string?> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string?> NotWhiteSpace<T>(this IRuleBuilder<T, string?> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         var builder = ruleBuilder
             .Must(value =>
@@ -156,10 +156,10 @@ public static class ValidatorExtensions
 
         if (localizer == null)
             return builder
-                .WithMessage(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.NotWhiteSpace));
+                .WithMessage(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.NotWhiteSpace));
 
         return builder
-                .WithMessage(localizer[ValidatorsLocalizerConstants.NotWhiteSpace]);
+                .WithMessage(localizer[ValidatorLocalizerConstants.NotWhiteSpace]);
     }
 
     /// <summary>
@@ -169,7 +169,7 @@ public static class ValidatorExtensions
     /// <para>Используются правила <c>.NotEmpty().InclusiveBetween(DateTime.UtcNow.AddMinutes(-5), DateTime.UtcNow.AddMinutes(5))</c>.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, DateTime> InclusiveBetweenInMunutes<T>(this IRuleBuilder<T, DateTime> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, DateTime> InclusiveBetweenInMunutes<T>(this IRuleBuilder<T, DateTime> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
@@ -190,7 +190,7 @@ public static class ValidatorExtensions
     /// <para>Используются правила <c>.NotEmpty().Length(2, 32).Cyrillic().WithName()</c>.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> Firstname<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> Firstname<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
@@ -198,14 +198,14 @@ public static class ValidatorExtensions
                 .NotEmpty()
                 .Length(2, 32)
                 .Cyrillic()
-                .WithName(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.PropertyFirstname));
+                .WithName(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.PropertyFirstname));
         }
 
         return ruleBuilder
             .NotEmpty()
             .Length(2, 32)
             .Cyrillic(localizer)
-            .WithName(localizer[ValidatorsLocalizerConstants.PropertyFirstname]);
+            .WithName(localizer[ValidatorLocalizerConstants.PropertyFirstname]);
     }
 
     /// <summary>
@@ -215,7 +215,7 @@ public static class ValidatorExtensions
     /// <para>Используются правила <c>.NotEmpty().Length(4, 32).LatinNumbersDash()</c>.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> Username<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> Username<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
@@ -238,7 +238,7 @@ public static class ValidatorExtensions
     /// <para>Используются правила <c>.NotEmpty().Length(2).SmallCaseLatin().WithName()</c>.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> LanguageCode<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> LanguageCode<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
@@ -246,14 +246,14 @@ public static class ValidatorExtensions
                 .NotEmpty()
                 .Length(2)
                 .SmallCaseLatin()
-                .WithName(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.PropertyLanguageCode));
+                .WithName(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.PropertyLanguageCode));
         }
 
         return ruleBuilder
             .NotEmpty()
             .Length(2)
             .SmallCaseLatin(localizer)
-            .WithName(localizer[ValidatorsLocalizerConstants.PropertyLanguageCode]);
+            .WithName(localizer[ValidatorLocalizerConstants.PropertyLanguageCode]);
     }
 
     /// <summary>
@@ -263,7 +263,7 @@ public static class ValidatorExtensions
     /// <para>Используются правила <c>.NotEmpty().Length(6, 254).Matches(@"^(\w|\d|\.|_|-)+@(\w|\d){1,}\.[\w]{1,}\.?[\w]*$").WithMessage()</c>.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> Email<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> Email<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
@@ -271,14 +271,14 @@ public static class ValidatorExtensions
                 .NotEmpty()
                 .Length(6, 254)
                 .Matches(@"^[a-zA-Z0-9\-._]+@[a-zA-Z0-9\-._]+\.[a-z]+$")
-                .WithMessage(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.Email));
+                .WithMessage(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.Email));
         }
 
         return ruleBuilder
             .NotEmpty()
             .Length(6, 254)
             .Matches(@"^[a-zA-Z0-9\-._]+@[a-zA-Z0-9\-._]+\.[a-z]+$")
-            .WithMessage(localizer[ValidatorsLocalizerConstants.Email]);
+            .WithMessage(localizer[ValidatorLocalizerConstants.Email]);
     }
 
     /// <summary>
@@ -288,7 +288,7 @@ public static class ValidatorExtensions
     /// <para>Используются правила <c>.NotEmpty().Length(5, 15).Numbers().WithName()</c>.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> PhoneNumber<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> PhoneNumber<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
@@ -296,14 +296,14 @@ public static class ValidatorExtensions
                 .NotEmpty()
                 .Length(5, 15)
                 .Numbers()
-                .WithName(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.PropertyPhoneNumber));
+                .WithName(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.PropertyPhoneNumber));
         }
 
         return ruleBuilder
             .NotEmpty()
             .Numbers(localizer)
             .Length(5, 15)
-            .WithName(localizer[ValidatorsLocalizerConstants.PropertyPhoneNumber]);
+            .WithName(localizer[ValidatorLocalizerConstants.PropertyPhoneNumber]);
     }
 
     /// <summary>
@@ -313,18 +313,18 @@ public static class ValidatorExtensions
     /// <para>Используются правила <c>.NotEmpty().WithName()</c>.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> Password<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> Password<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
             return ruleBuilder
                 .NotEmpty()
-                .WithName(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.PropertyPassword));
+                .WithName(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.PropertyPassword));
         }
 
         return ruleBuilder
             .NotEmpty()
-            .WithName(localizer[ValidatorsLocalizerConstants.PropertyPassword]);
+            .WithName(localizer[ValidatorLocalizerConstants.PropertyPassword]);
     }
 
     /// <summary>
@@ -334,20 +334,20 @@ public static class ValidatorExtensions
     /// <para>Используются правила <c>.NotEmpty().Length(69).WithName()</c>.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> HashedPassword<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> HashedPassword<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
             return ruleBuilder
                 .NotEmpty()
                 .Length(69)
-                .WithName(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.PropertyHashedPassword));
+                .WithName(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.PropertyHashedPassword));
         }
 
         return ruleBuilder
             .NotEmpty()
             .Length(69)
-            .WithName(localizer[ValidatorsLocalizerConstants.PropertyHashedPassword]);
+            .WithName(localizer[ValidatorLocalizerConstants.PropertyHashedPassword]);
     }
 
     /// <summary>
@@ -357,20 +357,20 @@ public static class ValidatorExtensions
     /// <para>Используются правила <c>.NotEmpty().MaximumLength(100).WithName()</c>.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> Token<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> Token<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
             return ruleBuilder
                 .NotEmpty()
                 .MaximumLength(100)
-                .WithName(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.PropertyToken));
+                .WithName(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.PropertyToken));
         }
 
         return ruleBuilder
             .NotEmpty()
             .MaximumLength(100)
-            .WithName(localizer[ValidatorsLocalizerConstants.PropertyToken]);
+            .WithName(localizer[ValidatorLocalizerConstants.PropertyToken]);
     }
 
     /// <summary>
@@ -381,20 +381,20 @@ public static class ValidatorExtensions
     /// <para>Если значение <see langword="null"/>, то так и остаётся, а если не <see langword="null"/>, то проверяем пустая ли строка и длину.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string?> ApiKey<T>(this IRuleBuilder<T, string?> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string?> ApiKey<T>(this IRuleBuilder<T, string?> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
             return ruleBuilder
                 .NotWhiteSpace(localizer)
                 .Length(100)
-                .WithName(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.PropertyApiKey));
+                .WithName(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.PropertyApiKey));
         }
 
         return ruleBuilder
             .NotWhiteSpace(localizer)
             .Length(100)
-            .WithName(localizer[ValidatorsLocalizerConstants.PropertyApiKey]);
+            .WithName(localizer[ValidatorLocalizerConstants.PropertyApiKey]);
     }
 
     /// <summary>
@@ -405,20 +405,20 @@ public static class ValidatorExtensions
     /// <para>Если значение <see langword="null"/>, то так и остаётся, а если не <see langword="null"/>, то проверяем пустая ли строка и длину.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string?> DisposableApiKey<T>(this IRuleBuilder<T, string?> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string?> DisposableApiKey<T>(this IRuleBuilder<T, string?> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
             return ruleBuilder
                 .NotWhiteSpace(localizer)
                 .Length(100)
-                .WithName(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.PropertyDisposableApiKey));
+                .WithName(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.PropertyDisposableApiKey));
         }
 
         return ruleBuilder
             .NotWhiteSpace(localizer)
             .Length(100)
-            .WithName(localizer[ValidatorsLocalizerConstants.PropertyDisposableApiKey]);
+            .WithName(localizer[ValidatorLocalizerConstants.PropertyDisposableApiKey]);
     }
 
     /// <summary>
@@ -428,20 +428,20 @@ public static class ValidatorExtensions
     /// <para>Используются правила <c>.NotEmpty().Length(100).WithName()</c>.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, string> ApiKeyOrDisposableApiKey<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, string> ApiKeyOrDisposableApiKey<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
             return ruleBuilder
                 .NotEmpty()
                 .Length(100)
-                .WithName(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.PropertyApiKeyOrDisposableApiKey));
+                .WithName(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.PropertyApiKeyOrDisposableApiKey));
         }
 
         return ruleBuilder
             .NotEmpty()
             .Length(100)
-            .WithName(localizer[ValidatorsLocalizerConstants.PropertyApiKeyOrDisposableApiKey]);
+            .WithName(localizer[ValidatorLocalizerConstants.PropertyApiKeyOrDisposableApiKey]);
     }
 
     /// <summary>
@@ -453,11 +453,11 @@ public static class ValidatorExtensions
     /// <para>В некоторых случаях нужно, чтобы отображался "Пароль", вместо "Новый пароль". Для этого есть <paramref name="displayPasswordName"/>. Если <see langword="true"/>, то "Пароль".</para>
     /// </remarks>
     /// <param name="displayPasswordName">Отображать ли поле, как "Пароль", вместо "Новый пароль".</param>
-    public static IRuleBuilderOptions<T, string> NewPassword<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null, bool displayPasswordName = false)
+    public static IRuleBuilderOptions<T, string> NewPassword<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null, bool displayPasswordName = false)
     {
-        string key = ValidatorsLocalizerConstants.PropertyNewPassword;
+        string key = ValidatorLocalizerConstants.PropertyNewPassword;
         if (displayPasswordName)
-            key = ValidatorsLocalizerConstants.PropertyPassword;
+            key = ValidatorLocalizerConstants.PropertyPassword;
 
         if (localizer == null)
         {
@@ -465,7 +465,7 @@ public static class ValidatorExtensions
                 .NotEmpty()
                 .Length(4, 32)
                 .LatinNumbersSpecialCharacters()
-                .WithName(EnglishValidatorsLanguage.GetTranslation(key));
+                .WithName(EnglishValidatorLanguage.GetTranslation(key));
         }
 
         return ruleBuilder
@@ -495,7 +495,7 @@ public static class ValidatorExtensions
     /// </example>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptionsConditions<T, string> Role<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptionsConditions<T, string> Role<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
@@ -507,7 +507,7 @@ public static class ValidatorExtensions
                         if (role == userRole)
                             return;
 
-                    context.AddFailure(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.InvalidRole));
+                    context.AddFailure(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.InvalidRole));
                 });
         }
 
@@ -519,7 +519,7 @@ public static class ValidatorExtensions
                     if (role == userRole)
                         return;
 
-                context.AddFailure(localizer[ValidatorsLocalizerConstants.InvalidRole]);
+                context.AddFailure(localizer[ValidatorLocalizerConstants.InvalidRole]);
             });
     }
 
@@ -543,7 +543,7 @@ public static class ValidatorExtensions
     /// </example>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptionsConditions<T, string> OrderStatus<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptionsConditions<T, string> OrderStatus<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
@@ -555,7 +555,7 @@ public static class ValidatorExtensions
                         if (status == orderStatus)
                             return;
 
-                    context.AddFailure(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.InvalidOrderStatus));
+                    context.AddFailure(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.InvalidOrderStatus));
                 });
         }
 
@@ -567,7 +567,7 @@ public static class ValidatorExtensions
                     if (status == orderStatus)
                         return;
 
-                context.AddFailure(localizer[ValidatorsLocalizerConstants.InvalidOrderStatus]);
+                context.AddFailure(localizer[ValidatorLocalizerConstants.InvalidOrderStatus]);
             });
     }
 
@@ -591,7 +591,7 @@ public static class ValidatorExtensions
     /// </example>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptionsConditions<T, string> PaymentStatus<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptionsConditions<T, string> PaymentStatus<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
@@ -603,7 +603,7 @@ public static class ValidatorExtensions
                         if (status == orderStatus)
                             return;
 
-                    context.AddFailure(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.InvalidPaymentStatus));
+                    context.AddFailure(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.InvalidPaymentStatus));
                 });
         }
 
@@ -615,7 +615,7 @@ public static class ValidatorExtensions
                     if (status == orderStatus)
                         return;
 
-                context.AddFailure(localizer[ValidatorsLocalizerConstants.InvalidPaymentStatus]);
+                context.AddFailure(localizer[ValidatorLocalizerConstants.InvalidPaymentStatus]);
             });
     }
 
@@ -639,7 +639,7 @@ public static class ValidatorExtensions
     /// </example>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptionsConditions<T, string> ProductName<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptionsConditions<T, string> ProductName<T>(this IRuleBuilder<T, string> ruleBuilder, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
@@ -651,7 +651,7 @@ public static class ValidatorExtensions
                         if (name == productName)
                             return;
 
-                    context.AddFailure(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.InvalidProductName));
+                    context.AddFailure(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.InvalidProductName));
                 });
         }
 
@@ -663,7 +663,7 @@ public static class ValidatorExtensions
                     if (name == productName)
                         return;
 
-                context.AddFailure(localizer[ValidatorsLocalizerConstants.InvalidProductName]);
+                context.AddFailure(localizer[ValidatorLocalizerConstants.InvalidProductName]);
             });
     }
 
@@ -676,7 +676,7 @@ public static class ValidatorExtensions
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
     /// <param name="required">Обязателен ли параметр.</param>
-    public static IRuleBuilderOptions<T, string?> Title<T>(this IRuleBuilder<T, string?> ruleBuilder, IValidatorsLocalizer? localizer = null, bool required = true)
+    public static IRuleBuilderOptions<T, string?> Title<T>(this IRuleBuilder<T, string?> ruleBuilder, IValidatorLocalizer? localizer = null, bool required = true)
     {
         // Если значение обязательно, то значение должно быть не пустым. Если значение необязательно, то значение не должно состоять из пробелов
         var setupBuilder = required ? ruleBuilder.NotEmpty() : ruleBuilder.NotWhiteSpace(localizer);
@@ -685,10 +685,10 @@ public static class ValidatorExtensions
 
         if (localizer == null)
             return setupBuilder
-                .WithName(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.PropertyTitle));
+                .WithName(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.PropertyTitle));
 
         return setupBuilder
-            .WithName(localizer[ValidatorsLocalizerConstants.PropertyTitle]);
+            .WithName(localizer[ValidatorLocalizerConstants.PropertyTitle]);
     }
 
     /// <summary>
@@ -700,7 +700,7 @@ public static class ValidatorExtensions
     /// <para>Если <paramref name="required"/> <see langword="true"/>, то используется <c>.NotEmpty()</c> (не допускается <see langword="null"/>). Иначе используется <c>.NotWhiteSpace()</c> (допускается <see langword="null"/>).</para>
     /// </remarks>
     /// <param name="required">Обязателен ли параметр.</param>
-    public static IRuleBuilderOptions<T, string?> Content<T>(this IRuleBuilder<T, string?> ruleBuilder, IValidatorsLocalizer? localizer = null, bool required = true)
+    public static IRuleBuilderOptions<T, string?> Content<T>(this IRuleBuilder<T, string?> ruleBuilder, IValidatorLocalizer? localizer = null, bool required = true)
     {
         var setupBuilder = required ? ruleBuilder.NotEmpty() : ruleBuilder.NotWhiteSpace(localizer);
 
@@ -708,10 +708,10 @@ public static class ValidatorExtensions
 
         if (localizer == null)
             return setupBuilder
-                .WithName(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.PropertyContent));
+                .WithName(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.PropertyContent));
 
         return setupBuilder
-            .WithName(localizer[ValidatorsLocalizerConstants.PropertyContent]);
+            .WithName(localizer[ValidatorLocalizerConstants.PropertyContent]);
     }
 
     /// <summary>
@@ -721,20 +721,20 @@ public static class ValidatorExtensions
     /// <para>Используются правила <c>.NotEmpty().InclusiveBetween(1, 100).WithName()</c>.</para>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
-    public static IRuleBuilderOptions<T, int> Count<T>(this IRuleBuilder<T, int> ruleBuilder, int min = 1, int max = 100, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptions<T, int> Count<T>(this IRuleBuilder<T, int> ruleBuilder, int min = 1, int max = 100, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
             return ruleBuilder
                 .NotEmpty()
                 .InclusiveBetween(min, max) // От 1-100 включительно
-                .WithName(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.PropertyCount));
+                .WithName(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.PropertyCount));
         }
 
         return ruleBuilder
             .NotEmpty()
             .InclusiveBetween(min, max)
-            .WithName(localizer[ValidatorsLocalizerConstants.PropertyCount]);
+            .WithName(localizer[ValidatorLocalizerConstants.PropertyCount]);
     }
 
     /// <summary>
@@ -751,14 +751,14 @@ public static class ValidatorExtensions
     ///         return;
     /// 
     ///     if (!DateTime.TryParseExact(stringDate, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime _))
-    ///         context.AddFailure(string.Format(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.InvalidDateJson), format));
+    ///         context.AddFailure(string.Format(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.InvalidDateJson), format));
     /// });
     /// </code>
     /// </example>
     /// <para>Если не указан <paramref name="localizer"/>, то используется английский вариант локализации.</para>
     /// </remarks>
     /// <param name="format">Разрешённый формат даты из констант <see cref="DateTimeFormats"/>.</param>
-    public static IRuleBuilderOptionsConditions<T, string?> DateTimeMatchFormat<T>(this IRuleBuilder<T, string?> ruleBuilder, string format, IValidatorsLocalizer? localizer = null)
+    public static IRuleBuilderOptionsConditions<T, string?> DateTimeMatchFormat<T>(this IRuleBuilder<T, string?> ruleBuilder, string format, IValidatorLocalizer? localizer = null)
     {
         if (localizer == null)
         {
@@ -769,7 +769,7 @@ public static class ValidatorExtensions
                     return;
 
                 if (!DateTime.TryParseExact(stringDate, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
-                    context.AddFailure(string.Format(EnglishValidatorsLanguage.GetTranslation(ValidatorsLocalizerConstants.InvalidDateJson), format));
+                    context.AddFailure(string.Format(EnglishValidatorLanguage.GetTranslation(ValidatorLocalizerConstants.InvalidDateJson), format));
             });
         }
 
@@ -779,7 +779,7 @@ public static class ValidatorExtensions
                 return;
 
             if (!DateTime.TryParseExact(stringDate, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
-                context.AddFailure(string.Format(localizer[ValidatorsLocalizerConstants.InvalidDateJson], format));
+                context.AddFailure(string.Format(localizer[ValidatorLocalizerConstants.InvalidDateJson], format));
         });
     }
 

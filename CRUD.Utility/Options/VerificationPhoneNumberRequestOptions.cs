@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции, используемые для верификации телефонного номера.
 /// </summary>
-public class VerificationPhoneNumberRequestOptions
+public sealed class VerificationPhoneNumberRequestOptions
 {
     /// <summary>
     /// Название секции.
@@ -13,12 +13,12 @@ public class VerificationPhoneNumberRequestOptions
     /// <summary>
     /// Через сколько истекает код.
     /// </summary>
-    public required TimeSpan Expires { get; set; }
+    public required TimeSpan Expires { get; init; }
 
     /// <summary>
     /// Через сколько можно отправить код повторно.
     /// </summary>
-    public required TimeSpan Timeout { get; set; }
+    public required TimeSpan Timeout { get; init; }
 
     /// <summary>
     /// Длина кода.
@@ -26,5 +26,5 @@ public class VerificationPhoneNumberRequestOptions
     /// <remarks>
     /// Это значение указывается не только для генерации, но и для валидатора.
     /// </remarks>
-    public required int LengthCode { get; set; }
+    public required int LengthCode { get; init; }
 }

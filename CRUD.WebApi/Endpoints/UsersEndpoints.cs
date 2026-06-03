@@ -15,6 +15,7 @@ public static class UsersEndpoints
     {
         // Это общедоступный API (клиент, админ, бизнес)
         var usersMap = app.MapGroup("/v{version:apiVersion}/users")
+            .AllowAnonymous()
             .WithApiVersionSet(apiVersionSet)
             .WithTags(EndpointTags.Users, EndpointTags.AllEndpointsForClient);
         usersMap.MapGet("/{userId:guid}", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, JsonHttpResult<UserDto>>> ([FromRoute] Guid userId, IUserManager userManager, IResourceLocalizer localizer, CancellationToken ct) =>
@@ -39,7 +40,7 @@ public static class UsersEndpoints
             .Produces((int)HttpStatusCode.NotFound)
             .Produces<UserDto>((int)HttpStatusCode.OK);
 
-        usersMap.MapGet("/{userId:guid}/avatar", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, FileStreamHttpResult>> ([FromRoute] Guid userId, IAvatarManager avatarManager, IResourceLocalizer localizer, CancellationToken ct) =>
+        usersMap.MapGet("/{userId:guid}/avatar-file", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, FileStreamHttpResult>> ([FromRoute] Guid userId, IAvatarManager avatarManager, IResourceLocalizer localizer, CancellationToken ct) =>
         {
             // Пустой GUID
             if (userId == Guid.Empty)
@@ -56,7 +57,30 @@ public static class UsersEndpoints
             return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithSummary("Получает аватарку указанного пользователя файлом.")
-            .WithDescription($"Размер файла может быть не более $AvatarManagerOptions.MaxFileSizeString$ МБ.")
+            .WithDescription("Размер файла может быть не более $AvatarManagerOptions.MaxFileSizeString$ МБ.")
+            .Produces((int)HttpStatusCode.Unauthorized)
+            .ProducesProblem((int)HttpStatusCode.BadRequest)
+            .Produces((int)HttpStatusCode.NotFound)
+            .Produces((int)HttpStatusCode.Conflict);
+
+        usersMap.MapGet("/{userId:guid}/avatar-url", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, Ok<string>>> ([FromRoute] Guid userId, IAvatarManager avatarManager, IResourceLocalizer localizer, CancellationToken ct) =>
+        {
+            // Пустой GUID
+            if (userId == Guid.Empty)
+                return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
+
+            // Вызов сервиса
+            var result = await avatarManager.GetPresignedUrlAvatarAsync(userId, ct: ct);
+
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.Ok(result.Value);
+
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
+        })
+            .WithSummary("Получает аватарку указанного пользователя ссылкой.")
+            .WithDescription("По умолчанию срок действия ссылки 1 час.")
             .Produces((int)HttpStatusCode.Unauthorized)
             .ProducesProblem((int)HttpStatusCode.BadRequest)
             .Produces((int)HttpStatusCode.NotFound)

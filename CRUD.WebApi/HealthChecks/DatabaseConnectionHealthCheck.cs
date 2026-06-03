@@ -3,7 +3,7 @@
 /// <summary>
 /// Проверяет подключение к базе данных.
 /// </summary>
-public class DatabaseConnectionHealthCheck : IHealthCheck
+public sealed class DatabaseConnectionHealthCheck : IHealthCheck
 {
     private readonly ApplicationDbContext _db;
 

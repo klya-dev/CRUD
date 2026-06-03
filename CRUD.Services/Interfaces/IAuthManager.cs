@@ -12,7 +12,7 @@ public interface IAuthManager
     /// </summary>
     /// <remarks>
     /// <para>Вызывающий метод должен предоставить валидные, не пустые данные для <paramref name="loginData"/>.</para>
-    /// <para>Для валидации <paramref name="loginData"/> используется <see cref="IValidator{LoginData}"/>.</para>
+    /// <para>Для валидации <paramref name="loginData"/> используется <see cref="IValidator{LoginDataDto}"/>.</para>
     /// 
     /// Возможные исключения:
     /// <list type="bullet">
@@ -203,10 +203,6 @@ public interface IAuthManager
     /// <term>Если <paramref name="userId"/> является <see cref="Guid.Empty"/></term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="ConfirmEmailRequest"/>, сущность окажется невалидна, изменения не последуют</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
     /// </list>
     /// 
     /// Возможные ошибки сервиса:
@@ -228,7 +224,7 @@ public interface IAuthManager
     /// </remarks>
     /// <param name="userId">Id пользователя.</param>
     /// <param name="ct">Токен отмены.</param>
-    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если после изменений данных сущности <see cref="ConfirmEmailRequest"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
     /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
@@ -244,10 +240,6 @@ public interface IAuthManager
     /// <list type="bullet">
     /// <item>
     /// <term>Если <paramref name="userId"/> является <see cref="Guid.Empty"/></term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="VerificationPhoneNumberRequest"/>, сущность окажется невалидна, изменения не последуют</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
     /// </list>
@@ -272,7 +264,7 @@ public interface IAuthManager
     /// <param name="userId">Id пользователя.</param>
     /// <param name="isTelegram">Отправить ли сообщение по Телеграму.</param>
     /// <param name="ct">Токен отмены.</param>
-    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если после изменений данных сущности <see cref="VerificationPhoneNumberRequest"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
     /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>

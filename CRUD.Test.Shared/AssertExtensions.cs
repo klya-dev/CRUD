@@ -3,7 +3,7 @@ using Xunit;
 
 namespace CRUD.Test.Shared;
 
-public class AssertExtensions : Assert
+public sealed class AssertExtensions : Assert
 {
     // Все поля совпадают, кроме RowVersion, но RowVersion также должен пройти проверку на null
     //AssertExtensions.EqualIgnoring(userFromDbAfterUpdate, mustUserFromDbAfterUpdate, (result) =>

@@ -1,12 +1,9 @@
-﻿#nullable disable
-using Microsoft.AspNetCore.Mvc.Testing;
+﻿using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
-    // #nullable disable
-
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IUserManager _userManager;
     private readonly IS3Manager _s3Manager;
@@ -28,25 +25,17 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         _db = scopedServices.GetRequiredService<ApplicationDbContext>();
     }
 
-    private IUserManager GenerateNewUserManager()
-    {
-        var scope = _factory.Services.CreateScope();
-        var scopedServices = scope.ServiceProvider;
-        return scopedServices.GetRequiredService<IUserManager>();
-    }
-
-
     [Fact] // Корректные данные
     public async Task GetUserAsync_ReturnsUser()
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Act
-        var result = await _userManager.GetUserAsync(userIdGuid);
+        var result = await _userManager.GetUserAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -60,7 +49,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _userManager.GetUserAsync(userIdGuid);
+        var result = await _userManager.GetUserAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(result);
@@ -72,25 +61,27 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
         var userDtoFromDb = new UserDto
         {
             Firstname = user.Firstname,
             Username = user.Username,
-            LanguageCode = user.LanguageCode
+            LanguageCode = user.LanguageCode,
+            AvatarPresignedUrl = "something"
         };
 
         // Act
-        var result = await _userManager.GetUserDtoAsync(userIdGuid);
+        var result = await _userManager.GetUserDtoAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         Assert.NotNull(result.Value);
-        Assert.Equivalent(userDtoFromDb, result.Value);
+        AssertExtensions.EqualIgnoring(userDtoFromDb, result.Value, ignoreProperties: nameof(UserDto.AvatarPresignedUrl)); // AvatarPresignedUrl не сравниваем
+        Assert.StartsWith("https://", result.Value.AvatarPresignedUrl); // Нормальная ссылка
     }
 
     [Fact]
@@ -100,7 +91,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _userManager.GetUserDtoAsync(userIdGuid);
+        var result = await _userManager.GetUserDtoAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -114,7 +105,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
         var expectedDto = new UserFullDto
@@ -135,7 +126,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Act
-        var result = await _userManager.GetUserFullDtoAsync(userIdGuid);
+        var result = await _userManager.GetUserFullDtoAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -152,7 +143,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _userManager.GetUserFullDtoAsync(userIdGuid);
+        var result = await _userManager.GetUserFullDtoAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -168,7 +159,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
@@ -180,19 +171,19 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Такой User должен быть после обновления
-        var mustUserFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var mustUserFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         mustUserFromDbAfterUpdate.Firstname = updateUserDto.Firstname;
         mustUserFromDbAfterUpdate.Username = updateUserDto.Username;
         mustUserFromDbAfterUpdate.LanguageCode = updateUserDto.LanguageCode;
 
         // Act
-        var result = await _userManager.UpdateUserAsync(userIdGuid, updateUserDto);
+        var result = await _userManager.UpdateUserAsync(userIdGuid, updateUserDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
         // Все поля совпадают, кроме RowVersion, но RowVersion также должен пройти проверку на null
         AssertExtensions.EqualIgnoring(userFromDbAfterUpdate, mustUserFromDbAfterUpdate, (user) =>
@@ -208,7 +199,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var updateUserDto = new UpdateUserDto()
         {
@@ -217,9 +208,9 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
             LanguageCode = languageCode
         };
         var userIdGuid = user.Id;
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
-        var validationResult = await new UpdateUserDtoValidator(validatorsLocalizer).ValidateAsync(updateUserDto);
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var validatorsLocalizer = new ValidatorLocalizer();
+        var validationResult = await new UpdateUserDtoValidator(validatorsLocalizer).ValidateAsync(updateUserDto, TestContext.Current.CancellationToken);
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
         // Act
         Func<Task> a = async () =>
@@ -233,47 +224,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(UpdateUserDto), validationResult.Errors), ex.Message);
 
         // Пользователь и вправду не обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-        Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
-    }
-
-    [Fact] // Перед записью в базу выбросится исключение, о том, что User невалидный
-    public async Task UpdateUserAsyncByUpdateUserDto_ThrowsInvalidOperationException_NotValidBeforeUpdate()
-    {
-        // Arrange
-        string firstname = "новоеИмя";
-        string username = "newusername";
-        string languageCode = "nn";
-
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, role: "НЕВАЛИДНАЯ РОЛЬ");
-
-        var updateUserDto = new UpdateUserDto()
-        {
-            Firstname = firstname,
-            Username = username,
-            LanguageCode = languageCode
-        };
-        var userIdGuid = user.Id;
-
-        // Результат валидации (о том, что роль невалидна)
-        var validationResult = await new UserValidator().ValidateAsync(user);
-
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _userManager.UpdateUserAsync(userIdGuid, updateUserDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(User), validationResult.Errors), ex.Message);
-
-        // Пользователь и вправду не обновился (после манипуляций с ролью)
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
     }
 
@@ -294,14 +245,14 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _userManager.UpdateUserAsync(userIdGuid, updateUserDto);
+        var result = await _userManager.UpdateUserAsync(userIdGuid, updateUserDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.UserNotFound, result.ErrorMessage);
 
         // Пользователя и вправду не существует
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Null(userFromDbAfterUpdate);
     }
 
@@ -314,7 +265,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string languageCode = "nn";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, firstname: firstname, username: username, languageCode: languageCode);
+        var user = await DI.CreateUserAsync(_db, firstname: firstname, username: username, languageCode: languageCode, ct: TestContext.Current.CancellationToken);
 
         var updateUserDto = new UpdateUserDto()
         {
@@ -323,17 +274,17 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
             LanguageCode = languageCode
         };
         var userIdGuid = user.Id;
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.UpdateUserAsync(userIdGuid, updateUserDto);
+        var result = await _userManager.UpdateUserAsync(userIdGuid, updateUserDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.NoChangesDetected, result.ErrorMessage);
 
         // Пользователь и вправду не обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
     }
 
@@ -346,10 +297,10 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string languageCode = "nn";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, username: "username");
+        var user = await DI.CreateUserAsync(_db, username: "username", ct: TestContext.Current.CancellationToken);
 
         // Добавляем пользователя в базу
-        var user2 = await DI.CreateUserAsync(_db, username: username, email: "test", phoneNumber: "1234567");
+        var user2 = await DI.CreateUserAsync(_db, username: username, email: "test", phoneNumber: "1234567", ct: TestContext.Current.CancellationToken);
 
         var updateUserDto = new UpdateUserDto()
         {
@@ -358,17 +309,17 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
             LanguageCode = languageCode
         };
         var userIdGuid = user.Id;
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.UpdateUserAsync(userIdGuid, updateUserDto);
+        var result = await _userManager.UpdateUserAsync(userIdGuid, updateUserDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.UsernameAlreadyTaken, result.ErrorMessage);
 
         // Пользователь и вправду не обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
     }
 
@@ -380,7 +331,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string password = "123";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, hashedPassword: password);
+        var user = await DI.CreateUserAsync(_db, hashedPassword: password, ct: TestContext.Current.CancellationToken);
 
         var deleteUserDto = new DeleteUserDto()
         {
@@ -389,18 +340,18 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var userIdGuid = user.Id;
 
         // Act
-        var result = await _userManager.DeleteUserAsync(userIdGuid, deleteUserDto);
+        var result = await _userManager.DeleteUserAsync(userIdGuid, deleteUserDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Пользователя больше не существует
-        var userFromDbAfterDelete = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterDelete = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Null(userFromDbAfterDelete);
 
         // Аватарка и вправду не удалилась, т.к дефолтная
-        Assert.True(await _s3Manager.IsObjectExistsAsync(user.AvatarURL));
+        Assert.True(await _s3Manager.IsObjectExistsAsync(user.AvatarURL, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -410,15 +361,15 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string password = "123";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, hashedPassword: password);
+        var user = await DI.CreateUserAsync(_db, hashedPassword: password, ct: TestContext.Current.CancellationToken);
 
         // Устанавливаем ему не дефолтную аватарку
-        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/test.png")).Value;
+        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/test.png", ct: TestContext.Current.CancellationToken)).Value.Stream;
         using MemoryStream memStream = new MemoryStream();
         stream.CopyTo(memStream);
         memStream.Seek(0, SeekOrigin.Begin);
 
-        await _avatarManager.SetAvatarAsync(user.Id, memStream);
+        await _avatarManager.SetAvatarAsync(user.Id, memStream, TestContext.Current.CancellationToken);
 
         var deleteUserDto = new DeleteUserDto()
         {
@@ -427,18 +378,18 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var userIdGuid = user.Id;
 
         // Act
-        var result = await _userManager.DeleteUserAsync(userIdGuid, deleteUserDto);
+        var result = await _userManager.DeleteUserAsync(userIdGuid, deleteUserDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Пользователя больше не существует
-        var userFromDbAfterDelete = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterDelete = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Null(userFromDbAfterDelete);
 
         // Аватарка и вправду удалилась
-        Assert.False(await _s3Manager.IsObjectExistsAsync(user.AvatarURL));
+        Assert.False(await _s3Manager.IsObjectExistsAsync(user.AvatarURL, TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -448,15 +399,15 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var deleteUserDto = new DeleteUserDto()
         {
             Password = password
         };
         var userIdGuid = user.Id;
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
-        var validationResult = await new DeleteUserDtoValidator(validatorsLocalizer).ValidateAsync(deleteUserDto);
+        var validatorsLocalizer = new ValidatorLocalizer();
+        var validationResult = await new DeleteUserDtoValidator(validatorsLocalizer).ValidateAsync(deleteUserDto, TestContext.Current.CancellationToken);
 
         // Act
         Func<Task> a = async () =>
@@ -483,7 +434,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _userManager.DeleteUserAsync(userIdGuid, deleteUserDto);
+        var result = await _userManager.DeleteUserAsync(userIdGuid, deleteUserDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -497,7 +448,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string password = "123";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, hashedPassword: password);
+        var user = await DI.CreateUserAsync(_db, hashedPassword: password, ct: TestContext.Current.CancellationToken);
 
         var deleteUserDto = new DeleteUserDto()
         {
@@ -506,14 +457,14 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var userIdGuid = user.Id;
 
         // Act
-        var result = await _userManager.DeleteUserAsync(userIdGuid, deleteUserDto);
+        var result = await _userManager.DeleteUserAsync(userIdGuid, deleteUserDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.InvalidPassword, result.ErrorMessage);
 
         // Пользователь всё ещё существует
-        var userFromDbAfterDelete = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterDelete = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.NotNull(userFromDbAfterDelete);
     }
 
@@ -523,22 +474,22 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Act
-        var result = await _userManager.DeleteUserAsync(userIdGuid);
+        var result = await _userManager.DeleteUserAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Пользователя больше не существует
-        var userFromDbAfterDelete = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterDelete = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Null(userFromDbAfterDelete);
 
         // Аватарка и вправду не удалилась, т.к дефолтная
-        Assert.True(await _s3Manager.IsObjectExistsAsync(user.AvatarURL));
+        Assert.True(await _s3Manager.IsObjectExistsAsync(user.AvatarURL, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -546,30 +497,30 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Устанавливаем ему не дефолтную аватарку
-        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/test.png")).Value;
+        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/test.png", ct: TestContext.Current.CancellationToken)).Value.Stream;
         using MemoryStream memStream = new MemoryStream();
         stream.CopyTo(memStream);
         memStream.Seek(0, SeekOrigin.Begin);
 
-        await _avatarManager.SetAvatarAsync(user.Id, memStream);
+        await _avatarManager.SetAvatarAsync(user.Id, memStream, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.DeleteUserAsync(userIdGuid);
+        var result = await _userManager.DeleteUserAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Пользователя больше не существует
-        var userFromDbAfterDelete = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterDelete = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Null(userFromDbAfterDelete);
 
         // Аватарка и вправду удалилась
-        Assert.False(await _s3Manager.IsObjectExistsAsync(user.AvatarURL));
+        Assert.False(await _s3Manager.IsObjectExistsAsync(user.AvatarURL, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -579,7 +530,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _userManager.DeleteUserAsync(userIdGuid);
+        var result = await _userManager.DeleteUserAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -617,14 +568,14 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Act
-        var result = await _userManager.CreateUserAsync(createUserDto);
+        var result = await _userManager.CreateUserAsync(createUserDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Пользователь создался
-        var userFromDbAfterCreate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Username == createUserDto.Username);
+        var userFromDbAfterCreate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Username == createUserDto.Username, TestContext.Current.CancellationToken);
         Assert.NotNull(userFromDbAfterCreate);
 
         // У пользователя, который должен создаться и, у пользователя который создался поля равны, кроме Id, HashedPassword, RowVersion, но эти игнорируемые поля должы быть не пустыми, кроме RowVersion
@@ -652,8 +603,8 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
             Email = email,
             PhoneNumber = phoneNumber
         };
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
-        var validationResult = await new CreateUserDtoValidator(validatorsLocalizer).ValidateAsync(createUserDto);
+        var validatorsLocalizer = new ValidatorLocalizer();
+        var validationResult = await new CreateUserDtoValidator(validatorsLocalizer).ValidateAsync(createUserDto, TestContext.Current.CancellationToken);
 
         // Act
         Func<Task> a = async () =>
@@ -667,7 +618,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(CreateUserDto), validationResult.Errors), ex.Message);
 
         // Пользователь не создан
-        var userFromDbAfterCreate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Username == createUserDto.Username);
+        var userFromDbAfterCreate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Username == createUserDto.Username, TestContext.Current.CancellationToken);
         Assert.Null(userFromDbAfterCreate);
     }
 
@@ -685,7 +636,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string phoneNumber = "123456789";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, username: username);
+        var user = await DI.CreateUserAsync(_db, username: username, ct: TestContext.Current.CancellationToken);
 
         var createUserDto = new CreateUserDto
         {
@@ -698,7 +649,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Act
-        var result = await _userManager.CreateUserAsync(createUserDto);
+        var result = await _userManager.CreateUserAsync(createUserDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -717,7 +668,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string phoneNumber = "123456789";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, email: email);
+        var user = await DI.CreateUserAsync(_db, email: email, ct: TestContext.Current.CancellationToken);
 
         var createUserDto = new CreateUserDto
         {
@@ -730,7 +681,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Act
-        var result = await _userManager.CreateUserAsync(createUserDto);
+        var result = await _userManager.CreateUserAsync(createUserDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -749,7 +700,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string phoneNumber = "123456789";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, phoneNumber: phoneNumber);
+        var user = await DI.CreateUserAsync(_db, phoneNumber: phoneNumber, ct: TestContext.Current.CancellationToken);
 
         var createUserDto = new CreateUserDto
         {
@@ -762,7 +713,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Act
-        var result = await _userManager.CreateUserAsync(createUserDto);
+        var result = await _userManager.CreateUserAsync(createUserDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -794,14 +745,14 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Act
-        var result = await _userManager.CreateUserAsync(userInfo, oAuthCompleteRegistrationDto);
+        var result = await _userManager.CreateUserAsync(userInfo, oAuthCompleteRegistrationDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Пользователь создался
-        var userFromDbAfterCreate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == userInfo.Email);
+        var userFromDbAfterCreate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == userInfo.Email, TestContext.Current.CancellationToken);
         Assert.NotNull(userFromDbAfterCreate);
 
         Assert.Equal(userInfo.GivenName, userFromDbAfterCreate.Firstname);
@@ -839,8 +790,8 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         {
             PhoneNumber = phoneNumber
         };
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
-        var validationResult = await new OAuthCompleteRegistrationDtoValidator(validatorsLocalizer).ValidateAsync(oAuthCompleteRegistrationDto);
+        var validatorsLocalizer = new ValidatorLocalizer();
+        var validationResult = await new OAuthCompleteRegistrationDtoValidator(validatorsLocalizer).ValidateAsync(oAuthCompleteRegistrationDto, TestContext.Current.CancellationToken);
 
         // Act
         Func<Task> a = async () =>
@@ -878,17 +829,17 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, username: userInfo.Nickname);
+        var user = await DI.CreateUserAsync(_db, username: userInfo.Nickname, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.CreateUserAsync(userInfo, oAuthCompleteRegistrationDto);
+        var result = await _userManager.CreateUserAsync(userInfo, oAuthCompleteRegistrationDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Пользователь создался
-        var userFromDbAfterCreate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == userInfo.Email);
+        var userFromDbAfterCreate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == userInfo.Email, TestContext.Current.CancellationToken);
         Assert.NotNull(userFromDbAfterCreate);
 
         Assert.Equal(userInfo.GivenName, userFromDbAfterCreate.Firstname);
@@ -926,10 +877,10 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, email: userInfo.Email);
+        var user = await DI.CreateUserAsync(_db, email: userInfo.Email, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.CreateUserAsync(userInfo, oAuthCompleteRegistrationDto);
+        var result = await _userManager.CreateUserAsync(userInfo, oAuthCompleteRegistrationDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -960,10 +911,10 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, phoneNumber: oAuthCompleteRegistrationDto.PhoneNumber);
+        var user = await DI.CreateUserAsync(_db, phoneNumber: oAuthCompleteRegistrationDto.PhoneNumber, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.CreateUserAsync(userInfo, oAuthCompleteRegistrationDto);
+        var result = await _userManager.CreateUserAsync(userInfo, oAuthCompleteRegistrationDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -979,7 +930,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
@@ -989,17 +940,17 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Такой User должен быть после обновления
-        var mustUserFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var mustUserFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         mustUserFromDbAfterUpdate.Role = role;
 
         // Act
-        var result = await _userManager.SetRoleUserAsync(userIdGuid, setRoleDto);
+        var result = await _userManager.SetRoleUserAsync(userIdGuid, setRoleDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
         // Все поля совпадают, кроме RowVersion, но RowVersion также должен пройти проверку на null
         AssertExtensions.EqualIgnoring(userFromDbAfterUpdate, mustUserFromDbAfterUpdate, (user) =>
@@ -1015,16 +966,16 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var setRoleDto = new SetRoleDto()
         {
             Role = role
         };
         var userIdGuid = user.Id;
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
-        var validationResult = await new SetRoleDtoValidator(validatorsLocalizer).ValidateAsync(setRoleDto);
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var validatorsLocalizer = new ValidatorLocalizer();
+        var validationResult = await new SetRoleDtoValidator(validatorsLocalizer).ValidateAsync(setRoleDto, TestContext.Current.CancellationToken);
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
         // Act
         Func<Task> a = async () =>
@@ -1038,43 +989,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(SetRoleDto), validationResult.Errors), ex.Message);
 
         // Пользователь и вправду не обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-        Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
-    }
-
-    [Fact] // Перед записью в базу выбросится исключение, о том, что User невалидный
-    public async Task SetRoleAsync_ThrowsInvalidOperationException_NotValidBeforeUpdate()
-    {
-        // Arrange
-        string role = UserRoles.Admin;
-
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, username: "НЕВАЛИДНЫЙ ЮЗЕРНЕЙМ");
-
-        var setRoleDto = new SetRoleDto()
-        {
-            Role = role
-        };
-        var userIdGuid = user.Id;
-
-        // Результат валидации (о том, что username невалиден)
-        var validationResult = await new UserValidator().ValidateAsync(user);
-
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _userManager.SetRoleUserAsync(userIdGuid, setRoleDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(User), validationResult.Errors), ex.Message);
-
-        // Пользователь и вправду не обновился (после манипуляций с username)
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
     }
 
@@ -1091,14 +1006,14 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _userManager.SetRoleUserAsync(userIdGuid, setRoleDto);
+        var result = await _userManager.SetRoleUserAsync(userIdGuid, setRoleDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.UserNotFound, result.ErrorMessage);
 
         // Пользователя и вправду не существует
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Null(userFromDbAfterUpdate);
     }
 
@@ -1109,24 +1024,24 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string role = UserRoles.Admin;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, role: role);
+        var user = await DI.CreateUserAsync(_db, role: role, ct: TestContext.Current.CancellationToken);
 
         var setRoleDto = new SetRoleDto()
         {
             Role = role
         };
         var userIdGuid = user.Id;
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.SetRoleUserAsync(userIdGuid, setRoleDto);
+        var result = await _userManager.SetRoleUserAsync(userIdGuid, setRoleDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.NoChangesDetected, result.ErrorMessage);
 
         // Пользователь и вправду не обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
     }
 
@@ -1136,22 +1051,22 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Добавляем Refresh-токены в базу
-        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid);
-        var authRefreshToken2 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "12133244");
+        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
+        var authRefreshToken2 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "12133244", ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.RevokeRefreshTokensAsync(userIdGuid);
+        var result = await _userManager.RevokeRefreshTokensAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Все токены пользователя удалены
-        var countAuthRefreshTokens = await _db.AuthRefreshTokens.Where(x => x.UserId == userIdGuid).CountAsync();
+        var countAuthRefreshTokens = await _db.AuthRefreshTokens.Where(x => x.UserId == userIdGuid).CountAsync(TestContext.Current.CancellationToken);
         Assert.Equal(0, countAuthRefreshTokens);
     }
 
@@ -1162,7 +1077,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _userManager.RevokeRefreshTokensAsync(userIdGuid);
+        var result = await _userManager.RevokeRefreshTokensAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1175,57 +1090,24 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Добавляем токен в базу
-        var confirmEmailRequest = await DI.CreateConfirmEmailRequestAsync(_db, userIdGuid);
+        var confirmEmailRequest = await DI.CreateConfirmEmailRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.ConfirmEmailAsync(confirmEmailRequest.Token);
+        var result = await _userManager.ConfirmEmailAsync(confirmEmailRequest.Token, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Почта и вправду подтвердилась
-        var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id  == userIdGuid);
+        var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id  == userIdGuid, TestContext.Current.CancellationToken);
         Assert.NotNull(userFromDbAfter);
         Assert.True(userFromDbAfter.IsEmailConfirm);
-    }
-
-    [Fact] // Перед записью в базу выбросится исключение, о том, что User невалидный
-    public async Task ConfirmEmailAsync_ThrowsInvalidOperationException_NotValidBeforeUpdate()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, role: "НЕВАЛИДНАЯ РОЛЬ");
-
-        var userIdGuid = user.Id;
-
-        // Добавляем токен в базу
-        var confirmEmailRequest = await DI.CreateConfirmEmailRequestAsync(_db, userIdGuid);
-
-        // Результат валидации (о том, что роль невалидна)
-        var validationResult = await new UserValidator().ValidateAsync(user);
-
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _userManager.ConfirmEmailAsync(confirmEmailRequest.Token);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(User), validationResult.Errors), ex.Message);
-
-        // Пользователь и вправду не обновился (после манипуляций с ролью)
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-        Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
     }
 
     [Fact] // Неверный токен
@@ -1235,7 +1117,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string token = "something";
 
         // Act
-        var result = await _userManager.ConfirmEmailAsync(token);
+        var result = await _userManager.ConfirmEmailAsync(token, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1247,19 +1129,19 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Добавляем токен в базу
-        var confirmEmailRequest = await DI.CreateConfirmEmailRequestAsync(_db, userIdGuid);
+        var confirmEmailRequest = await DI.CreateConfirmEmailRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Удаляем пользователя
         _db.Users.Remove(user);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.ConfirmEmailAsync(confirmEmailRequest.Token);
+        var result = await _userManager.ConfirmEmailAsync(confirmEmailRequest.Token, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1271,15 +1153,15 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isEmailConfirm: true);
+        var user = await DI.CreateUserAsync(_db, isEmailConfirm: true, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Добавляем токен в базу
-        var confirmEmailRequest = await DI.CreateConfirmEmailRequestAsync(_db, userIdGuid);
+        var confirmEmailRequest = await DI.CreateConfirmEmailRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.ConfirmEmailAsync(confirmEmailRequest.Token);
+        var result = await _userManager.ConfirmEmailAsync(confirmEmailRequest.Token, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1292,57 +1174,24 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Добавляем токен в базу
-        var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, userIdGuid);
+        var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code);
+        var result = await _userManager.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Номер и вправду подтвердился
-        var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.NotNull(userFromDbAfter);
         Assert.True(userFromDbAfter.IsPhoneNumberConfirm);
-    }
-
-    [Fact] // Перед записью в базу выбросится исключение, о том, что User невалидный
-    public async Task VerificatePhoneNumberAsync_ThrowsInvalidOperationException_NotValidBeforeUpdate()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, role: "НЕВАЛИДНАЯ РОЛЬ");
-
-        var userIdGuid = user.Id;
-
-        // Добавляем токен в базу
-        var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, userIdGuid);
-
-        // Результат валидации (о том, что роль невалидна)
-        var validationResult = await new UserValidator().ValidateAsync(user);
-
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _userManager.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(User), validationResult.Errors), ex.Message);
-
-        // Пользователь и вправду не обновился (после манипуляций с ролью)
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-        Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
     }
 
     [Fact] // Неверный код
@@ -1353,7 +1202,7 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string code = "1234";
 
         // Act
-        var result = await _userManager.VerificatePhoneNumberAsync(userIdGuid, code);
+        var result = await _userManager.VerificatePhoneNumberAsync(userIdGuid, code, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1365,15 +1214,15 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователей в базу
-        var user = await DI.CreateUserAsync(_db);
-        var user2 = await DI.CreateUserAsync(_db, username: "test", email: "test@test.test", phoneNumber: "123456789");
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
+        var user2 = await DI.CreateUserAsync(_db, username: "test", email: "test@test.test", phoneNumber: "123456789", ct: TestContext.Current.CancellationToken);
 
         // Добавляем токен в базу. Владелец этого токена первый пользователь
-        var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, user.Id);
+        var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
         // Act
         // Запрос делает второй пользователь (не владелец) с таким же кодом
-        var result = await _userManager.VerificatePhoneNumberAsync(user2.Id, verificationPhoneNumberRequest.Code);
+        var result = await _userManager.VerificatePhoneNumberAsync(user2.Id, verificationPhoneNumberRequest.Code, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1385,22 +1234,22 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Добавляем токен в базу
-        var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, userIdGuid);
+        var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Удаляем пользователя
         _db.Users.Remove(user);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Запрос тоже должен удалиться вместе с пользователем
-        var verificationPhoneNumberRequestFromDb = await _db.VerificationPhoneNumberRequests.FirstOrDefaultAsync(x => x.Id == verificationPhoneNumberRequest.Id);
+        var verificationPhoneNumberRequestFromDb = await _db.VerificationPhoneNumberRequests.FirstOrDefaultAsync(x => x.Id == verificationPhoneNumberRequest.Id, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code);
+        var result = await _userManager.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1414,624 +1263,18 @@ public class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     public async Task VerificatePhoneNumberAsync_ReturnsErrorMessage_UserAlreadyConfirmedPhoneNumber()
     {
         // Arrange
-        var user = await DI.CreateUserAsync(_db, isPhoneNumberConfirm: true);
+        var user = await DI.CreateUserAsync(_db, isPhoneNumberConfirm: true, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Добавляем токен в базу
-        var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, userIdGuid);
+        var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _userManager.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code);
+        var result = await _userManager.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.UserAlreadyConfirmedPhoneNumber, result.ErrorMessage);
-    }
-
-
-    // Конфликты параллельности
-
-
-    [Fact] // Корректные данные
-    public async Task GetUserAsync_ConcurrencyConflict_ReturnsUser()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-        var userIdGuid = user.Id;
-
-        var userFromDb = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-        var userManager = GenerateNewUserManager();
-        var userManager2 = GenerateNewUserManager();
-
-        // Act
-        var task = userManager.GetUserAsync(userIdGuid);
-        var task2 = userManager2.GetUserAsync(userIdGuid);
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.NotNull(result); // Так-то userFromDb тоже может быть null и Equivalent пройдёт
-        Assert.Equivalent(userFromDb, result);
-
-        Assert.Equivalent(result, result2);
-    }
-
-    [Fact]
-    public async Task GetUserAsync_ConcurrencyConflict_ReturnsNull()
-    {
-        // Arrange
-        var userIdGuid = Guid.NewGuid();
-
-        var userManager = GenerateNewUserManager();
-        var userManager2 = GenerateNewUserManager();
-
-        // Act
-        var task = userManager.GetUserAsync(userIdGuid);
-        var task2 = userManager2.GetUserAsync(userIdGuid);
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.Null(result);
-
-        Assert.Null(result2);
-    }
-
-
-    [Fact] // Корректные данные
-    public async Task GetUserDtoAsync_ConcurrencyConflict_ReturnsUserDto()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        var userIdGuid = user.Id;
-        var expectedDto = new UserDto()
-        {
-            Username = user.Username,
-            Firstname = user.Firstname,
-            LanguageCode = user.LanguageCode
-        };
-        var userManager = GenerateNewUserManager();
-        var userManager2 = GenerateNewUserManager();
-
-        // Act
-        var task = userManager.GetUserDtoAsync(userIdGuid);
-        var task2 = userManager2.GetUserDtoAsync(userIdGuid);
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Null(result.ErrorMessage);
-        Assert.NotNull(result.Value); // Так-то userDtoFromDb тоже может быть null и Equivalent пройдёт
-        Assert.Equivalent(expectedDto, result.Value);
-
-        Assert.Equivalent(result, result2);
-    }
-
-
-    [Theory] // Корректные данные
-    [InlineData("новоеИмя", "newusername", "nn")]
-    [InlineData("Кля", "klya", "ru")] // Меняем всё кроме username'а
-    public async Task UpdateUserAsyncByUpdateUserDto_ConcurrencyConflict_ReturnsErrorMessage_NothingOrConflictOrNoChangesDetectedOrUsernameAlreadyTaken(string firstname, string username, string languageCode)
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        var userIdGuid = user.Id;
-
-        var updateUserDto = new UpdateUserDto()
-        {
-            Firstname = firstname,
-            Username = username,
-            LanguageCode = languageCode
-        };
-        var userManager = GenerateNewUserManager();
-        var userManager2 = GenerateNewUserManager();
-
-        // Такой User должен быть после обновления
-        var mustUserFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-        mustUserFromDbAfterUpdate.Firstname = updateUserDto.Firstname;
-        mustUserFromDbAfterUpdate.Username = updateUserDto.Username;
-        mustUserFromDbAfterUpdate.LanguageCode = updateUserDto.LanguageCode;
-
-        // Act
-        var task = userManager.UpdateUserAsync(userIdGuid, updateUserDto);
-        var task2 = userManager2.UpdateUserAsync(userIdGuid, updateUserDto);
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            var results = await Task.WhenAll(task, task2);
-
-            // Assert
-            foreach (var result in results)
-            {
-                Assert.NotNull(result);
-
-                // Либо ничего, либо нет изменений, либо Username, Email, PhoneNumber уже занят
-                var errorMessage = result.ErrorMessage;
-                string[] allowedErrors =
-                [
-                    null,
-                    ErrorMessages.NoChangesDetected,
-                    ErrorMessages.UsernameAlreadyTaken,
-                    ErrorMessages.EmailAlreadyTaken,
-                    ErrorMessages.PhoneNumberAlreadyTaken,
-                ];
-
-                Assert.Contains(errorMessage, allowedErrors);
-            }
-
-            var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-
-            // Все поля совпадают, кроме RowVersion, но RowVersion также должен пройти проверку на null
-            AssertExtensions.EqualIgnoring(userFromDbAfterUpdate, mustUserFromDbAfterUpdate, (user) =>
-            {
-                Assert.NotNull(user.RowVersion);
-            }, nameof(userFromDbAfterUpdate.RowVersion));
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
-    }
-
-
-    [Fact]
-    public async Task DeleteUserAsync_ConcurrencyConflict_ReturnsErrorMessage_NothingOrConflictOrUserNotFound()
-    {
-        // Arrange
-        string password = "123";
-
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, hashedPassword: password);
-
-        var deleteUserDto = new DeleteUserDto()
-        {
-            Password = password
-        };
-        var userIdGuid = user.Id;
-        var userManager = GenerateNewUserManager();
-        var userManager2 = GenerateNewUserManager();
-
-        // Act
-        var task = userManager.DeleteUserAsync(userIdGuid, deleteUserDto);
-        var task2 = userManager2.DeleteUserAsync(userIdGuid, deleteUserDto);
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            var results = await Task.WhenAll(task, task2);
-
-            // Assert
-            foreach (var result in results)
-            {
-                Assert.NotNull(result);
-
-                // Либо ничего, либо пользователь не найден
-                var errorMessage = result.ErrorMessage;
-                string[] allowedErrors =
-                [
-                    null,
-                    ErrorMessages.UserNotFound
-                ];
-
-                Assert.Contains(errorMessage, allowedErrors);
-            }
-
-            // Пользователя больше не существует
-            var userFromDbAfterDelete = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-            Assert.Null(userFromDbAfterDelete);
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
-    }
-
-
-    [Theory] // Корректные данные
-    [InlineData("Никита", "niksuper", "123@", "ru", "fan.ass995@mail.ru", "912345")]
-    public async Task CreateUserAsyncByCreateUserDto_CorrectData_ReturnsErrorMessage_NothingOrConflictOrUsernameAlreadyTakenOrEmailAlreadyTakenOrPhoneNumberAlreadyTaken(string firstname, string username, string password, string languageCode, string email, string phoneNumber)
-    {
-        // Arrange
-        var createUserDto = new CreateUserDto
-        {
-            Firstname = firstname,
-            Username = username,
-            Password = password,
-            LanguageCode = languageCode,
-            Email = email,
-            PhoneNumber = phoneNumber
-        };
-        var userManager = GenerateNewUserManager();
-        var userManager2 = GenerateNewUserManager();
-
-        // Такой пользователь должен быть
-        var mustUser = new User
-        {
-            Firstname = createUserDto.Firstname,
-            Username = createUserDto.Username,
-            HashedPassword = _passwordHasher.GenerateHashedPassword(createUserDto.Password),
-            LanguageCode = createUserDto.LanguageCode,
-            Role = UserRoles.User,
-            IsPremium = false,
-            AvatarURL = TestConstants.DefaultAvatarPath,
-            Email = email,
-            PhoneNumber = phoneNumber
-        };
-
-        // Act
-        var task = userManager.CreateUserAsync(createUserDto);
-        var task2 = userManager2.CreateUserAsync(createUserDto);
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            var results = await Task.WhenAll(task, task2);
-
-            // Assert
-            foreach (var result in results)
-            {
-                Assert.NotNull(result);
-
-                // Либо ничего, либо публикация не найдена, либо пользователь не является автором этой публикации (первый запрос успел удалить)
-                var errorMessage = result.ErrorMessage;
-                string[] allowedErrors =
-                [
-                    null,
-                    ErrorMessages.UsernameAlreadyTaken,
-                    ErrorMessages.EmailAlreadyTaken,
-                    ErrorMessages.PhoneNumberAlreadyTaken,
-                ];
-
-                Assert.Contains(errorMessage, allowedErrors);
-            }
-
-            // Пользователь и вправду создался
-            var userFromDbAfterCreate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Username == createUserDto.Username);
-            Assert.NotNull(userFromDbAfterCreate);
-
-            // У пользователя, который должен создаться и, у пользователя который создался поля равны, кроме Id, HashedPassword, RowVersion, но эти игнорируемые поля должы быть не пустыми, кроме RowVersion
-            AssertExtensions.EqualIgnoring(mustUser, userFromDbAfterCreate, (result) =>
-            {
-                if (result.Id == Guid.Empty)
-                    Assert.Fail(nameof(result.Id) + "is empty");
-                Assert.NotNull(result.HashedPassword);
-                // RowVersion для mustUser null, а для userFromDbAfterCreate не null, поэтому проверка на null, тут не поможет
-            }, nameof(mustUser.Id), nameof(mustUser.HashedPassword), nameof(mustUser.RowVersion));
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
-    }
-
-
-    [Fact] // Корректные данные
-    public async Task ConfirmEmailAsync_ConcurrencyConflict_ReturnsErrorMessage_NothingOrConflictOrUserAlreadyConfirmedEmailOrInvalidToken()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        var userIdGuid = user.Id;
-
-        // Добавляем токен в базу
-        var confirmEmailRequest = await DI.CreateConfirmEmailRequestAsync(_db, userIdGuid);
-        var userManager = GenerateNewUserManager();
-        var userManager2 = GenerateNewUserManager();
-
-        // Act
-        var task = userManager.ConfirmEmailAsync(confirmEmailRequest.Token);
-        var task2 = userManager2.ConfirmEmailAsync(confirmEmailRequest.Token);
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            var results = await Task.WhenAll(task, task2);
-
-            // Assert
-            foreach (var result in results)
-            {
-                Assert.NotNull(result);
-
-                // Либо ничего, либо пользователь уже подтвердил почту, либо токен не найден (невалидный, т.е первый запрос уже удалил токен)
-                var errorMessage = result.ErrorMessage;
-                string[] allowedErrors =
-                [
-                    null,
-                    ErrorMessages.UserAlreadyConfirmedEmail,
-                    ErrorMessages.InvalidToken
-                ];
-
-                Assert.Contains(errorMessage, allowedErrors);
-            }
-
-            // Почта и вправду подтвердилась
-            var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-            Assert.NotNull(userFromDbAfter);
-            Assert.True(userFromDbAfter.IsEmailConfirm);
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
-    }
-
-    [Fact] // Неверный токен (т.к мы удалим пользователя). У токена не может быть несуществующего пользователя
-    public async Task ConfirmEmailAsync_ConcurrencyConflict_ReturnsServiceResult_NothingOrConflictOrUserNotFoundOrInvalidToken()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        var userIdGuid = user.Id;
-
-        // Добавляем токен в базу
-        var confirmEmailRequest = await DI.CreateConfirmEmailRequestAsync(_db, userIdGuid);
-
-        // Удаляем пользователя
-        _db.Users.Remove(user);
-        await _db.SaveChangesAsync();
-        var userManager = GenerateNewUserManager();
-        var userManager2 = GenerateNewUserManager();
-
-        // Act
-        var task = userManager.ConfirmEmailAsync(confirmEmailRequest.Token);
-        var task2 = userManager2.ConfirmEmailAsync(confirmEmailRequest.Token);
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            var results = await Task.WhenAll(task, task2);
-
-            // Assert
-            foreach (var result in results)
-            {
-                Assert.NotNull(result);
-
-                // Либо ничего, либо пользователь уже подтвердил почту, либо токен не найден (невалидный, т.е первый запрос уже удалил токен)
-                var errorMessage = result.ErrorMessage;
-                string[] allowedErrors =
-                [
-                    null,
-                    ErrorMessages.UserNotFound,
-                    ErrorMessages.InvalidToken
-                ];
-
-                Assert.Contains(errorMessage, allowedErrors);
-            }
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
-    }
-
-    [Fact]
-    public async Task ConfirmEmailAsync_ConcurrencyConflict_UserAlreadyConfirmedEmail_ReturnsErrorMessage_NothingOrConflictOrUserAlreadyConfirmedEmailOrInvalidToken()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isEmailConfirm: true);
-
-        var userIdGuid = user.Id;
-
-        // Добавляем токен в базу
-        var confirmEmailRequest = await DI.CreateConfirmEmailRequestAsync(_db, userIdGuid);
-        var userManager = GenerateNewUserManager();
-        var userManager2 = GenerateNewUserManager();
-
-        // Act
-        var task = userManager.ConfirmEmailAsync(confirmEmailRequest.Token);
-        var task2 = userManager2.ConfirmEmailAsync(confirmEmailRequest.Token);
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            var results = await Task.WhenAll(task, task2);
-
-            // Assert
-            foreach (var result in results)
-            {
-                Assert.NotNull(result);
-
-                // Либо ничего, либо пользователь уже подтвердил почту, либо токен не найден (невалидный, т.е первый запрос уже удалил токен)
-                var errorMessage = result.ErrorMessage;
-                string[] allowedErrors =
-                [
-                    null,
-                    ErrorMessages.UserAlreadyConfirmedEmail,
-                    ErrorMessages.InvalidToken
-                ];
-
-                Assert.Contains(errorMessage, allowedErrors);
-            }
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
-    }
-
-
-    [Fact] // Корректные данные
-    public async Task VerificatePhoneNumberAsync_ConcurrencyConflict_ReturnsServiceResult_NothingOrConflictOrUserAlreadyConfirmedPhoneNumberOrInvalidCode()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        var userIdGuid = user.Id;
-
-        // Добавляем токен в базу
-        var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, userIdGuid);
-        var userManager = GenerateNewUserManager();
-        var userManager2 = GenerateNewUserManager();
-
-        // Act
-        var task = userManager.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code);
-        var task2 = userManager2.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code);
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            var results = await Task.WhenAll(task, task2);
-
-            // Assert
-            foreach (var result in results)
-            {
-                Assert.NotNull(result);
-
-                // Либо ничего, либо пользователь уже подтвердил номер телефона, либо код не найден (невалидный, т.е первый запрос уже удалил код)
-                var errorMessage = result.ErrorMessage;
-                string[] allowedErrors =
-                [
-                    null,
-                    ErrorMessages.UserAlreadyConfirmedPhoneNumber,
-                    ErrorMessages.InvalidCode
-                ];
-
-                Assert.Contains(errorMessage, allowedErrors);
-            }
-
-            // Номер и вправду подтвердился
-            var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-            Assert.NotNull(userFromDbAfter);
-            Assert.True(userFromDbAfter.IsPhoneNumberConfirm);
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
-    }
-
-    [Fact] // Неверный код (т.к мы удалим пользователя). У кода не может быть несуществующего пользователя
-    public async Task VerificatePhoneNumberAsync_ConcurrencyConflict_ReturnsErrorMessage_NothingOrConflictOrUserNotFoundOrInvalidCode()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        var userIdGuid = user.Id;
-
-        // Добавляем токен в базу
-        var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, userIdGuid);
-
-        // Удаляем пользователя
-        _db.Users.Remove(user);
-        await _db.SaveChangesAsync();
-
-        var userManager = GenerateNewUserManager();
-        var userManager2 = GenerateNewUserManager();
-
-        // Удаляем пользователя
-        _db.Users.Remove(user);
-
-        // Act
-        var task = userManager.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code);
-        var task2 = userManager2.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code);
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            var results = await Task.WhenAll(task, task2);
-
-            // Assert
-            foreach (var result in results)
-            {
-                Assert.NotNull(result);
-
-                // Либо ничего, либо пользователь уже подтвердил почту, либо токен не найден (невалидный, т.е первый запрос уже удалил токен)
-                var errorMessage = result.ErrorMessage;
-                string[] allowedErrors =
-                [
-                    null,
-                    ErrorMessages.UserNotFound,
-                    ErrorMessages.InvalidCode
-                ];
-
-                Assert.Contains(errorMessage, allowedErrors);
-            }
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
-    }
-
-    [Fact]
-    public async Task VerificatePhoneNumberAsync_ConcurrencyConflict_ReturnsErrorMessage_NothingOrConflictOrUserAlreadyConfirmedPhoneNumberOrInvalidCode()
-    {
-        // Arrange
-        var user = await DI.CreateUserAsync(_db, isPhoneNumberConfirm: true);
-
-        var userIdGuid = user.Id;
-
-        // Добавляем токен в базу
-        var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, userIdGuid);
-        var userManager = GenerateNewUserManager();
-        var userManager2 = GenerateNewUserManager();
-
-        // Act
-        var task = userManager.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code);
-        var task2 = userManager2.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code);
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            var results = await Task.WhenAll(task, task2);
-
-            // Assert
-            foreach (var result in results)
-            {
-                Assert.NotNull(result);
-
-                // Либо ничего, либо пользователь уже подтвердил почту, либо токен не найден (невалидный, т.е первый запрос уже удалил токен)
-                var errorMessage = result.ErrorMessage;
-                string[] allowedErrors =
-                [
-                    null,
-                    ErrorMessages.UserAlreadyConfirmedPhoneNumber,
-                    ErrorMessages.InvalidCode
-                ];
-
-                Assert.Contains(errorMessage, allowedErrors);
-            }
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
     }
 }

@@ -5,7 +5,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Admin;
 
-public class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -31,7 +31,7 @@ public class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationFactory>
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, role: currentRole);
+        var user = await DI.CreateUserAsync(_db, role: currentRole, ct: TestContext.Current.CancellationToken);
 
         // Данные
         var data = new SetRoleDto()
@@ -48,7 +48,7 @@ public class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -56,7 +56,7 @@ public class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Null(result.Content.Headers.ContentType);
 
         // Роль и вправду обновилась
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
         Assert.Equal(role, userFromDbAfterUpdate.Role);
     }
 
@@ -81,7 +81,7 @@ public class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -89,8 +89,8 @@ public class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -102,7 +102,7 @@ public class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationFactory>
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, role: UserRoles.Admin);
+        var user = await DI.CreateUserAsync(_db, role: UserRoles.Admin, ct: TestContext.Current.CancellationToken);
 
         // Данные
         var data = new SetRoleDto()
@@ -119,7 +119,7 @@ public class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -127,8 +127,8 @@ public class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.NO_CHANGES_DETECTED, jsonDocument.RootElement.GetProperty("code").GetString());
     }

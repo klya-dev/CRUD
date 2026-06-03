@@ -200,14 +200,6 @@ public interface IPublicationManager
     /// <term>Если <paramref name="updatePublicationDto"/> невалиден</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="Publication"/>, сущность окажется невалидна, изменения не последуют</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
-    /// </item>
     /// </list>
     /// 
     /// Возможные ошибки сервиса:
@@ -228,6 +220,10 @@ public interface IPublicationManager
     /// <term>Не обнаружено изменений</term>
     /// <description><see cref="ErrorMessages.NoChangesDetected"/>.</description>
     /// </item>
+    /// <item>
+    /// <term>Конфликт параллельности</term>
+    /// <description><see cref="ErrorMessages.ConcurrencyConflicts"/>.</description>
+    /// </item>
     /// </list>
     /// 
     /// </remarks>
@@ -235,10 +231,8 @@ public interface IPublicationManager
     /// <param name="updatePublicationDto">DTO-модель обновления публикации.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="updatePublicationDto"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если <paramref name="updatePublicationDto"/> невалиден или если после изменений данных сущности <see cref="Publication"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если <paramref name="updatePublicationDto"/> невалиден.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/>, результат сервиса.</returns>
     Task<ServiceResult> UpdatePublicationAsync(Guid userId, UpdatePublicationDto updatePublicationDto, CancellationToken ct = default);
 
@@ -263,14 +257,6 @@ public interface IPublicationManager
     /// <term>Если <paramref name="updatePublicationFullDto"/> невалиден</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="Publication"/>, сущность окажется невалидна, изменения не последуют</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
-    /// </item>
     /// </list>
     /// 
     /// Возможные ошибки сервиса:
@@ -283,6 +269,10 @@ public interface IPublicationManager
     /// <term>Не обнаружено изменений</term>
     /// <description><see cref="ErrorMessages.NoChangesDetected"/>.</description>
     /// </item>
+    /// <item>
+    /// <term>Конфликт параллельности</term>
+    /// <description><see cref="ErrorMessages.ConcurrencyConflicts"/>.</description>
+    /// </item>
     /// </list>
     /// 
     /// </remarks>
@@ -290,10 +280,8 @@ public interface IPublicationManager
     /// <param name="updatePublicationFullDto">Полная DTO-модель обновления публикации.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="updatePublicationFullDto"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="publicationId"/> является <see cref="Guid.Empty"/> или если <paramref name="updatePublicationFullDto"/> невалиден или если после изменений данных сущности <see cref="Publication"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="publicationId"/> является <see cref="Guid.Empty"/> или если <paramref name="updatePublicationFullDto"/> невалиден.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/>, результат сервиса.</returns>
     Task<ServiceResult> UpdatePublicationAsync(Guid publicationId, UpdatePublicationFullDto updatePublicationFullDto, CancellationToken ct = default);
 
@@ -316,10 +304,6 @@ public interface IPublicationManager
     /// </item>
     /// <item>
     /// <term>Если <paramref name="createPublicationDto"/> невалиден</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если перед записью сущности <see cref="Publication"/> в базу, сущность окажется невалидна, изменения не последуют</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
     /// <item>
@@ -349,7 +333,7 @@ public interface IPublicationManager
     /// <param name="createPublicationDto">DTO-модель создания публикации.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="createPublicationDto"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если <paramref name="createPublicationDto"/> невалиден или если после изменений данных сущности <see cref="Publication"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если <paramref name="createPublicationDto"/> невалиден.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
     /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
@@ -366,10 +350,6 @@ public interface IPublicationManager
     /// <item>
     /// <term>Если <paramref name="userId"/> или <paramref name="publicationId"/> является <see cref="Guid.Empty"/></term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
     /// </item>
     /// </list>
     /// 
@@ -395,8 +375,6 @@ public interface IPublicationManager
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> или <paramref name="publicationId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/>, результат сервиса.</returns>
     Task<ServiceResult> DeletePublicationAsync(Guid userId, Guid publicationId, CancellationToken ct = default);
 
@@ -410,10 +388,6 @@ public interface IPublicationManager
     /// <item>
     /// <term>Если <paramref name="publicationId"/> является <see cref="Guid.Empty"/></term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
     /// </item>
     /// </list>
     /// 
@@ -430,8 +404,6 @@ public interface IPublicationManager
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="InvalidOperationException">Если <paramref name="publicationId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/>, результат сервиса.</returns>
     Task<ServiceResult> DeletePublicationAsync(Guid publicationId, CancellationToken ct = default);
 
@@ -445,10 +417,6 @@ public interface IPublicationManager
     /// <item>
     /// <term>Если <paramref name="userId"/> является <see cref="Guid.Empty"/></term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
     /// </item>
     /// </list>
     /// 
@@ -465,8 +433,6 @@ public interface IPublicationManager
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/>, результат сервиса.</returns>
     Task<ServiceResult> DeletePublicationsAsync(Guid userId, CancellationToken ct = default);
 
@@ -478,5 +444,5 @@ public interface IPublicationManager
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <returns><see langword="true"/>, если является.</returns>
-    Task<bool> IsAuthorThisPublicationAsync(Guid userId, Guid publicationId, CancellationToken ct = default);
+    ValueTask<bool> IsAuthorThisPublicationAsync(Guid userId, Guid publicationId, CancellationToken ct = default);
 }

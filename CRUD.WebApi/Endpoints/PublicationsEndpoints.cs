@@ -15,14 +15,13 @@ public static class PublicationsEndpoints
     {
         var publicationsMap = app.MapGroup("/v{version:apiVersion}/publications")
             .WithApiVersionSet(apiVersionSet)
-            .RequireAuthorization()
             .WithTags(EndpointTags.Publications, EndpointTags.AllEndpointsForClient);
         publicationsMap.MapGet("/", async Task<Results<ValidationProblem, JsonHttpResult<IEnumerable<PublicationDto>>>> ([FromQuery] int count, IPublicationManager publicationManager, IValidator<GetPublicationsDto> validator, IResourceLocalizer localizer, CancellationToken ct) =>
         {
-            // Сейчас у меня спецификация OAS 3.0.1, можно посмотреть в "/openapi/v1.json"
+            // Сейчас у меня спецификация OAS 3.0.4, можно посмотреть в "/openapi/v1.json"
             // OAS соблюдает стандарты RFC, а там сказано, что GET запросы не могут иметь тела запроса, т.е класс GetPublicationsDto | https://httpwg.org/specs/rfc7231.html#GET
             // Поэтому, я использую поле Count в строке запроса. В RFC, кстати, верно сказано, что можно и нужно кэшировать ответы GET запросов
-            // А GetPublicationsDto, я использую для валидации, чтобы не городить свои ошибки, когда можно сразу воспользоваться Fluent Validation
+            // А GetPublicationsDto я использую для валидации, чтобы не городить свои ошибки, когда можно сразу воспользоваться Fluent Validation
             // С другой стороны в методе DELETE у "/users", я использую класс DeleteUserDto, так в версии OAS 3.0.0 нельзя было делать, сейчас разрешили
 
             // Кажется тупость, создавать класс, чтобы отвалидировать один int, но если вспомнить про локализацию и правила, их всё равно, где-то нужно писать
@@ -166,35 +165,24 @@ public static class PublicationsEndpoints
         publicationsMap.MapPatch("/", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, NoContent>> ([FromBody] UpdatePublicationDto updatePublicationDto, HttpContext httpContext, IPublicationManager publicationManager, IResourceLocalizer localizer, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await publicationManager.UpdatePublicationAsync(userId, updatePublicationDto, ct);
+            // Вызов сервиса
+            var result = await publicationManager.UpdatePublicationAsync(userId, updatePublicationDto, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый обновил - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
+            .RequireAuthorization()
             .WithValidation<UpdatePublicationDto>()
             .WithSummary("Частично или полностью обновляет данные публикации по указанной модели.")
             .WithDescription("Обновляемые данные: Заголовок, Содержимое.")
@@ -206,35 +194,24 @@ public static class PublicationsEndpoints
         publicationsMap.MapPost("/", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, CreatedAtRoute<PublicationDto>>> ([FromBody] CreatePublicationDto createPublicationDto, HttpContext httpContext, IPublicationManager publicationManager, IResourceLocalizer localizer, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await publicationManager.CreatePublicationAsync(userId, createPublicationDto, ct);
+            // Вызов сервиса
+            var result = await publicationManager.CreatePublicationAsync(userId, createPublicationDto, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.CreatedAtRoute(result.Value, routeName: EndpointNames.PublicationsGetById, routeValues: new { publicationId = result.Value!.Id });
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.CreatedAtRoute(result.Value, routeName: EndpointNames.PublicationsGetById, routeValues: new { publicationId = result.Value!.Id });
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый создал - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
+            .RequireAuthorization(AuthorizationPolicyNames.OnlyEmailConfirmed, AuthorizationPolicyNames.OnlyPhoneNumberConfirmed)
             .WithValidation<CreatePublicationDto>()
             .WithSummary("Создаёт публикацию по указанной модели.")
             .WithDescription("Задаваемые данные: Заголовок, Содержимое.")
@@ -246,35 +223,24 @@ public static class PublicationsEndpoints
         publicationsMap.MapDelete("/{publicationId:guid}", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, NoContent>> ([FromRoute] Guid publicationId, HttpContext httpContext, IPublicationManager publicationManager, IResourceLocalizer localizer, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
             if (userId == Guid.Empty || publicationId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await publicationManager.DeletePublicationAsync(userId, publicationId, ct);
+            // Вызов сервиса
+            var result = await publicationManager.DeletePublicationAsync(userId, publicationId, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый удалил - тот и удалил в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
+            .RequireAuthorization()
             .WithIdempotency()
             .WithSummary("Удаляет указанную публикацию из базы данных.")
             .WithDescription("Удаление безвозвратно.")

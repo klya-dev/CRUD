@@ -5,7 +5,7 @@ namespace CRUD.WebApi.HealthChecks;
 /// <summary>
 /// Проверяет консистенцию S3 на наличие всех объектов.
 /// </summary>
-public class S3ConsistencyHealthCheck : IHealthCheck
+public sealed class S3ConsistencyHealthCheck : IHealthCheck
 {
     private readonly IS3Manager _s3Manager;
     private readonly AvatarManagerOptions _avatarManagerOptions;
@@ -38,7 +38,7 @@ public class S3ConsistencyHealthCheck : IHealthCheck
         // Все объекты, которые должны существовать
         IEnumerable<string> keys =
         [
-            _avatarManagerOptions.AvatarsInS3Directory,
+            //_avatarManagerOptions.AvatarsInS3Directory + "/", // Это не объект, всё расписал "Просто ебанная Санта-Барбара", там же про отличие "визуальной" папки и реального пустого объекта ("папки")
             _avatarManagerOptions.DefaultAvatarPath
         ];
 

@@ -5,7 +5,7 @@ using System.Net;
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 
-public class HttpClientPollySystemTest
+public sealed class HttpClientPollySystemTest
 {
     [Fact] // Политика WaitAndRetry - в сумме 4 попытки
     public async Task WaitAndRetryAsync_Mock_GatewayTimeout_ReturnsAttempts_FourTimes()
@@ -25,7 +25,7 @@ public class HttpClientPollySystemTest
         var request = new HttpRequestMessage(HttpMethod.Get, "/any");
 
         // Act
-        var result = await sut.SendAsync(request);
+        var result = await sut.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.GatewayTimeout, result.StatusCode);
@@ -59,7 +59,7 @@ public class HttpClientPollySystemTest
         var request = new HttpRequestMessage(HttpMethod.Get, "/any");
 
         // Act & Assert
-        await Assert.ThrowsAsync<TimeoutRejectedException>(() => sut.SendAsync(request));
+        await Assert.ThrowsAsync<TimeoutRejectedException>(() => sut.SendAsync(request, TestContext.Current.CancellationToken));
     }
 
     [Fact] // Политика Timeout для Post - вернётся Ok (т.к задержка меньше таймаута)
@@ -89,7 +89,7 @@ public class HttpClientPollySystemTest
         var request = new HttpRequestMessage(HttpMethod.Post, "/any");
 
         // Act
-        var result = await sut.SendAsync(request);
+        var result = await sut.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, result.StatusCode);
@@ -123,6 +123,6 @@ public class HttpClientPollySystemTest
         var request = new HttpRequestMessage(HttpMethod.Post, "/any");
 
         // Act
-        await Assert.ThrowsAsync<TimeoutRejectedException>(() => sut.SendAsync(request));
+        await Assert.ThrowsAsync<TimeoutRejectedException>(() => sut.SendAsync(request, TestContext.Current.CancellationToken));
     }
 }

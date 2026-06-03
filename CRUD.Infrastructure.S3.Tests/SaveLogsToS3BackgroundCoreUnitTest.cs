@@ -1,11 +1,11 @@
-﻿#nullable disable
+﻿using Amazon.S3.Model;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace CRUD.Infrastructure.S3.Tests;
 
-public class SaveLogsToS3BackgroundCoreUnitTest : IDisposable
+public sealed class SaveLogsToS3BackgroundCoreUnitTest : IDisposable
 {
     private readonly SaveLogsToS3BackgroundCore _saveLogsToS3BackgroundCore;
     private readonly Mock<IS3Manager> _s3ManagerMock;
@@ -65,8 +65,8 @@ public class SaveLogsToS3BackgroundCoreUnitTest : IDisposable
         // Arrange
         var oldDate = DateTime.Now.Date.AddDays(-1);
         var path = CreateLogFile(oldDate);
-        _s3ManagerMock.Setup(s => s.CreateObjectAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-              .ReturnsAsync(ServiceResult.Success());
+        _s3ManagerMock.Setup(s => s.CreateObjectAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<Action<PutObjectRequest>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+              .ReturnsAsync(ServiceResult<S3OperationResult>.Success(new S3OperationResult(null, System.Net.HttpStatusCode.NoContent, 0, null)));
 
         // Act
         await _saveLogsToS3BackgroundCore.DoWorkAsync(CancellationToken.None);
@@ -75,7 +75,7 @@ public class SaveLogsToS3BackgroundCoreUnitTest : IDisposable
         Assert.False(File.Exists(path));
 
         // CreateObjectAsync был вызван
-        _s3ManagerMock.Verify(s => s.CreateObjectAsync(It.IsAny<Stream>(), It.Is<string>(k => k.EndsWith("log-" + oldDate.ToString("yyyyMMdd") + ".txt")), It.IsAny<CancellationToken>()), Times.Once);
+        _s3ManagerMock.Verify(s => s.CreateObjectAsync(It.Is<string>(k => k.EndsWith("log-" + oldDate.ToString("yyyyMMdd") + ".txt")), It.IsAny<Stream>(), It.IsAny<Action<PutObjectRequest>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact] // Не удалось загрузить файл в облако, файл остаётся и логгер логирует
@@ -84,15 +84,15 @@ public class SaveLogsToS3BackgroundCoreUnitTest : IDisposable
         // Arrange
         var oldDate = DateTime.Now.Date.AddDays(-1);
         var path = CreateLogFile(oldDate);
-        _s3ManagerMock.Setup(s => s.CreateObjectAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-              .ReturnsAsync(ServiceResult.Fail("some error"));
+        _s3ManagerMock.Setup(s => s.CreateObjectAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<Action<PutObjectRequest>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+              .ReturnsAsync(ServiceResult<S3OperationResult>.Fail("some error"));
 
         // Act
         await _saveLogsToS3BackgroundCore.DoWorkAsync(CancellationToken.None);
 
         // Assert: файл остался
         Assert.True(File.Exists(path));
-        _s3ManagerMock.Verify(s => s.CreateObjectAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once); // Метод вызвался
+        _s3ManagerMock.Verify(s => s.CreateObjectAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<Action<PutObjectRequest>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once); // Метод вызвался
 
         // Проверим, что логгер получил вызов LogError (в Moq логирование сложнее проверить напрямую, простая проверка вызова)
         _loggerMock.Verify(
@@ -119,6 +119,6 @@ public class SaveLogsToS3BackgroundCoreUnitTest : IDisposable
         // файл остается на месте
         Assert.True(File.Exists(path));
 
-        _s3ManagerMock.Verify(s => s.CreateObjectAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never); // Метод не вызвался
+        _s3ManagerMock.Verify(s => s.CreateObjectAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<Action<PutObjectRequest>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never); // Метод не вызвался
     }
 }

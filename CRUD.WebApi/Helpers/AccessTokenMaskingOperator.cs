@@ -9,7 +9,7 @@ namespace CRUD.WebApi.Helpers;
 /// <remarks>
 /// Например, было "<c>HTTP GET /notificationHub?id=7It...&amp;access_token=eyJhbGci...</c>", стало "<c>HTTP GET /notificationHub?id=7It...&amp;access_token=***MASKED***</c>".
 /// </remarks>
-public class AccessTokenMaskingOperator : RegexMaskingOperator
+public sealed class AccessTokenMaskingOperator : RegexMaskingOperator
 {
     private const string pattern = "access_token=[A-z0-9\\-_]+\\.[A-z0-9\\-_]+\\.[A-z0-9\\-_]+";
 

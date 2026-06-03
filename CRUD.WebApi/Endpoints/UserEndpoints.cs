@@ -16,13 +16,12 @@ public static class UserEndpoints
         // Это текущий (авторизированный) пользователь
         var userMap = app.MapGroup("/v{version:apiVersion}/user")
             .WithApiVersionSet(apiVersionSet)
-            .RequireAuthorization()
+            .RequireAuthorization() // Требуем авторизацию, могу убрать, если указанна FallbackPolicy с RequireAuthenticatedUser, но тогда DefaultPolicy не сработает (и проверки языка не будет)
             .WithTags(EndpointTags.User, EndpointTags.AllEndpointsForClient);
         userMap.MapGet("/", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, JsonHttpResult<UserDto>>> (HttpContext httpContext, IUserManager userManager, IResourceLocalizer localizer, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
@@ -48,34 +47,22 @@ public static class UserEndpoints
         userMap.MapPut("/", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, NoContent>> ([FromBody] UpdateUserDto updateUserDto, IUserManager userManager, IResourceLocalizer localizer, HttpContext httpContext, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await userManager.UpdateUserAsync(userId, updateUserDto, ct);
+            // Вызов сервиса
+            var result = await userManager.UpdateUserAsync(userId, updateUserDto, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый обновил - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithIdempotency()
             .WithValidation<UpdateUserDto>()
@@ -88,34 +75,22 @@ public static class UserEndpoints
         userMap.MapDelete("/", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, NoContent>> ([FromBody] DeleteUserDto deleteUserDto, IUserManager userManager, IResourceLocalizer localizer, HttpContext httpContext, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await userManager.DeleteUserAsync(userId, deleteUserDto, ct);
+            // Вызов сервиса
+            var result = await userManager.DeleteUserAsync(userId, deleteUserDto, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый удалил - тот и удалил в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithIdempotency()
             .WithValidation<DeleteUserDto>()
@@ -125,11 +100,10 @@ public static class UserEndpoints
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
 
-        userMap.MapGet("/avatar", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, FileStreamHttpResult>> (IAvatarManager avatarManager, IResourceLocalizer localizer, HttpContext httpContext, CancellationToken ct) =>
+        userMap.MapGet("/avatar-file", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, FileStreamHttpResult>> (IAvatarManager avatarManager, IResourceLocalizer localizer, HttpContext httpContext, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
@@ -139,15 +113,46 @@ public static class UserEndpoints
             // Вызов сервиса
             var result = await avatarManager.GetAvatarAsync(userId, ct);
 
+            // Если расширение не указано, то "avatar", если указано, то "avatar.XXX"
+            string fileDownloadName = result.Value.FileExtension == string.Empty ? "avatar" : $"avatar.{result.Value.FileExtension}";
+            // *Если я захочу опять возвращать расширения для файлов (в методе GetAvatarAsync), то логика уже написана
+
             // Нет ошибки
             if (result.ErrorMessage == null)
-                return TypedResults.File(result.Value.Stream, fileDownloadName: $"avatar.{result.Value.FileExtension}");
+                return TypedResults.File(result.Value.Stream, fileDownloadName: fileDownloadName);
 
             // Сопоставление ошибки
             return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithSummary("Получает аватарку текущего пользователя файлом.")
-            .WithDescription($"Размер файла может быть не более $AvatarManagerOptions.MaxFileSizeString$ МБ.")
+            .WithDescription("Размер файла может быть не более $AvatarManagerOptions.MaxFileSizeString$ МБ.")
+            .Produces((int)HttpStatusCode.Unauthorized)
+            .ProducesProblem((int)HttpStatusCode.BadRequest)
+            .Produces((int)HttpStatusCode.NotFound)
+            .Produces((int)HttpStatusCode.Conflict);
+
+        userMap.MapGet("/avatar-url", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, Ok<string>>> (IAvatarManager avatarManager, IResourceLocalizer localizer, HttpContext httpContext, CancellationToken ct) =>
+        {
+            // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
+                return TypedResults.Unauthorized();
+
+            // Пустой GUID
+            if (userId == Guid.Empty)
+                return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
+
+            // Вызов сервиса
+            var result = await avatarManager.GetPresignedUrlAvatarAsync(userId, ct: ct);
+
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.Ok(result.Value);
+
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
+        })
+            .WithSummary("Получает аватарку текущего пользователя ссылкой.")
+            .WithDescription("По умолчанию срок действия ссылки 1 час.")
             .Produces((int)HttpStatusCode.Unauthorized)
             .ProducesProblem((int)HttpStatusCode.BadRequest)
             .Produces((int)HttpStatusCode.NotFound)
@@ -156,8 +161,7 @@ public static class UserEndpoints
         userMap.MapPost("/avatar", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, NoContent>> ([FromForm] IFormFile file, IAvatarManager avatarManager, IOptions<AvatarManagerOptions> options, IResourceLocalizer localizer, HttpContext httpContext, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
@@ -175,26 +179,15 @@ public static class UserEndpoints
             // Открываем поток
             await using var stream = file.OpenReadStream();
 
-            try
-            {
-                // Вызов сервиса
-                var result = await avatarManager.SetAvatarAsync(userId, stream, ct);
+            // Вызов сервиса
+            var result = await avatarManager.SetAvatarAsync(userId, stream, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый обновил - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .DisableAntiforgery() // Отключаем Antiforgery (CSRF), т.к я не использую cookie, у меня есть JWT авторизация. Для IFormFile по умолчанию CSRF включён
             .WithSummary("Устанавливает аватарку текущему пользователю.")
@@ -208,34 +201,22 @@ public static class UserEndpoints
         userMap.MapPost("/password", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, NoContent>> ([FromBody] ChangePasswordDto changePasswordDto, IPasswordChanger passwordChanger, IResourceLocalizer localizer, HttpContext httpContext, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await passwordChanger.ChangePasswordAsync(userId, changePasswordDto, ct);
+            // Вызов сервиса
+            var result = await passwordChanger.ChangePasswordAsync(userId, changePasswordDto, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый обновил - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithValidation<ChangePasswordDto>()
             .WithSummary("Отправляет письмо для смены пароля на электронную почту текущего пользователя.")
@@ -247,34 +228,22 @@ public static class UserEndpoints
         userMap.MapPost("/premium", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, Ok<string>>> (IPremiumManager premiumManager, HttpContext httpContext, IResourceLocalizer localizer, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await premiumManager.BuyPremiumAsync(userId, ct);
+            // Вызов сервиса
+            var result = await premiumManager.BuyPremiumAsync(userId, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.Ok(result.Value);
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.Ok(result.Value);
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый создал заказ - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithSummary("Генерирует ссылку на покупку премиума для текущего пользователя.")
             .WithDescription("Премиум остаётся пожизненным, доступны API-ключи и многое другое.")
@@ -287,36 +256,23 @@ public static class UserEndpoints
         userMap.MapPost("/confirmation/email", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, NoContent>> (IAuthManager authManager, IResourceLocalizer localizer, HttpContext httpContext, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await authManager.SendConfirmEmailAsync(userId, ct);
+            // Вызов сервиса
+            var result = await authManager.SendConfirmEmailAsync(userId, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый создал запрос - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
-            .RequireAuthorization()
             .WithSummary("Отправляет на электронную почту письмо для подтверждения почты текущего пользователя.")
             .WithDescription("Подтверждение единоразовое, дополнительных подтверждений не требуется.")
             .Produces((int)HttpStatusCode.Unauthorized)
@@ -327,36 +283,23 @@ public static class UserEndpoints
         userMap.MapPost("/confirmation/phone", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, NoContent>> ([FromQuery] bool isTelegram, IAuthManager authManager, IResourceLocalizer localizer, HttpContext httpContext, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await authManager.SendVerificationCodePhoneNumberAsync(userId, isTelegram, ct);
+            // Вызов сервиса
+            var result = await authManager.SendVerificationCodePhoneNumberAsync(userId, isTelegram, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый создал запрос - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
-            .RequireAuthorization()
             .WithSummary("Отправляет на телефонный номер сообщение для подтверждения номера текущего пользователя.")
             .WithDescription("Если isTelegram = true, то сообщение отправляется в Телеграме, иначе СМС.")
             .Produces((int)HttpStatusCode.Unauthorized)
@@ -367,8 +310,7 @@ public static class UserEndpoints
         userMap.MapGet("/publications", async Task<Results<UnauthorizedHttpResult, ValidationProblem, ProblemHttpResult, JsonHttpResult<IEnumerable<PublicationDto>>>> ([FromQuery] int count, HttpContext httpContext, IPublicationManager publicationManager, IValidator<GetPublicationsDto> validator, IResourceLocalizer localizer, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
@@ -404,8 +346,7 @@ public static class UserEndpoints
         userMap.MapGet("/notifications", async Task<Results<UnauthorizedHttpResult, ValidationProblem, ProblemHttpResult, JsonHttpResult<IEnumerable<UserNotificationDto>>>> ([FromQuery] int count, HttpContext httpContext, IValidator<GetUserNotificationsDto> validator, INotificationManager notificationManager, IResourceLocalizer localizer, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
@@ -441,34 +382,22 @@ public static class UserEndpoints
         userMap.MapPut("/notifications/{notificationId}/read", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, NoContent>> ([FromRoute] Guid notificationId, HttpContext httpContext, INotificationManager notificationManager, IHubContext<NotificationHub> notificationHub, IResourceLocalizer localizer, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
-            var claimUserId = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
-            if (claimUserId == null || !Guid.TryParse(claimUserId.Value, out Guid userId))
+            if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
                 return TypedResults.Unauthorized();
 
             // Пустой GUID
             if (userId == Guid.Empty || notificationId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await notificationManager.SetIsReadNotificationAsync(userId, notificationId, ct);
+            // Вызов сервиса
+            var result = await notificationManager.SetIsReadNotificationAsync(userId, notificationId, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый обновил - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithIdempotency()
             .WithSummary("Задаёт указанному уведомлению текущего пользователя статус \"прочитано\".")

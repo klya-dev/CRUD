@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции фонового сервиса RevokeExpiredRefreshTokensBackgroundService.
 /// </summary>
-public class RevokeExpiredRefreshTokensBackgroundServiceOptions
+public sealed class RevokeExpiredRefreshTokensBackgroundServiceOptions
 {
     /// <summary>
     /// Название секции.
@@ -16,5 +16,5 @@ public class RevokeExpiredRefreshTokensBackgroundServiceOptions
     /// <remarks>
     /// Например, 10 минут, значит раз в десять минут будут удаляться истёкшие Refresh-токены.
     /// </remarks>
-    public required TimeSpan Timer { get; set; }
+    public required TimeSpan Timer { get; init; }
 }

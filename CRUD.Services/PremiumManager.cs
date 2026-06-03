@@ -1,19 +1,17 @@
 ﻿namespace CRUD.Services;
 
 /// <inheritdoc cref="IPremiumManager"/>
-public class PremiumManager : IPremiumManager
+public sealed class PremiumManager : IPremiumManager
 {
     private readonly ApplicationDbContext _db;
     private readonly IUserApiKeyManager _userApiKeyManager;
-    private readonly IValidator<User> _userValidator;
     private readonly IPayManager _payManager;
     private readonly IPremiumInformator _premiumInformator;
 
-    public PremiumManager(ApplicationDbContext db, IUserApiKeyManager userApiKeyManager, IValidator<User> userValidator, IPayManager payManager, IPremiumInformator premiumInformator)
+    public PremiumManager(ApplicationDbContext db, IUserApiKeyManager userApiKeyManager, IPayManager payManager, IPremiumInformator premiumInformator)
     {
         _db = db;
         _userApiKeyManager = userApiKeyManager;
-        _userValidator = userValidator;
         _payManager = payManager;
         _premiumInformator = premiumInformator;
     }
@@ -51,7 +49,14 @@ public class PremiumManager : IPremiumManager
             throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
 
         // Заказ не найден
-        var orderFromDb = await _db.Orders.Include(x => x.User).FirstOrDefaultAsync(x => x.Id == orderId, ct);
+        var orderFromDb = await _db.Orders.Where(x => x.Id == orderId)
+            .Select(x => new
+            {
+                Order = new { x.Status, x.PaymentStatus },
+                User = new { x.User!.Id, x.User.Email, x.User.LanguageCode, x.User.IsPremium, x.User.RowVersion }
+            })
+            .FirstOrDefaultAsync(ct);
+
         if (orderFromDb == null)
             return ServiceResult.Fail(ErrorMessages.OrderNotFound);
 
@@ -61,11 +66,11 @@ public class PremiumManager : IPremiumManager
             return ServiceResult.Fail(ErrorMessages.UserNotFound);
 
         // Заказ уже выдан или отменён
-        if (orderFromDb.Status != OrderStatuses.Accept)
+        if (orderFromDb.Order.Status != OrderStatuses.Accept)
             return ServiceResult.Fail(ErrorMessages.OrderAlreadyIssuedOrCanceled);
 
         // Оплата не завершена
-        if (orderFromDb.PaymentStatus != PaymentStatuses.Succeeded)
+        if (orderFromDb.Order.PaymentStatus != PaymentStatuses.Succeeded)
             return ServiceResult.Fail(ErrorMessages.PaymentNotCompleted);
 
         // Уже есть премиум
@@ -73,17 +78,15 @@ public class PremiumManager : IPremiumManager
             return ServiceResult.Fail(ErrorMessages.UserAlreadyHasPremium);
 
         // Обновляем данные пользователя
-        userFromDb.IsPremium = true;
-        userFromDb.ApiKey = _userApiKeyManager.GenerateUserApiKey();
-        userFromDb.DisposableApiKey = _userApiKeyManager.GenerateDisposableUserApiKey();
+        var updatedRows = await _db.Users.Where(x => x.Id == userFromDb.Id && x.RowVersion == userFromDb.RowVersion)
+            .ExecuteUpdateAsync(x =>
+                x.SetProperty(p => p.IsPremium, true)
+                .SetProperty(p => p.ApiKey, _userApiKeyManager.GenerateUserApiKey())
+                .SetProperty(p => p.DisposableApiKey, _userApiKeyManager.GenerateDisposableUserApiKey()), ct);
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultUser = await _userValidator.ValidateAsync(userFromDb, ct);
-        if (!validationResultUser.IsValid)
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(User), validationResultUser.Errors));
-
-        _db.Users.Update(userFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Найдено 0 строк (Where;MySQL:UseAffectedRows). Вероятно, из-за разных RowVersion - конфликт
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.ConcurrencyConflicts);
 
         // Информируем пользователя о получении премиума
         await _premiumInformator.InformateAsync(userFromDb.Email, userFromDb.LanguageCode, ct);
@@ -98,7 +101,7 @@ public class PremiumManager : IPremiumManager
             throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
 
         // Пользователь не найден
-        var userFromDb = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, ct);
+        var userFromDb = await _db.Users.Where(x => x.Id == userId).Select(x => new { x.Id, x.IsPremium, x.RowVersion }).FirstOrDefaultAsync(ct);
         if (userFromDb == null)
             return ServiceResult.Fail(ErrorMessages.UserNotFound);
 
@@ -107,17 +110,15 @@ public class PremiumManager : IPremiumManager
             return ServiceResult.Fail(ErrorMessages.UserAlreadyHasPremium);
 
         // Обновляем данные пользователя
-        userFromDb.IsPremium = true;
-        userFromDb.ApiKey = _userApiKeyManager.GenerateUserApiKey();
-        userFromDb.DisposableApiKey = _userApiKeyManager.GenerateDisposableUserApiKey();
+        var updatedRows = await _db.Users.Where(x => x.Id == userFromDb.Id && x.RowVersion == userFromDb.RowVersion)
+            .ExecuteUpdateAsync(x =>
+                x.SetProperty(p => p.IsPremium, true)
+                .SetProperty(p => p.ApiKey, _userApiKeyManager.GenerateUserApiKey())
+                .SetProperty(p => p.DisposableApiKey, _userApiKeyManager.GenerateDisposableUserApiKey()), ct);
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultUser = await _userValidator.ValidateAsync(userFromDb, ct);
-        if (!validationResultUser.IsValid)
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(User), validationResultUser.Errors));
-
-        _db.Users.Update(userFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Найдено 0 строк (Where;MySQL:UseAffectedRows). Вероятно, из-за разных RowVersion - конфликт
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.ConcurrencyConflicts);
 
         return ServiceResult.Success();
     }

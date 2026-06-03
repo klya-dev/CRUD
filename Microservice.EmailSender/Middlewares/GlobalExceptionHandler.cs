@@ -6,9 +6,8 @@
 /// <remarks>
 /// <para>Если исключение это <see cref="TimeoutException"/>, то возврат <see cref="StatusCodes.Status503ServiceUnavailable"/>.</para>    
 /// <para>Если любое другое исключение, то возврат <see cref="StatusCodes.Status500InternalServerError"/>.</para>
-/// <para>Создаётся ответ <see cref="ProblemDetails"/> со <see cref="ProblemDetails.Status"/> и <see cref="ProblemDetails.Title"/> без конфиденциальных данных.</para>
 /// </remarks>
-public class GlobalExceptionHandler : IExceptionHandler
+public sealed class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;
 

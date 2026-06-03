@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class AuthRefreshTokenManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class AuthRefreshTokenManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IAuthRefreshTokenManager _authRefreshTokenManager;
@@ -28,48 +28,23 @@ public class AuthRefreshTokenManagerIntegrationTest : IClassFixture<TestWebAppli
         var usedRefreshToken = "usedtoken";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Добавляем текущий (в будущем использованный) Refresh-токен в базу
-        var usedAuthRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, usedRefreshToken);
+        var usedAuthRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, usedRefreshToken, ct: TestContext.Current.CancellationToken);
 
         // Act
-        await _authRefreshTokenManager.AddRefreshTokenAndDeleteOldersAsync(newRefreshToken, userIdGuid, usedRefreshToken);
+        await _authRefreshTokenManager.AddRefreshTokenAndDeleteOldersAsync(newRefreshToken, userIdGuid, usedRefreshToken, TestContext.Current.CancellationToken);
 
         // Assert
         // Новый Refresh-токен добавился в базу
-        var newRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Token == newRefreshToken);
+        var newRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Token == newRefreshToken, TestContext.Current.CancellationToken);
         Assert.NotNull(newRefreshTokenFromDb);
 
         // Использованный токен удалился из базы
-        var usedRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == usedAuthRefreshToken.Id);
+        var usedRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == usedAuthRefreshToken.Id, TestContext.Current.CancellationToken);
         Assert.Null(usedRefreshTokenFromDb);
-    }
-
-    [Fact]
-    public async Task AddRefreshTokenAndDeleteOldersAsync_NotValidData_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        var authRefreshToken = new AuthRefreshToken()
-        {
-            Token = "",
-            UserId = Guid.NewGuid(),
-            Expires = DateTime.UtcNow,
-        };
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
-        var validationResult = await new AuthRefreshTokenValidator().ValidateAsync(authRefreshToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _authRefreshTokenManager.AddRefreshTokenAndDeleteOldersAsync(authRefreshToken.Token, authRefreshToken.Id);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(AuthRefreshToken), validationResult.Errors), ex.Message);
     }
 
     [Fact] // Пользователь уже имеет четыре токена в базе
@@ -79,29 +54,29 @@ public class AuthRefreshTokenManagerIntegrationTest : IClassFixture<TestWebAppli
         var newRefreshToken = "newtoken";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Добавляем Refresh-токены в базу
-        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid); // Этот токен передастся в метод и удалится
-        var authRefreshToken2 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "12356"); // Этот будет считаться самым старым (раньше всех выпущен)
-        var authRefreshToken3 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "1234567");
-        var authRefreshToken4 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "123456789");
+        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken); // Этот токен передастся в метод и удалится
+        var authRefreshToken2 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "12356", ct: TestContext.Current.CancellationToken); // Этот будет считаться самым старым (раньше всех выпущен)
+        var authRefreshToken3 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "1234567", ct: TestContext.Current.CancellationToken);
+        var authRefreshToken4 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "123456789", ct: TestContext.Current.CancellationToken);
 
         // Act
-        await _authRefreshTokenManager.AddRefreshTokenAndDeleteOldersAsync(newRefreshToken, userIdGuid, authRefreshToken.Token);
+        await _authRefreshTokenManager.AddRefreshTokenAndDeleteOldersAsync(newRefreshToken, userIdGuid, authRefreshToken.Token, TestContext.Current.CancellationToken);
 
         // Assert
         // Новый Refresh-токен добавился в базу
-        var newRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Token == newRefreshToken);
+        var newRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Token == newRefreshToken, TestContext.Current.CancellationToken);
         Assert.NotNull(newRefreshTokenFromDb);
 
         // Использованный токен удалился из базы
-        var usedRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken.Id);
+        var usedRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken.Id, TestContext.Current.CancellationToken);
         Assert.Null(usedRefreshTokenFromDb);
 
         // Удалился самый старый Refresh-токен, чтобы в сумме их стало 3
-        var olderRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken2.Id);
+        var olderRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken2.Id, TestContext.Current.CancellationToken);
         Assert.Null(olderRefreshTokenFromDb);
     }
 
@@ -112,31 +87,31 @@ public class AuthRefreshTokenManagerIntegrationTest : IClassFixture<TestWebAppli
         var newRefreshToken = "newtoken";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Добавляем Refresh-токены в базу
-        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid); // Этот токен передастся в метод и удалится
-        var authRefreshToken2 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "12356"); // Этот будет считаться самым старым (раньше всех выпущен)
-        var authRefreshToken3 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "1234567"); // Этот будет считаться самым старым 2
-        var authRefreshToken4 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "123456789");
-        var authRefreshToken5 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "1234567891011");
+        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken); // Этот токен передастся в метод и удалится
+        var authRefreshToken2 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "12356", ct: TestContext.Current.CancellationToken); // Этот будет считаться самым старым (раньше всех выпущен)
+        var authRefreshToken3 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "1234567", ct: TestContext.Current.CancellationToken); // Этот будет считаться самым старым 2
+        var authRefreshToken4 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "123456789", ct: TestContext.Current.CancellationToken);
+        var authRefreshToken5 = await DI.CreateAuthRefreshTokenAsync(_db, userIdGuid, token: "1234567891011", ct: TestContext.Current.CancellationToken);
 
         // Act
-        await _authRefreshTokenManager.AddRefreshTokenAndDeleteOldersAsync(newRefreshToken, userIdGuid, authRefreshToken.Token);
+        await _authRefreshTokenManager.AddRefreshTokenAndDeleteOldersAsync(newRefreshToken, userIdGuid, authRefreshToken.Token, TestContext.Current.CancellationToken);
 
         // Assert
         // Новый Refresh-токен добавился в базу
-        var newRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Token == newRefreshToken);
+        var newRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Token == newRefreshToken, TestContext.Current.CancellationToken);
         Assert.NotNull(newRefreshTokenFromDb);
 
         // Использованный токен удалился из базы
-        var usedRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken.Id);
+        var usedRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken.Id, TestContext.Current.CancellationToken);
         Assert.Null(usedRefreshTokenFromDb);
 
         // Удалилось два самый старых Refresh-токена, чтобы в сумме их стало 3
-        var olderRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken2.Id);
-        var olderRefreshTokenFromDb2 = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken3.Id);
+        var olderRefreshTokenFromDb = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken2.Id, TestContext.Current.CancellationToken);
+        var olderRefreshTokenFromDb2 = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken3.Id, TestContext.Current.CancellationToken);
         Assert.Null(olderRefreshTokenFromDb);
         Assert.Null(olderRefreshTokenFromDb2);
     }

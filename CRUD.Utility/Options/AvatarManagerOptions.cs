@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции AvatarManager'а.
 /// </summary>
-public class AvatarManagerOptions
+public sealed class AvatarManagerOptions
 {
     /// <summary>
     /// Название секции.
@@ -13,17 +13,17 @@ public class AvatarManagerOptions
     /// <summary>
     /// Директория для аватарок в S3.
     /// </summary>
-    public required string AvatarsInS3Directory { get; set; }
+    public required string AvatarsInS3Directory { get; init; }
 
     /// <summary>
     /// Путь до дефолтной аватарки в S3.
     /// </summary>
-    public required string DefaultAvatarPath { get; set; }
+    public required string DefaultAvatarPath { get; init; }
 
     /// <summary>
     /// Максимальный размер аватарки в байтах.
     /// </summary>
-    public required int MaxFileSize { get; set; }
+    public required int MaxFileSize { get; init; }
 
     /// <summary>
     /// Максимальный размер аватарки в мегабайтах словом, без "МБ".
@@ -32,5 +32,5 @@ public class AvatarManagerOptions
     /// <para>Например, "10". "MB/МБ" дорисуется в локализации.</para>
     /// <para>Да, возможно, лучше прописать "10 MB", но пусть локализация тоже отыграет эту ситуацию.</para>
     /// </remarks>
-    public required string MaxFileSizeString { get; set; }
+    public required string MaxFileSizeString { get; init; }
 }

@@ -92,46 +92,11 @@ public interface IUserManager
     Task<ServiceResult<UserFullDto>> GetUserFullDtoAsync(Guid userId, CancellationToken ct = default);
 
     /// <summary>
-    /// Полностью обновляет любые данные пользователя по предоставленной валидной модели <see cref="User"/>.
-    /// </summary>
-    /// <remarks>
-    /// <para>Вызывающий метод должен предоставить валидные, не пустые данные для <paramref name="changedUser"/>.</para>
-    /// <para>Для валидации <paramref name="changedUser"/> используется <see cref="IValidator{User}"/>.</para>
-    /// <para>Нет ни одной бизнес проверки!</para>
-    /// 
-    /// Возможные исключения:
-    /// <list type="bullet">
-    /// <item>
-    /// <term>Если <paramref name="changedUser"/> <see langword="null"/></term>
-    /// <description>исключение <see cref="ArgumentNullException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если <paramref name="changedUser"/> невалидна</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности или другая проблема обновления</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
-    /// </item>
-    /// </list>
-    /// 
-    /// </remarks>
-    /// <param name="changedUser">Изменённая модель пользователя для обновления.</param>
-    /// <param name="ct">Токен отмены.</param>
-    /// <exception cref="ArgumentNullException">Если <paramref name="changedUser"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="changedUser"/> невалиден.</exception>
-    /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности или другая проблема обновления.</exception>
-    Task UpdateUserAsync(User changedUser, CancellationToken ct = default);
-
-    /// <summary>
     /// Обновляет данные пользователя по предоставленной валидной модели <see cref="UpdateUserDto"/>.
     /// </summary>
     /// <remarks>
     /// <para>Вызывающий метод должен предоставить валидные, не пустые данные для <paramref name="updateUserDto"/>.</para>
     /// <para>Для валидации <paramref name="updateUserDto"/> используется <see cref="IValidator{UpdateUserDto}"/>.</para>
-    /// <para>Для валидации <see cref="User"/> используется <see cref="IValidator{User}"/>.</para>
     /// 
     /// Возможные исключения:
     /// <list type="bullet">
@@ -146,14 +111,6 @@ public interface IUserManager
     /// <item>
     /// <term>Если <paramref name="updateUserDto"/> невалидна</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="User"/>, сущность окажется невалидна, изменения не последуют</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
     /// </item>
     /// </list>
     /// 
@@ -171,6 +128,10 @@ public interface IUserManager
     /// <term>Username уже занят</term>
     /// <description><see cref="ErrorMessages.UsernameAlreadyTaken"/>.</description>
     /// </item>
+    /// <item>
+    /// <term>Конфликт параллельности</term>
+    /// <description><see cref="ErrorMessages.ConcurrencyConflicts"/>.</description>
+    /// </item>
     /// </list>
     /// 
     /// </remarks>
@@ -178,10 +139,8 @@ public interface IUserManager
     /// <param name="updateUserDto">DTO-модель для обновления данных пользователя.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="updateUserDto"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если <paramref name="updateUserDto"/> невалиден или если после изменений данных сущности <see cref="User"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если <paramref name="updateUserDto"/> невалиден.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/>, результат сервиса.</returns>
     Task<ServiceResult> UpdateUserAsync(Guid userId, UpdateUserDto updateUserDto, CancellationToken ct = default);
 
@@ -207,10 +166,6 @@ public interface IUserManager
     /// <term>Если <paramref name="deleteUserDto"/> невалидна</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
-    /// </item>
     /// </list>
     /// 
     /// Возможные ошибки сервиса:
@@ -232,8 +187,6 @@ public interface IUserManager
     /// <exception cref="ArgumentNullException">Если <paramref name="deleteUserDto"/> <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если <paramref name="deleteUserDto"/> невалиден.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/>, результат сервиса.</returns>
     Task<ServiceResult> DeleteUserAsync(Guid userId, DeleteUserDto deleteUserDto, CancellationToken ct = default);
 
@@ -248,10 +201,6 @@ public interface IUserManager
     /// <item>
     /// <term>Если <paramref name="userId"/> является <see cref="Guid.Empty"/></term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
     /// </item>
     /// </list>
     /// 
@@ -268,8 +217,6 @@ public interface IUserManager
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/>, результат сервиса.</returns>
     Task<ServiceResult> DeleteUserAsync(Guid userId, CancellationToken ct = default);
 
@@ -279,7 +226,6 @@ public interface IUserManager
     /// <remarks>
     /// <para>Вызывающий метод должен предоставить валидные, не пустые данные для <paramref name="createUserDto"/>.</para>
     /// <para>Для валидации <paramref name="createUserDto"/> используется <see cref="IValidator{CreateUserDto}"/>.</para>
-    /// <para>Для валидации <see cref="User"/> используется <see cref="IValidator{User}"/>.</para>
     /// 
     /// Возможные исключения:
     /// <list type="bullet">
@@ -289,10 +235,6 @@ public interface IUserManager
     /// </item>
     /// <item>
     /// <term>Если <paramref name="createUserDto"/> невалидна</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="User"/>, сущность окажется невалидна, изменения не последуют</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
     /// <item>
@@ -321,7 +263,7 @@ public interface IUserManager
     /// <param name="createUserDto">DTO-модель для создания пользователя.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="createUserDto"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="createUserDto"/> невалидна или если после изменений данных сущности <see cref="User"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="createUserDto"/> невалидна.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
     /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
@@ -335,7 +277,6 @@ public interface IUserManager
     /// <para>Вызывающий метод должен предоставить валидные, не пустые данные для <paramref name="oAuthCompleteRegistrationDto"/>.</para>
     /// <para>Для валидации <paramref name="oAuthCompleteRegistrationDto"/> используется <see cref="IValidator{OAuthCompleteRegistrationDto}"/>.</para>
     /// <para>Для валидации <see cref="CreateUserDto"/> используется <see cref="IValidator{CreateUserDto}"/>.</para>
-    /// <para>Для валидации <see cref="User"/> используется <see cref="IValidator{User}"/>.</para>
     /// 
     /// Возможные исключения:
     /// <list type="bullet">
@@ -345,10 +286,6 @@ public interface IUserManager
     /// </item>
     /// <item>
     /// <term>Если <paramref name="oAuthCompleteRegistrationDto"/> или <see cref="CreateUserDto"/> невалидна</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="User"/>, сущность окажется невалидна, изменения не последуют</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
     /// <item>
@@ -374,7 +311,7 @@ public interface IUserManager
     /// <param name="oAuthCompleteRegistrationDto">DTO-модель завершения регистрации через OAuth.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="userInfo"/> или <paramref name="oAuthCompleteRegistrationDto"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="oAuthCompleteRegistrationDto"/> или <see cref="CreateUserDto"/> невалидна или если после изменений данных сущности <see cref="User"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="oAuthCompleteRegistrationDto"/> или <see cref="CreateUserDto"/> невалидна.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
     /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
@@ -399,10 +336,6 @@ public interface IUserManager
     /// <term>Если <paramref name="setRoleDto"/> невалидна</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
-    /// </item>
     /// </list>
     /// 
     /// Возможные ошибки сервиса:
@@ -415,6 +348,10 @@ public interface IUserManager
     /// <term>Не обнаружено изменений</term>
     /// <description><see cref="ErrorMessages.NoChangesDetected"/>.</description>
     /// </item>
+    /// <item>
+    /// <term>Конфликт параллельности</term>
+    /// <description><see cref="ErrorMessages.ConcurrencyConflicts"/>.</description>
+    /// </item>
     /// </list>
     /// 
     /// </remarks>
@@ -424,8 +361,6 @@ public interface IUserManager
     /// <exception cref="ArgumentNullException">Если <paramref name="setRoleDto"/> <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если <paramref name="setRoleDto"/> невалиден.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/>, результат сервиса.</returns>
     Task<ServiceResult> SetRoleUserAsync(Guid userId, SetRoleDto setRoleDto, CancellationToken ct = default);
 
@@ -502,47 +437,15 @@ public interface IUserManager
     Task<bool> IsUserExistsAsync(Guid userId, CancellationToken ct = default);
 
     /// <summary>
-    /// Проверяет валидность предоставленной модели пользователя.
-    /// </summary>
-    /// <remarks>
-    /// Для валидации используется <see cref="IValidator{User}"/>.
-    /// </remarks>
-    /// <param name="user">Модель пользователя.</param>
-    /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <returns><see cref="ValidationResult"/>, результат валидации.</returns>
-    ValidationResult Validate(User user);
-
-    /// <summary>
-    /// Асинхронно проверяет валидность предоставленной модели пользователя.
-    /// </summary>
-    /// <remarks>
-    /// Для валидации используется <see cref="IValidator{User}"/>.
-    /// </remarks>
-    /// <param name="user">Модель пользователя.</param>
-    /// <param name="ct">Токен отмены.</param>
-    /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <returns><see cref="ValidationResult"/>, результат валидации.</returns>
-    Task<ValidationResult> ValidateAsync(User user, CancellationToken ct = default);
-
-    /// <summary>
     /// Подтверждает электронную почту пользователя по предоставленному токену.
     /// </summary>
     /// <remarks>
-    /// <para>Для валидации <see cref="User"/> используется <see cref="IValidator{User}"/>.</para>
     /// 
     /// Возможные исключения:
     /// <list type="bullet">
     /// <item>
     /// <term>Если <paramref name="token"/> <see langword="null"/></term>
     /// <description>исключение <see cref="ArgumentNullException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="User"/>, сущность окажется невалидна, изменения не последуют</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
     /// </item>
     /// </list>
     /// 
@@ -560,16 +463,17 @@ public interface IUserManager
     /// <term>Электронная почта пользователя уже подтверждёна</term>
     /// <description><see cref="ErrorMessages.UserAlreadyConfirmedEmail"/>.</description>
     /// </item>
+    /// <item>
+    /// <term>Конфликт параллельности</term>
+    /// <description><see cref="ErrorMessages.ConcurrencyConflicts"/>.</description>
+    /// </item>
     /// </list>
     /// 
     /// </remarks>
     /// <param name="token">Токен для подтверждения электронной почты.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="token"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если после изменений данных сущности <see cref="User"/>, сущность окажется невалидна.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/>, результат сервиса.</returns>
     Task<ServiceResult> ConfirmEmailAsync(string token, CancellationToken ct = default);
 
@@ -577,7 +481,6 @@ public interface IUserManager
     /// Подтверждает телефонный номер пользователя по предоставленному Id пользователя и коду.
     /// </summary>
     /// <remarks>
-    /// <para>Для валидации <see cref="User"/> используется <see cref="IValidator{User}"/>.</para>
     /// 
     /// Возможные исключения:
     /// <list type="bullet">
@@ -588,14 +491,6 @@ public interface IUserManager
     /// <item>
     /// <term>Если <paramref name="userId"/> является <see cref="Guid.Empty"/></term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="User"/>, сущность окажется невалидна, изменения не последуют</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
     /// </item>
     /// </list>
     /// 
@@ -613,6 +508,10 @@ public interface IUserManager
     /// <term>Телефонный номер пользователя уже подтверждён</term>
     /// <description><see cref="ErrorMessages.UserAlreadyConfirmedPhoneNumber"/>.</description>
     /// </item>
+    /// <item>
+    /// <term>Конфликт параллельности</term>
+    /// <description><see cref="ErrorMessages.ConcurrencyConflicts"/>.</description>
+    /// </item>
     /// </list>
     /// 
     /// </remarks>
@@ -620,10 +519,8 @@ public interface IUserManager
     /// <param name="code">Код для подтверждения телефонного номера.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="token"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если после изменений данных сущности <see cref="User"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/>, результат сервиса.</returns>
     Task<ServiceResult> VerificatePhoneNumberAsync(Guid userId, string code, CancellationToken ct = default);
 

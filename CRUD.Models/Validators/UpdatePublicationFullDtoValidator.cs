@@ -6,9 +6,9 @@
 /// <remarks>
 /// Валидация реализована через Fluent Validation.
 /// </remarks>
-public class UpdatePublicationFullDtoValidator : AbstractValidator<UpdatePublicationFullDto>
+public sealed class UpdatePublicationFullDtoValidator : AbstractValidator<UpdatePublicationFullDto>
 {
-    public UpdatePublicationFullDtoValidator(IValidatorsLocalizer localizer)
+    public UpdatePublicationFullDtoValidator(IValidatorLocalizer localizer)
     {
         RuleFor(x => x.Title).Title(localizer, required: false);
         RuleFor(x => x.Content).Content(localizer, required: false);

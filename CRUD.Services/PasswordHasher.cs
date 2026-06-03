@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IPasswordHasher"/>
-public class PasswordHasher : IPasswordHasher
+public sealed class PasswordHasher : IPasswordHasher
 {
     // Есть нативный вариант https://github.com/dotnet/AspNetCore/blob/main/src/Identity/Extensions.Core/src/PasswordHasher.cs
 

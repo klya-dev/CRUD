@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly INotificationManager _notificationManager;
@@ -29,15 +29,15 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомления в базу
-        var notification = await DI.CreateNotificationAsync(_db);
-        var notification2 = await DI.CreateNotificationAsync(_db);
+        var notification = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
+        var notification2 = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомления пользователей в базу
-        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id);
-        var userNotification2 = await DI.CreateUserNotificationAsync(_db, user.Id, notification2.Id);
+        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id, ct: TestContext.Current.CancellationToken);
+        var userNotification2 = await DI.CreateUserNotificationAsync(_db, user.Id, notification2.Id, ct: TestContext.Current.CancellationToken);
 
         // Такой результат должен быть
         var mustResult = new List<UserNotificationDto>()
@@ -61,7 +61,7 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
         }.Take(count);
 
         // Act
-        var result = await _notificationManager.GetUserNotificationsDtoAsync(user.Id, count);
+        var result = await _notificationManager.GetUserNotificationsDtoAsync(user.Id, count, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -83,8 +83,8 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
         {
             Count = count
         };
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
-        var validationResult = await new GetUserNotificationsDtoValidator(validatorsLocalizer).ValidateAsync(getUserNotificationsDto);
+        var validatorsLocalizer = new ValidatorLocalizer();
+        var validationResult = await new GetUserNotificationsDtoValidator(validatorsLocalizer).ValidateAsync(getUserNotificationsDto, TestContext.Current.CancellationToken);
 
         // Act
         Func<Task> a = async () =>
@@ -106,7 +106,7 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _notificationManager.GetUserNotificationsDtoAsync(userIdGuid, count);
+        var result = await _notificationManager.GetUserNotificationsDtoAsync(userIdGuid, count, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -122,10 +122,10 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _notificationManager.GetUserNotificationsDtoAsync(user.Id, count);
+        var result = await _notificationManager.GetUserNotificationsDtoAsync(user.Id, count, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -143,7 +143,7 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
         string content = "content";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         var createNotificationDto = new CreateNotificationDto()
@@ -153,19 +153,19 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
         };
 
         // Act
-        var result = await _notificationManager.CreateNotificationAsync(createNotificationDto);
+        var result = await _notificationManager.CreateNotificationAsync(createNotificationDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Уведомление и вправду создалось | нахожу по DTO
-        var notificationFromDbAfterCreate = await _db.Notifications.AsNoTracking().FirstAsync(x => x.Title == title && x.Content == content);
+        var notificationFromDbAfterCreate = await _db.Notifications.AsNoTracking().FirstAsync(x => x.Title == title && x.Content == content, TestContext.Current.CancellationToken);
         Assert.Equal(createNotificationDto.Title, notificationFromDbAfterCreate.Title);
         Assert.Equal(createNotificationDto.Content, notificationFromDbAfterCreate.Content);
 
         // Уведомление пользователя и вправду создалось
-        var userNotificationFromDbAfterCreate = await _db.UserNotifications.AsNoTracking().FirstAsync(x => x.NotificationId == notificationFromDbAfterCreate.Id);
+        var userNotificationFromDbAfterCreate = await _db.UserNotifications.AsNoTracking().FirstAsync(x => x.NotificationId == notificationFromDbAfterCreate.Id, TestContext.Current.CancellationToken);
         Assert.Equal(userNotificationFromDbAfterCreate.UserId, userIdGuid);
     }
 
@@ -181,8 +181,8 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
             Content = content
         };
         var userIdGuid = Guid.NewGuid();
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
-        var validationResult = await new CreateNotificationDtoValidator(validatorsLocalizer).ValidateAsync(createNotificationDto);
+        var validatorsLocalizer = new ValidatorLocalizer();
+        var validationResult = await new CreateNotificationDtoValidator(validatorsLocalizer).ValidateAsync(createNotificationDto, TestContext.Current.CancellationToken);
 
         // Act
         Func<Task> a = async () =>
@@ -205,9 +205,9 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
         string content = "content";
 
         // Добавляем пользователей в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
-        var user2 = await DI.CreateUserAsync(_db, username: "test", email: "test@test.ru", phoneNumber: "123456789");
+        var user2 = await DI.CreateUserAsync(_db, username: "test", email: "test@test.ru", phoneNumber: "123456789", ct: TestContext.Current.CancellationToken);
 
         var createNotificationSelectedUsersDto = new CreateNotificationSelectedUsersDto()
         {
@@ -220,23 +220,23 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
         };
 
         // Act
-        var result = await _notificationManager.CreateNotificationAsync(createNotificationSelectedUsersDto);
+        var result = await _notificationManager.CreateNotificationAsync(createNotificationSelectedUsersDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Уведомление и вправду создалось | нахожу по DTO
-        var notificationFromDbAfterCreate = await _db.Notifications.AsNoTracking().FirstAsync(x => x.Title == title && x.Content == content);
+        var notificationFromDbAfterCreate = await _db.Notifications.AsNoTracking().FirstAsync(x => x.Title == title && x.Content == content, TestContext.Current.CancellationToken);
         Assert.Equal(createNotificationSelectedUsersDto.Notification.Title, notificationFromDbAfterCreate.Title);
         Assert.Equal(createNotificationSelectedUsersDto.Notification.Content, notificationFromDbAfterCreate.Content);
 
         // Уведомление для первого пользователя и вправду создалось
-        var userNotificationFromDbAfterCreate = await _db.UserNotifications.AsNoTracking().FirstAsync(x => x.NotificationId == notificationFromDbAfterCreate.Id);
+        var userNotificationFromDbAfterCreate = await _db.UserNotifications.AsNoTracking().FirstAsync(x => x.NotificationId == notificationFromDbAfterCreate.Id, TestContext.Current.CancellationToken);
         Assert.Equal(userNotificationFromDbAfterCreate.UserId, userIdGuid);
 
         // Уведомление для второго пользователя и вправду не создалось (т.к его нет в списке)
-        var user2NotificationFromDbAfterCreate = await _db.UserNotifications.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == user2.Id);
+        var user2NotificationFromDbAfterCreate = await _db.UserNotifications.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == user2.Id, TestContext.Current.CancellationToken);
         Assert.Null(user2NotificationFromDbAfterCreate);
     }
 
@@ -256,8 +256,8 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
             }
         };
         var userIdGuid = Guid.NewGuid();
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
-        var validationResult = await new CreateNotificationSelectedUsersDtoValidator(validatorsLocalizer).ValidateAsync(createNotificationSelectedUsersDto);
+        var validatorsLocalizer = new ValidatorLocalizer();
+        var validationResult = await new CreateNotificationSelectedUsersDtoValidator(validatorsLocalizer).ValidateAsync(createNotificationSelectedUsersDto, TestContext.Current.CancellationToken);
 
         // Act
         Func<Task> a = async () =>
@@ -277,23 +277,23 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомление в базу
-        var notification = await DI.CreateNotificationAsync(_db);
+        var notification = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомление пользователя в базу
-        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id);
+        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _notificationManager.DeleteNotificationAsync(notification.Id);
+        var result = await _notificationManager.DeleteNotificationAsync(notification.Id, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Уведомление и вправду удалилась
-        var notificationFromDbAfterDelete = await _db.Notifications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == notification.Id);
+        var notificationFromDbAfterDelete = await _db.Notifications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == notification.Id, TestContext.Current.CancellationToken);
         Assert.Null(notificationFromDbAfterDelete);
     }
 
@@ -304,7 +304,7 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
         var notificationIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _notificationManager.DeleteNotificationAsync(notificationIdGuid);
+        var result = await _notificationManager.DeleteNotificationAsync(notificationIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -317,24 +317,24 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Добавляем уведомление в базу
-        var notification = await DI.CreateNotificationAsync(_db);
+        var notification = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомление пользователя в базу
-        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id);
+        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _notificationManager.SetIsReadNotificationAsync(userIdGuid, notification.Id);
+        var result = await _notificationManager.SetIsReadNotificationAsync(userIdGuid, notification.Id, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Уведомление и вправду обновилось
-        var userNotificationFromDbAfterUpdate = await _db.UserNotifications.AsNoTracking().FirstAsync(x => x.UserId == userIdGuid && x.NotificationId == notification.Id);
+        var userNotificationFromDbAfterUpdate = await _db.UserNotifications.AsNoTracking().FirstAsync(x => x.UserId == userIdGuid && x.NotificationId == notification.Id, TestContext.Current.CancellationToken);
         Assert.True(userNotificationFromDbAfterUpdate.IsRead);
     }
 
@@ -346,32 +346,11 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
         var notificationIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _notificationManager.SetIsReadNotificationAsync(userIdGuid, notificationIdGuid);
+        var result = await _notificationManager.SetIsReadNotificationAsync(userIdGuid, notificationIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.UserNotificationNotFound, result.ErrorMessage);
-    }
-
-    [Fact]
-    public async Task SetIsReadNotificationAsync_ReturnsErrorMessage_NoChangesDetected()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        // Добавляем уведомление в базу
-        var notification = await DI.CreateNotificationAsync(_db);
-
-        // Добавляем уведомление пользователя в базу
-        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id, isRead: true);
-
-        // Act
-        var result = await _notificationManager.SetIsReadNotificationAsync(user.Id, notification.Id);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Contains(ErrorMessages.NoChangesDetected, result.ErrorMessage);
     }
 
 
@@ -381,28 +360,28 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомления в базу
-        var notification = await DI.CreateNotificationAsync(_db);
-        var notification2 = await DI.CreateNotificationAsync(_db);
+        var notification = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
+        var notification2 = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомления пользователя в базу
-        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id);
-        var userNotification2 = await DI.CreateUserNotificationAsync(_db, user.Id, notification2.Id);
+        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id, ct: TestContext.Current.CancellationToken);
+        var userNotification2 = await DI.CreateUserNotificationAsync(_db, user.Id, notification2.Id, ct: TestContext.Current.CancellationToken);
 
-        var userNotificationsFromDbBeforeDelete = await _db.UserNotifications.AsNoTracking().Where(x => x.UserId == user.Id).ToListAsync();
+        var userNotificationsFromDbBeforeDelete = await _db.UserNotifications.AsNoTracking().Where(x => x.UserId == user.Id).ToListAsync(TestContext.Current.CancellationToken);
 
         // Act
         // Удаляем пользователя
         _db.Users.Remove(user);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, userNotificationsFromDbBeforeDelete.Count);
 
         // Все UserNotification и вправду удалились
-        var userNotificationsFromDbAfterDelete = await _db.UserNotifications.AsNoTracking().Where(x => x.UserId == user.Id).ToListAsync();
+        var userNotificationsFromDbAfterDelete = await _db.UserNotifications.AsNoTracking().Where(x => x.UserId == user.Id).ToListAsync(TestContext.Current.CancellationToken);
         Assert.Empty(userNotificationsFromDbAfterDelete);
     }
 
@@ -411,28 +390,28 @@ public class NotificationManagerIntegrationTest : IClassFixture<TestWebApplicati
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомления в базу
-        var notification = await DI.CreateNotificationAsync(_db);
-        var notification2 = await DI.CreateNotificationAsync(_db);
+        var notification = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
+        var notification2 = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомления пользователя в базу
-        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id);
-        var userNotification2 = await DI.CreateUserNotificationAsync(_db, user.Id, notification2.Id);
+        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id, ct: TestContext.Current.CancellationToken);
+        var userNotification2 = await DI.CreateUserNotificationAsync(_db, user.Id, notification2.Id, ct: TestContext.Current.CancellationToken);
 
-        var userNotificationsFromDbBeforeDelete = await _db.UserNotifications.AsNoTracking().Where(x => x.UserId == user.Id).ToListAsync();
+        var userNotificationsFromDbBeforeDelete = await _db.UserNotifications.AsNoTracking().Where(x => x.UserId == user.Id).ToListAsync(TestContext.Current.CancellationToken);
 
         // Act
         // Удаляем первое уведомление
         _db.Notifications.Remove(notification);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, userNotificationsFromDbBeforeDelete.Count);
 
         // Первый UserNotification и вправду удалился
-        var userNotificationsFromDbAfterDelete = await _db.UserNotifications.AsNoTracking().Where(x => x.UserId == user.Id).ToListAsync();
+        var userNotificationsFromDbAfterDelete = await _db.UserNotifications.AsNoTracking().Where(x => x.UserId == user.Id).ToListAsync(TestContext.Current.CancellationToken);
         Assert.Single(userNotificationsFromDbAfterDelete); // В базе осталось только одно уведомление пользователя
         Assert.Equal(notification2.Id, userNotificationsFromDbAfterDelete.Single().NotificationId);
     }

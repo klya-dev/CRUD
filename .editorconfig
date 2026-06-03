@@ -267,7 +267,8 @@ dotnet_style_readonly_field = true:suggestion
 dotnet_style_allow_statement_immediately_after_block_experimental = true:silent
 
 [*.{cs,vb}]
+# Use primary constructor
 dotnet_diagnostic.IDE0290.severity = none
 
-[*.{cs,vb}]
+# Use local function instead of lambda
 dotnet_diagnostic.IDE0039.severity = none

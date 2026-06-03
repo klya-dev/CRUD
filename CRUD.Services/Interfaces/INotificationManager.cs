@@ -61,10 +61,6 @@ public interface INotificationManager
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
     /// <item>
-    /// <term>Если перед записью сущности <see cref="Notification"/> в базу, сущность окажется невалидна, изменения не последуют</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
     /// <term>Если возник конфликт параллельности</term>
     /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
     /// </item>
@@ -74,7 +70,7 @@ public interface INotificationManager
     /// <param name="createNotificationDto">DTO-модель создания уведомления.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="createNotificationDto"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="createNotificationDto"/> невалиден или если после изменений данных сущности <see cref="Notification"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="createNotificationDto"/> невалиден.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
     /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
@@ -99,10 +95,6 @@ public interface INotificationManager
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
     /// <item>
-    /// <term>Если перед записью сущности <see cref="Notification"/> в базу, сущность окажется невалидна, изменения не последуют</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
     /// <term>Если возник конфликт параллельности</term>
     /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
     /// </item>
@@ -112,7 +104,7 @@ public interface INotificationManager
     /// <param name="createNotificationSelectedUsersDto">DTO-модель создания уведомления для указанных пользователей.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="createNotificationSelectedUsersDto"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="createNotificationSelectedUsersDto"/> невалиден или если после изменений данных сущности <see cref="Notification"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="createNotificationSelectedUsersDto"/> невалиден.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
     /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
@@ -130,10 +122,6 @@ public interface INotificationManager
     /// <term>Если <paramref name="notificationId"/> является <see cref="Guid.Empty"/></term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
-    /// </item>
     /// </list>
     /// 
     /// Возможные ошибки сервиса:
@@ -149,8 +137,6 @@ public interface INotificationManager
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="InvalidOperationException">Если <paramref name="notificationId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/>, результат сервиса.</returns>
     Task<ServiceResult> DeleteNotificationAsync(Guid notificationId, CancellationToken ct = default);
 
@@ -166,10 +152,6 @@ public interface INotificationManager
     /// <term>Если <paramref name="userId"/> или <paramref name="notificationId"/> является <see cref="Guid.Empty"/></term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
-    /// </item>
     /// </list>
     /// 
     /// Возможные ошибки сервиса:
@@ -177,10 +159,6 @@ public interface INotificationManager
     /// <item>
     /// <term>Уведомление пользователя не найдено</term>
     /// <description><see cref="ErrorMessages.UserNotificationNotFound"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Изменения не обнаружены</term>
-    /// <description><see cref="ErrorMessages.NoChangesDetected"/>.</description>
     /// </item>
     /// </list>
     /// 
@@ -190,8 +168,6 @@ public interface INotificationManager
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> или <paramref name="notificationId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/>, результат сервиса.</returns>
     Task<ServiceResult> SetIsReadNotificationAsync(Guid userId, Guid notificationId, CancellationToken ct = default);
 }

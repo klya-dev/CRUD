@@ -1,14 +1,12 @@
-﻿#nullable disable
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRUD.Tests.UnitTests;
 
-public class PremiumManagerUnitTest
+public sealed class PremiumManagerUnitTest
 {
     private readonly PremiumManager _premiumManager;
     private readonly Mock<IUserApiKeyManager> _mockUserApiKeyManager;
-    private readonly Mock<IValidator<User>> _mockUserValidator;
     private readonly Mock<IPayManager> _mockPayManager;
     private readonly Mock<IPremiumInformator> _mockPremiumInformator;
     private readonly ApplicationDbContext _db;
@@ -19,11 +17,10 @@ public class PremiumManagerUnitTest
         _db = db;
 
         _mockUserApiKeyManager = new();
-        _mockUserValidator = new();
         _mockPayManager = new();
         _mockPremiumInformator = new();
 
-        _premiumManager = new PremiumManager(db, _mockUserApiKeyManager.Object, _mockUserValidator.Object, _mockPayManager.Object, _mockPremiumInformator.Object);
+        _premiumManager = new PremiumManager(db, _mockUserApiKeyManager.Object, _mockPayManager.Object, _mockPremiumInformator.Object);
     }
 
 
@@ -50,7 +47,7 @@ public class PremiumManagerUnitTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         var paymentResponse = new PaymentResponse()
@@ -70,7 +67,7 @@ public class PremiumManagerUnitTest
         _mockPayManager.Setup(x => x.PayAsync(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(paymentResponse);
 
         // Act
-        var result = await _premiumManager.BuyPremiumAsync(userIdGuid);
+        var result = await _premiumManager.BuyPremiumAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -83,7 +80,7 @@ public class PremiumManagerUnitTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Не удалось создать платёж
@@ -91,7 +88,7 @@ public class PremiumManagerUnitTest
         _mockPayManager.Setup(x => x.PayAsync(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(paymentResponse);
 
         // Act
-        var result = await _premiumManager.BuyPremiumAsync(userIdGuid);
+        var result = await _premiumManager.BuyPremiumAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -104,37 +101,34 @@ public class PremiumManagerUnitTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: false);
+        var user = await DI.CreateUserAsync(_db, isPremium: false, ct: TestContext.Current.CancellationToken);
         var userId = user.Id;
 
         // Добавляем пользователя в базу
-        var product = await DI.CreateProductAsync(_db);
+        var product = await DI.CreateProductAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем заказ в базу
-        var order = await DI.CreateOrderAsync(_db, userId);
+        var order = await DI.CreateOrderAsync(_db, userId, ct: TestContext.Current.CancellationToken);
 
         var orderIdGuid = order.Id;
-        var userFromDbBeforeBuy = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId);
+        var userFromDbBeforeBuy = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId, TestContext.Current.CancellationToken);
 
         // Генерация валидных ключей ключей
         _mockUserApiKeyManager.Setup(x => x.GenerateUserApiKey()).Returns(TestConstants.UserApiKey);
         _mockUserApiKeyManager.Setup(x => x.GenerateDisposableUserApiKey()).Returns(TestConstants.UserDisposableApiKey);
 
-        // Валидация проходит
-        _mockUserValidator.Setup(x => x.ValidateAsync(It.IsAny<User>(), default)).ReturnsAsync(new ValidationResult());
-
         // Успешное проинформирование пользователя
         _mockPremiumInformator.Setup(x => x.InformateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
         // Act
-        var result = await _premiumManager.IssuePremiumAsync(orderIdGuid);
+        var result = await _premiumManager.IssuePremiumAsync(orderIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Все нужные поля и вправду обновились
-        var userFromDbAfterBuy = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId);
+        var userFromDbAfterBuy = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId, TestContext.Current.CancellationToken);
         Assert.False(userFromDbBeforeBuy.IsPremium); // IsPremium был false
         Assert.True(userFromDbAfterBuy.IsPremium); // IsPremium стал true
 
@@ -150,15 +144,15 @@ public class PremiumManagerUnitTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var product = await DI.CreateProductAsync(_db);
+        var product = await DI.CreateProductAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем заказ в базу
-        var order = await DI.CreateOrderAsync(_db, null);
+        var order = await DI.CreateOrderAsync(_db, null, ct: TestContext.Current.CancellationToken);
 
         var orderIdGuid = order.Id;
 
         // Act
-        var result = await _premiumManager.IssuePremiumAsync(orderIdGuid);
+        var result = await _premiumManager.IssuePremiumAsync(orderIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -170,19 +164,19 @@ public class PremiumManagerUnitTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: false);
+        var user = await DI.CreateUserAsync(_db, isPremium: false, ct: TestContext.Current.CancellationToken);
         var userId = user.Id;
 
         // Добавляем пользователя в базу
-        var product = await DI.CreateProductAsync(_db);
+        var product = await DI.CreateProductAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем заказ в базу
-        var order = await DI.CreateOrderAsync(_db, userId, status: OrderStatuses.Canceled);
+        var order = await DI.CreateOrderAsync(_db, userId, status: OrderStatuses.Canceled, ct: TestContext.Current.CancellationToken);
 
         var orderIdGuid = order.Id;
 
         // Act
-        var result = await _premiumManager.IssuePremiumAsync(orderIdGuid);
+        var result = await _premiumManager.IssuePremiumAsync(orderIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -194,19 +188,19 @@ public class PremiumManagerUnitTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: false);
+        var user = await DI.CreateUserAsync(_db, isPremium: false, ct: TestContext.Current.CancellationToken);
         var userId = user.Id;
 
         // Добавляем пользователя в базу
-        var product = await DI.CreateProductAsync(_db);
+        var product = await DI.CreateProductAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем заказ в базу
-        var order = await DI.CreateOrderAsync(_db, userId, status: OrderStatuses.Accept, paymentStatus: PaymentStatuses.Pending);
+        var order = await DI.CreateOrderAsync(_db, userId, status: OrderStatuses.Accept, paymentStatus: PaymentStatuses.Pending, ct: TestContext.Current.CancellationToken);
 
         var orderIdGuid = order.Id;
 
         // Act
-        var result = await _premiumManager.IssuePremiumAsync(orderIdGuid);
+        var result = await _premiumManager.IssuePremiumAsync(orderIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -218,19 +212,19 @@ public class PremiumManagerUnitTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: true);
+        var user = await DI.CreateUserAsync(_db, isPremium: true, ct: TestContext.Current.CancellationToken);
         var userId = user.Id;
 
         // Добавляем пользователя в базу
-        var product = await DI.CreateProductAsync(_db);
+        var product = await DI.CreateProductAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем заказ в базу
-        var order = await DI.CreateOrderAsync(_db, userId, status: OrderStatuses.Accept, paymentStatus: PaymentStatuses.Succeeded);
+        var order = await DI.CreateOrderAsync(_db, userId, status: OrderStatuses.Accept, paymentStatus: PaymentStatuses.Succeeded, ct: TestContext.Current.CancellationToken);
 
         var orderIdGuid = order.Id;
 
         // Act
-        var result = await _premiumManager.IssuePremiumAsync(orderIdGuid);
+        var result = await _premiumManager.IssuePremiumAsync(orderIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);

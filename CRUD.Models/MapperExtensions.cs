@@ -8,12 +8,13 @@ namespace CRUD.Models;
 public static partial class MapperExtensions
 {
     /// <summary>
-    /// Возвращает DTO-модель пользователя созданную из <paramref name="user"/>.
+    /// Возвращает DTO-модель пользователя созданную из <paramref name="user"/> и его временной ссылки на аватарку.
     /// </summary>
     /// <param name="user">Пользователь.</param>
+    /// <param name="avatarPresignedUrl">Временная ссылка на аватарку.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="user"/> <see langword="null"/>.</exception>
     /// <returns>DTO-модель пользователя.</returns>
-    public static UserDto ToUserDto(this User user)
+    public static UserDto ToUserDto(this User user, string? avatarPresignedUrl = null)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -21,7 +22,8 @@ public static partial class MapperExtensions
         { 
             Firstname = user.Firstname,
             Username = user.Username,
-            LanguageCode = user.LanguageCode
+            LanguageCode = user.LanguageCode,
+            AvatarPresignedUrl = avatarPresignedUrl
         };
     }
 
@@ -54,16 +56,19 @@ public static partial class MapperExtensions
     }
 
     /// <summary>
-    /// Возвращает коллекцию DTO-моделей пользователей созданных из <paramref name="users"/>.
+    /// Возвращает коллекцию DTO-моделей пользователей созданных из <paramref name="users"/> и их аватарок.
     /// </summary>
     /// <param name="users">Пользователи.</param>
+    /// <param name="avatarPresignedUrls">Временные ссылки на аватарки этих пользователей.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="user"/> <see langword="null"/>.</exception>
     /// <returns>Коллекция из <see cref="UserDto"/>.</returns>
-    public static IEnumerable<UserDto> ToUsersDto(this IEnumerable<User> users)
+    public static IEnumerable<UserDto> ToUsersDto(this IEnumerable<User> users, IEnumerable<string>? avatarPresignedUrls = null)
     {
         ArgumentNullException.ThrowIfNull(users);
 
-        var usersDto = users.Select(x => x.ToUserDto());
+        var avatarPresignedUrlsList = avatarPresignedUrls?.ToList();
+
+        var usersDto = users.Select((x, index) => x.ToUserDto(avatarPresignedUrlsList?.ElementAtOrDefault(index)));
         return usersDto;
     }
 
@@ -363,8 +368,8 @@ public static partial class MapperExtensions
     /// <returns><see cref="CreateUserDto"/>.</returns>
     public static CreateUserDto ToCreateUserDto(this OpenIdUserInfo userInfo, OAuthCompleteRegistrationDto oAuthCompleteRegistrationDto)
     {
-        bool isCyrillicFirstname = IsCyrillicRegex().IsMatch(userInfo.GivenName);
-        bool isLatinUsername = IsLatinRegex().IsMatch(userInfo.Nickname);
+        bool isCyrillicFirstname = IsCyrillicRegex.IsMatch(userInfo.GivenName);
+        bool isLatinUsername = IsLatinRegex.IsMatch(userInfo.Nickname);
 
         return new CreateUserDto
         {
@@ -377,9 +382,9 @@ public static partial class MapperExtensions
         };
     }
 
-    [GeneratedRegex("[а-яА-ЯёЁ]+$")]
-    private static partial Regex IsCyrillicRegex(); // Кириллица
+    [GeneratedRegex("[а-яА-ЯёЁ]+$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex IsCyrillicRegex { get; } // Кириллица
 
-    [GeneratedRegex("[a-zA-Z]+$")]
-    private static partial Regex IsLatinRegex(); // Латиница
+    [GeneratedRegex("[a-zA-Z]+$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex IsLatinRegex { get; } // Латиница
 }

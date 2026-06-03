@@ -7,7 +7,7 @@ namespace CRUD.Infrastructure.S3;
 /// <summary>
 /// Сервис для загрузки логов в облачное хранилище в фоне.
 /// </summary>
-public class SaveLogsToS3BackgroundService : BackgroundService
+public sealed class SaveLogsToS3BackgroundService : BackgroundService
 {
     private readonly ISaveLogsToS3BackgroundCore _saveLogsToS3BackgroundCore;
     private readonly SaveLogsToS3BackgroundServiceOptions _options;

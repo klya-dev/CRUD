@@ -4,7 +4,7 @@ using System.Threading.Channels;
 namespace Microservice.EmailSender.Services;
 
 /// <inheritdoc cref="IQueueEmail"/>
-public class QueueEmail : IQueueEmail
+public sealed class QueueEmail : IQueueEmail
 {
     private readonly Channel<LetterBackground> _channel;
 

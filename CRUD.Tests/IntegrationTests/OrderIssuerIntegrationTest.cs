@@ -1,5 +1,4 @@
-﻿#nullable disable
-using CRUD.Utility.Metrics;
+﻿using CRUD.Utility.Metrics;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
@@ -7,7 +6,7 @@ using System.Diagnostics.Metrics;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class OrderIssuerIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class OrderIssuerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IOrderIssuer _orderIssuer;
@@ -33,29 +32,29 @@ public class OrderIssuerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var collector = new MetricCollector<int>(_meterFactory, ApiMeters.MeterName, ApiMeters.ProductIssueMeterName);
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем продукт в базу
-        await DI.CreateProductAsync(_db);
+        await DI.CreateProductAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем заказ в базу
-        var order = await DI.CreateOrderAsync(_db, user.Id, status: OrderStatuses.Accept, paymentStatus: PaymentStatuses.Succeeded);
+        var order = await DI.CreateOrderAsync(_db, user.Id, status: OrderStatuses.Accept, paymentStatus: PaymentStatuses.Succeeded, ct: TestContext.Current.CancellationToken);
 
         var orderIdGuid = order.Id;
 
         // Act
-        var result = await _orderIssuer.IssueAsync(orderIdGuid);
+        var result = await _orderIssuer.IssueAsync(orderIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Статус заказа стал Done
-        var orderFromDbBefore = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == orderIdGuid);
+        var orderFromDbBefore = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == orderIdGuid, TestContext.Current.CancellationToken);
         Assert.Equal(OrderStatuses.Done, orderFromDbBefore.Status);
 
         // Метрика добавилась
-        await collector.WaitForMeasurementsAsync(minCount: 1).WaitAsync(TimeSpan.FromSeconds(5));
+        await collector.WaitForMeasurementsAsync(minCount: 1, cancellationToken: TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.Collection(collector.GetMeasurementSnapshot(),
             measurement =>
             {
@@ -71,7 +70,7 @@ public class OrderIssuerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var orderIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _orderIssuer.IssueAsync(orderIdGuid);
+        var result = await _orderIssuer.IssueAsync(orderIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -83,18 +82,18 @@ public class OrderIssuerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем продукт в базу
-        await DI.CreateProductAsync(_db);
+        await DI.CreateProductAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем заказ в базу
-        var order = await DI.CreateOrderAsync(_db, user.Id, status: OrderStatuses.Done, paymentStatus: PaymentStatuses.Succeeded);
+        var order = await DI.CreateOrderAsync(_db, user.Id, status: OrderStatuses.Done, paymentStatus: PaymentStatuses.Succeeded, ct: TestContext.Current.CancellationToken);
 
         var orderIdGuid = order.Id;
 
         // Act
-        var result = await _orderIssuer.IssueAsync(orderIdGuid);
+        var result = await _orderIssuer.IssueAsync(orderIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -106,18 +105,18 @@ public class OrderIssuerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем продукт в базу
-        await DI.CreateProductAsync(_db);
+        await DI.CreateProductAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем заказ в базу
-        var order = await DI.CreateOrderAsync(_db, user.Id, status: OrderStatuses.Canceled, paymentStatus: PaymentStatuses.Succeeded);
+        var order = await DI.CreateOrderAsync(_db, user.Id, status: OrderStatuses.Canceled, paymentStatus: PaymentStatuses.Succeeded, ct: TestContext.Current.CancellationToken);
 
         var orderIdGuid = order.Id;
 
         // Act
-        var result = await _orderIssuer.IssueAsync(orderIdGuid);
+        var result = await _orderIssuer.IssueAsync(orderIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -129,18 +128,18 @@ public class OrderIssuerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем продукт в базу
-        await DI.CreateProductAsync(_db);
+        await DI.CreateProductAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем заказ в базу
-        var order = await DI.CreateOrderAsync(_db, user.Id, status: OrderStatuses.Accept, paymentStatus: PaymentStatuses.Pending);
+        var order = await DI.CreateOrderAsync(_db, user.Id, status: OrderStatuses.Accept, paymentStatus: PaymentStatuses.Pending, ct: TestContext.Current.CancellationToken);
 
         var orderIdGuid = order.Id;
 
         // Act
-        var result = await _orderIssuer.IssueAsync(orderIdGuid);
+        var result = await _orderIssuer.IssueAsync(orderIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);

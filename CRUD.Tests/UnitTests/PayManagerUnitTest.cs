@@ -1,5 +1,4 @@
-﻿#nullable disable
-using CRUD.Utility.Options;
+﻿using CRUD.Utility.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,7 +8,7 @@ using System.Text.Json;
 
 namespace CRUD.Tests.UnitTests;
 
-public class PayManagerUnitTest
+public sealed class PayManagerUnitTest
 {
     private readonly PayManager _payManager;
     private readonly ApplicationDbContext _db;
@@ -49,10 +48,10 @@ public class PayManagerUnitTest
         string productName = Products.Premium;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем продукт в базу
-        await DI.CreateProductAsync(_db);
+        await DI.CreateProductAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
@@ -97,7 +96,7 @@ public class PayManagerUnitTest
         _mockOrderCreator.Setup(x => x.GetPaymentResponseFromApi(It.IsAny<JsonDocument>())).Returns(paymentResonse);
 
         // Act
-        var result = await _payManager.PayAsync(productName, userIdGuid);
+        var result = await _payManager.PayAsync(productName, userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -111,7 +110,7 @@ public class PayManagerUnitTest
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _payManager.PayAsync(productName, userIdGuid);
+        var result = await _payManager.PayAsync(productName, userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(result);
@@ -124,12 +123,12 @@ public class PayManagerUnitTest
         string productName = Products.Premium;
 
         // Добавляем продукт в базу
-        await DI.CreateProductAsync(_db);
+        await DI.CreateProductAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = Guid.NewGuid();
         
         // Act
-        var result = await _payManager.PayAsync(productName, userIdGuid);
+        var result = await _payManager.PayAsync(productName, userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(result);
@@ -160,7 +159,7 @@ public class PayManagerUnitTest
             .ReturnsAsync(responseMessage);
 
         // Act
-        var result = await _payManager.CheckConnectionAsync();
+        var result = await _payManager.CheckConnectionAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(result);

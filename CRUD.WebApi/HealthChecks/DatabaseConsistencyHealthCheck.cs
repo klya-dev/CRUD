@@ -6,7 +6,7 @@ namespace CRUD.WebApi.HealthChecks;
 /// <summary>
 /// Проверяет консистенцию базы данных на наличие всех таблиц.
 /// </summary>
-public class DatabaseConsistencyHealthCheck : IHealthCheck
+public sealed class DatabaseConsistencyHealthCheck : IHealthCheck
 {
     private readonly ApplicationDbContext _db;
 

@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace CRUD.Tests.SystemTests;
 
-public class UsersSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class UsersSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -27,12 +27,13 @@ public class UsersSystemTest : IClassFixture<TestWebApplicationFactory>
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var expectedDto = new UserDto()
         {
             Firstname = user.Firstname,
             Username = user.Username,
-            LanguageCode = user.LanguageCode
+            LanguageCode = user.LanguageCode,
+            AvatarPresignedUrl = "something"
         };
 
         // Запрос
@@ -40,7 +41,7 @@ public class UsersSystemTest : IClassFixture<TestWebApplicationFactory>
         var request = new HttpRequestMessage(HttpMethod.Get, url);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -48,8 +49,8 @@ public class UsersSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.RootElement.Deserialize<UserDto>();
 
         Assert.NotNull(response);
@@ -57,7 +58,8 @@ public class UsersSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.NotNull(response.Username);
         Assert.NotNull(response.LanguageCode);
 
-        Assert.Equivalent(expectedDto, response);
+        AssertExtensions.EqualIgnoring(expectedDto, response, ignoreProperties: nameof(UserDto.AvatarPresignedUrl)); // AvatarPresignedUrl не сравниваем
+        Assert.StartsWith("https://", response.AvatarPresignedUrl); // Нормальная ссылка
     }
 
     [Fact]
@@ -71,7 +73,7 @@ public class UsersSystemTest : IClassFixture<TestWebApplicationFactory>
         var request = new HttpRequestMessage(HttpMethod.Get, url);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -79,28 +81,28 @@ public class UsersSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
 
 
     [Fact]
-    public async Task Get_UserId_Avatar_ReturnsFileStream()
+    public async Task Get_UserId_AvatarFile_ReturnsFileStream()
     {
         // Arrange
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Запрос
-        var url = string.Format(TestConstants.USERS_USER_ID_AVATAR_URL, user.Id);
+        var url = string.Format(TestConstants.USERS_USER_ID_AVATAR_FILE_URL, user.Id);
         var request = new HttpRequestMessage(HttpMethod.Get, url);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -108,23 +110,23 @@ public class UsersSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/octet-stream", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
 
         Assert.True(contentStream.Length > 0);
     }
 
     [Fact]
-    public async Task Get_UserId_Avatar_ReturnsUserNotFound()
+    public async Task Get_UserId_AvatarFile_ReturnsUserNotFound()
     {
         // Arrange
         var client = _factory.HttpClient;
 
         // Запрос
-        var url = string.Format(TestConstants.USERS_USER_ID_AVATAR_URL, Guid.NewGuid());
+        var url = string.Format(TestConstants.USERS_USER_ID_AVATAR_FILE_URL, Guid.NewGuid());
         var request = new HttpRequestMessage(HttpMethod.Get, url);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -132,27 +134,27 @@ public class UsersSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
 
     [Fact]
-    public async Task Get_UserId_Avatar_ReturnsFileNotFound()
+    public async Task Get_UserId_AvatarFile_ReturnsFileNotFound()
     {
         // Arrange
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, avatarUrl: "something");
+        var user = await DI.CreateUserAsync(_db, avatarUrl: "something", ct: TestContext.Current.CancellationToken);
 
         // Запрос
-        var url = string.Format(TestConstants.USERS_USER_ID_AVATAR_URL, user.Id);
+        var url = string.Format(TestConstants.USERS_USER_ID_AVATAR_FILE_URL, user.Id);
         var request = new HttpRequestMessage(HttpMethod.Get, url);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -160,9 +162,87 @@ public class UsersSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.FILE_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
+    }
+
+
+    [Fact]
+    public async Task Get_UserId_AvatarUrl_ReturnsUrl()
+    {
+        // Arrange
+        var client = _factory.HttpClient;
+
+        // Добавляем пользователя в базу
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
+
+        // Запрос
+        var url = string.Format(TestConstants.USERS_USER_ID_AVATAR_URL_URL, user.Id);
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+        // Act
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
+        Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
+
+        // Читаем содержимое ответа
+        var contentString = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        AssertExtensions.IsNotNullOrNotWhiteSpace(contentString);
+    }
+
+    [Fact]
+    public async Task Get_UserId_AvatarUrl_ReturnsUserNotFound()
+    {
+        // Arrange
+        var client = _factory.HttpClient;
+
+        // Запрос
+        var url = string.Format(TestConstants.USERS_USER_ID_AVATAR_URL_URL, Guid.NewGuid());
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+        // Act
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, result.StatusCode);
+        Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
+
+        // Читаем содержимое ответа
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task Get_UserId_AvatarUrl_WhenFileNotExists_ReturnsUrl()
+    {
+        // Arrange
+        var client = _factory.HttpClient;
+
+        // Добавляем пользователя в базу
+        var user = await DI.CreateUserAsync(_db, avatarUrl: "something", ct: TestContext.Current.CancellationToken);
+
+        // Запрос
+        var url = string.Format(TestConstants.USERS_USER_ID_AVATAR_URL_URL, user.Id);
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+        // Act
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
+        Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
+
+        // Читаем содержимое ответа
+        var contentString = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        AssertExtensions.IsNotNullOrNotWhiteSpace(contentString);
     }
 }

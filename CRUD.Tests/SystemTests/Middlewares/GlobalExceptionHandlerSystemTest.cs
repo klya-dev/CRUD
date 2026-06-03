@@ -6,7 +6,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 
-public class GlobalExceptionHandlerSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class GlobalExceptionHandlerSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
 
@@ -39,7 +39,7 @@ public class GlobalExceptionHandlerSystemTest : IClassFixture<TestWebApplication
         request.Content = json;
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -47,8 +47,8 @@ public class GlobalExceptionHandlerSystemTest : IClassFixture<TestWebApplication
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(500, jsonDocument.RootElement.GetProperty("status").GetInt32());
         Assert.Equal("Server Error", jsonDocument.RootElement.GetProperty("title").GetString());
@@ -78,7 +78,7 @@ public class GlobalExceptionHandlerSystemTest : IClassFixture<TestWebApplication
         request.Content = json;
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -86,8 +86,8 @@ public class GlobalExceptionHandlerSystemTest : IClassFixture<TestWebApplication
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(503, jsonDocument.RootElement.GetProperty("status").GetInt32());
         Assert.Equal("Service Unavailable", jsonDocument.RootElement.GetProperty("title").GetString());

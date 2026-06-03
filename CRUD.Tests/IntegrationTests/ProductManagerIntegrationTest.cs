@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class ProductManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class ProductManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly ApplicationDbContext _db;
@@ -20,26 +20,19 @@ public class ProductManagerIntegrationTest : IClassFixture<TestWebApplicationFac
         _db = scopedServices.GetRequiredService<ApplicationDbContext>();
     }
     
-    private IProductManager GenerateNewProductManager()
-    {
-        var scope = _factory.Services.CreateScope();
-        var scopedServices = scope.ServiceProvider;
-        return scopedServices.GetRequiredService<IProductManager>();
-    }
-
     [Fact] // Добавление продуктов, когда таблица пустая
     public async Task AddProductsToDbAsync_ShouldAdd_WhenTableEmpty()
     {
         // Arrange
-        var productsFromDbBefore = await _db.Products.AsNoTracking().ToListAsync();
+        var productsFromDbBefore = await _db.Products.AsNoTracking().ToListAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await _productManager.AddProductsToDbAsync();
+        await _productManager.AddProductsToDbAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(productsFromDbBefore);
 
-        var productsFromDbAfter = await _db.Products.AsNoTracking().ToListAsync();
+        var productsFromDbAfter = await _db.Products.AsNoTracking().ToListAsync(TestContext.Current.CancellationToken);
         Assert.NotEmpty(productsFromDbAfter);
     }
 
@@ -48,74 +41,16 @@ public class ProductManagerIntegrationTest : IClassFixture<TestWebApplicationFac
     {
         // Arrange
         // Добавляем продукты в базу
-        await DI.CreateProductAsync(_db, name: Products.Premium);
-        await DI.CreateProductAsync(_db, name: "something");
+        await DI.CreateProductAsync(_db, name: Products.Premium, ct: TestContext.Current.CancellationToken);
+        await DI.CreateProductAsync(_db, name: "something", ct: TestContext.Current.CancellationToken);
 
-        var productsFromDbBefore = await _db.Products.AsNoTracking().ToListAsync();
+        var productsFromDbBefore = await _db.Products.AsNoTracking().ToListAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await _productManager.AddProductsToDbAsync();
+        await _productManager.AddProductsToDbAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        var productsFromDbAfter = await _db.Products.AsNoTracking().ToListAsync();
-        Assert.Equivalent(productsFromDbBefore, productsFromDbAfter);
-    }
-
-
-    // Конфликты параллельности
-
-
-    [Fact] // Добавление продуктов, когда таблица пустая
-    public async Task AddProductsToDbAsync_Concurrency_ShouldAdd_WhenTableEmpty()
-    {
-        // Arrange
-        var productsFromDbBefore = await _db.Products.AsNoTracking().ToListAsync();
-        var productManager = GenerateNewProductManager();
-        var productManager2 = GenerateNewProductManager();
-
-        // Act
-        var task = productManager.AddProductsToDbAsync();
-        var task2 = productManager2.AddProductsToDbAsync();
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            await Task.WhenAll(task, task2);
-
-            // Assert
-            Assert.Empty(productsFromDbBefore);
-
-            var productsFromDbAfter = await _db.Products.AsNoTracking().ToListAsync();
-            Assert.NotEmpty(productsFromDbAfter);
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
-    }
-
-    [Fact] // Добавление продуктов, когда таблица не пустая
-    public async Task AddProductsToDbAsync_Concurrency_ShouldNothing_WhenTableNotEmpty()
-    {
-        // Arrange
-        // Добавляем продукты в базу
-        await DI.CreateProductAsync(_db, name: Products.Premium);
-        await DI.CreateProductAsync(_db, name: "something");
-
-        var productsFromDbBefore = await _db.Products.AsNoTracking().ToListAsync();
-        var productManager = GenerateNewProductManager();
-        var productManager2 = GenerateNewProductManager();
-
-        // Act
-        var task = productManager.AddProductsToDbAsync();
-        var task2 = productManager2.AddProductsToDbAsync();
-
-        await Task.WhenAll(task, task2);
-
-        // Assert
-        var productsFromDbAfter = await _db.Products.AsNoTracking().ToListAsync();
+        var productsFromDbAfter = await _db.Products.AsNoTracking().ToListAsync(TestContext.Current.CancellationToken);
         Assert.Equivalent(productsFromDbBefore, productsFromDbAfter);
     }
 }

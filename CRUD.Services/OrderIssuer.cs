@@ -1,28 +1,25 @@
-﻿using CRUD.Services.Interfaces;
-using CRUD.Utility.Metrics;
+﻿using CRUD.Utility.Metrics;
 
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IOrderIssuer"/>
-public class OrderIssuer : IOrderIssuer
+public sealed class OrderIssuer : IOrderIssuer
 {
     private readonly ApplicationDbContext _db;
     private readonly IPremiumManager _premiumManager;
-    private readonly IValidator<Order> _orderValidator;
     private readonly ApiMeters _metrics;
 
-    public OrderIssuer(ApplicationDbContext db, IPremiumManager premiumManager, IValidator<Order> orderValidator, ApiMeters metrics)
+    public OrderIssuer(ApplicationDbContext db, IPremiumManager premiumManager, ApiMeters metrics)
     {
         _db = db;
         _premiumManager = premiumManager;
-        _orderValidator = orderValidator;
         _metrics = metrics;
     }
 
     public async Task<ServiceResult> IssueAsync(Guid orderId, CancellationToken ct = default)
     {
         // Заказ не найден
-        var orderFromDb = await _db.Orders.FirstOrDefaultAsync(x => x.Id == orderId, ct);
+        var orderFromDb = await _db.Orders.Where(x => x.Id == orderId).Select(x => new { x.Status, x.PaymentStatus, x.ProductName, x.UserId }).FirstOrDefaultAsync(ct);
         if (orderFromDb == null)
             return ServiceResult.Fail(ErrorMessages.OrderNotFound);
 
@@ -43,7 +40,7 @@ public class OrderIssuer : IOrderIssuer
             if (result.ErrorMessage != null)
                 return ServiceResult.Fail(result.ErrorMessage);
 
-            await SetOrderIsDoneAsync(orderFromDb, CancellationToken.None); // Если уже выдали заказ выше, то и статус заказа нужно обязательно обновить
+            await SetOrderIsDoneAsync(orderId, CancellationToken.None); // Если уже выдали заказ выше, то и статус заказа нужно обязательно обновить
 
             _metrics.IssueProduct(Products.Premium);
             return ServiceResult.Success();
@@ -55,19 +52,13 @@ public class OrderIssuer : IOrderIssuer
     /// <summary>
     /// Устанавливает статус заказа на <see cref="OrderStatuses.Done"/>.
     /// </summary>
-    /// <param name="order">Заказ.</param>
+    /// <param name="orderId">Id заказа.</param>
     /// <param name="ct">Токен отмены.</param>
-    /// <exception cref="InvalidOperationException">Если после изменений данных сущности <see cref="Order"/>, сущность окажется невалидна.</exception>
-    private async Task SetOrderIsDoneAsync(Order order, CancellationToken ct = default)
+    private async Task SetOrderIsDoneAsync(Guid orderId, CancellationToken ct = default)
     {
-        order.Status = OrderStatuses.Done;
-
-        // Проверка валидности данных перед записью в базу
-        var validationResultUser = await _orderValidator.ValidateAsync(order, ct);
-        if (!validationResultUser.IsValid)
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(Order), validationResultUser.Errors));
-
-        _db.Orders.Update(order);
-        await _db.SaveChangesAsync(ct);
+        // Обновляем статус заказа
+        await _db.Orders.Where(x => x.Id == orderId)
+            .ExecuteUpdateAsync(x =>
+                x.SetProperty(p => p.Status, OrderStatuses.Done), ct);
     }
 }

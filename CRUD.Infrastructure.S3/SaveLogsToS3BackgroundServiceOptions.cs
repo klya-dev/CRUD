@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции фонового сервиса <see cref="SaveLogsToS3BackgroundService"/>.
 /// </summary>
-public class SaveLogsToS3BackgroundServiceOptions
+public sealed class SaveLogsToS3BackgroundServiceOptions
 {
     /// <summary>
     /// Название секции.
@@ -16,5 +16,5 @@ public class SaveLogsToS3BackgroundServiceOptions
     /// <remarks>
     /// Например, 1 день, значит раз в день будут записываться файл-логи в облачное хранилище.
     /// </remarks>
-    public required TimeSpan Timer { get; set; }
+    public required TimeSpan Timer { get; init; }
 }

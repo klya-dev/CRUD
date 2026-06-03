@@ -1,48 +1,47 @@
-﻿using CRUD.Utility.Attributes;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace CRUD.Models.Dtos.Publication;
 
 /// <summary>
 /// DTO-модель полных данных публикации.
 /// </summary>
-public class PublicationFullDto
+public sealed record PublicationFullDto
 {
     /// <summary>
     /// Id публикации.
     /// </summary>
     [JsonPropertyName("id")]
-    public required Guid Id { get; set; }
+    public required Guid Id { get; init; }
 
     /// <summary>
     /// Дата создания публикации.
     /// </summary>
     [JsonPropertyName("createdAt")]
     [DateTimeFormatJson(DateTimeFormats.WithTicks)]
-    public required DateTime CreatedAt { get; set; }
+    public required DateTime CreatedAt { get; init; }
 
     /// <summary>
     /// Дата изменения публикации.
     /// </summary>
     [JsonPropertyName("editedAt")]
     [DateTimeFormatJson(DateTimeFormats.WithTicks)]
-    public required DateTime? EditedAt { get; set; }
+    public required DateTime? EditedAt { get; init; }
 
     /// <summary>
     /// Заголовок публикации.
     /// </summary>
     [JsonPropertyName("title")]
-    public required string Title { get; set; }
+    public required string Title { get; init; }
 
     /// <summary>
     /// Содержимое публикации.
     /// </summary>
     [JsonPropertyName("content")]
-    public required string Content { get; set; }
+    public required string Content { get; init; }
 
     /// <summary>
-    /// Id автора (пользователя) публикации.
+    /// Модель автора (пользователя) публикации.
     /// </summary>
     [JsonPropertyName("author")]
-    public required UserFullDto? Author { get; set; }
+    public required UserFullDto? Author { get; init; }
 }

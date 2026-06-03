@@ -1,12 +1,9 @@
-﻿#nullable disable
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class EmailLettersIntegrationTest
+public sealed class EmailLettersIntegrationTest
 {
-    // #nullable disable
-
     private readonly IHttpContextAccessor _httpContextAccessor = TestConstants.CreateHttpContextAccessor();
 
     [Theory]

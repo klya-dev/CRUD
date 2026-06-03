@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace Microservice.EmailSender.Services.RabbitMqConsumer;
 
 /// <inheritdoc cref="IEmailSenderBackgroundCore"/>
-public class RabbitMqConsumerBackgroundCore : IRabbitMqConsumerBackgroundCore
+public sealed class RabbitMqConsumerBackgroundCore : IRabbitMqConsumerBackgroundCore
 {
     private readonly IQueueEmail _queueEmail;
     private readonly ILogger<RabbitMqConsumerBackgroundCore> _logger;

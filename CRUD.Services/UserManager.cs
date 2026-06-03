@@ -1,15 +1,12 @@
-﻿using Microsoft.Extensions.Options;
-
-namespace CRUD.Services;
+﻿namespace CRUD.Services;
 
 /// <inheritdoc cref="IUserManager"/>
-public class UserManager : IUserManager
+public sealed class UserManager : IUserManager
 {
     private readonly ApplicationDbContext _db;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IAvatarManager _avatarManager;
     private readonly AvatarManagerOptions _avatarManagerOptions;
-    private readonly IValidator<User> _userValidator;
     private readonly IValidator<CreateUserDto> _createUserDtoValidator;
     private readonly IValidator<OAuthCompleteRegistrationDto> _oAuthCompleteRegistrationDtoValidator;
     private readonly IValidator<UpdateUserDto> _updateUserDtoValidator;
@@ -17,12 +14,11 @@ public class UserManager : IUserManager
     private readonly IValidator<SetRoleDto> _setRoleDtoValidator;
     private readonly ILogger<UserManager> _logger;
 
-    public UserManager(ApplicationDbContext db, IPasswordHasher passwordHasher, IAvatarManager avatarManager, IOptions<AvatarManagerOptions> avatarManagerOptions, IValidator<User> userValidator, IValidator<CreateUserDto> createUserDtoValidator, IValidator<OAuthCompleteRegistrationDto> oAuthCompleteRegistrationDtoValidator, IValidator<UpdateUserDto> updateUserDtoValidator, IValidator<DeleteUserDto> deleteUserDtoValidator, IValidator<SetRoleDto> setRoleDtoValidator, ILogger<UserManager> logger)
+    public UserManager(ApplicationDbContext db, IPasswordHasher passwordHasher, IAvatarManager avatarManager, IOptions<AvatarManagerOptions> avatarManagerOptions, IValidator<CreateUserDto> createUserDtoValidator, IValidator<OAuthCompleteRegistrationDto> oAuthCompleteRegistrationDtoValidator, IValidator<UpdateUserDto> updateUserDtoValidator, IValidator<DeleteUserDto> deleteUserDtoValidator, IValidator<SetRoleDto> setRoleDtoValidator, ILogger<UserManager> logger)
     {
         _db = db;
         _passwordHasher = passwordHasher;
         _avatarManagerOptions = avatarManagerOptions.Value;
-        _userValidator = userValidator;
         _createUserDtoValidator = createUserDtoValidator;
         _oAuthCompleteRegistrationDtoValidator = oAuthCompleteRegistrationDtoValidator;
         _updateUserDtoValidator = updateUserDtoValidator;
@@ -32,20 +28,20 @@ public class UserManager : IUserManager
         _logger = logger;
     }
 
-    public async Task<User?> GetUserAsync(Guid userId, bool tracking = true, CancellationToken ct = default)
+    public Task<User?> GetUserAsync(Guid userId, bool tracking = true, CancellationToken ct = default)
     {
         if (tracking)
-            return await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, ct);
+            return _db.Users.FirstOrDefaultAsync(x => x.Id == userId, ct);
 
-        return await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId, ct);
+        return _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId, ct);
     }
 
-    public async Task<User?> GetUserAsync(string username, bool tracking = true, CancellationToken ct = default)
+    public Task<User?> GetUserAsync(string username, bool tracking = true, CancellationToken ct = default)
     {
         if (tracking)
-            return await _db.Users.FirstOrDefaultAsync(x => x.Username == username, ct);
+            return _db.Users.FirstOrDefaultAsync(x => x.Username == username, ct);
 
-        return await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Username == username, ct);
+        return _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Username == username, ct);
     }
 
     public async Task<ServiceResult<UserDto>> GetUserDtoAsync(Guid userId, CancellationToken ct = default)
@@ -54,8 +50,16 @@ public class UserManager : IUserManager
         if (userId == Guid.Empty)
             throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
 
+        // Не удалось получить ссылку на аватарку
+        // Возвращаем ошибку, только, если пользователь не найден
+        // Лучше вернём DTO без аватарки, чем вообще не вернём, а если пользователь не найден, то и DTO не сформируется
+        var avatarPresignedUrlResult = await _avatarManager.GetPresignedUrlAvatarAsync(userId, ct: ct);
+        if (avatarPresignedUrlResult.ErrorMessage != null
+            && avatarPresignedUrlResult.ErrorMessage == ErrorMessages.UserNotFound)
+            return ServiceResult<UserDto>.Fail(avatarPresignedUrlResult.ErrorMessage);
+
         // Пользователь не найден | создаём DTO на стороне базы
-        var userDto = await _db.Users.AsNoTracking().Where(x => x.Id == userId).Select(x => x.ToUserDto()).FirstOrDefaultAsync(ct);
+        var userDto = await _db.Users.AsNoTracking().Where(x => x.Id == userId).Select(x => x.ToUserDto(avatarPresignedUrlResult.Value)).FirstOrDefaultAsync(ct);
         if (userDto == null)
             return ServiceResult<UserDto>.Fail(ErrorMessages.UserNotFound);
 
@@ -76,21 +80,6 @@ public class UserManager : IUserManager
         return ServiceResult<UserFullDto>.Success(userDto);
     }
 
-    // Просто вспомогательный метод без бизнес логики, пока не используется
-    public async Task UpdateUserAsync(User changedUser, CancellationToken ct = default)
-    {
-        // Пустые данные
-        ArgumentNullException.ThrowIfNull(changedUser);
-
-        // Валидация модели
-        var validationResult = await ValidateAsync(changedUser, ct);
-        if (!validationResult.IsValid)
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(User), validationResult.Errors));
-
-        _db.Users.Update(changedUser);
-        await _db.SaveChangesAsync(ct);
-    }
-
     public async Task<ServiceResult> UpdateUserAsync(Guid userId, UpdateUserDto updateUserDto, CancellationToken ct = default)
     {
         // Пустые данные
@@ -106,7 +95,7 @@ public class UserManager : IUserManager
             throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(UpdateUserDto), validationResult.Errors));
 
         // Пользователь не найден
-        var userFromDb = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, ct);
+        var userFromDb = await _db.Users.Where(x => x.Id == userId).Select(x => new { x.Firstname, x.Username, x.LanguageCode, x.RowVersion }).FirstOrDefaultAsync(ct);
         if (userFromDb == null)
             return ServiceResult.Fail(ErrorMessages.UserNotFound);
 
@@ -117,20 +106,19 @@ public class UserManager : IUserManager
             return ServiceResult.Fail(ErrorMessages.NoChangesDetected);
 
         // Username уже занят
-        if (updateUserDto.Username != userFromDb.Username && await IsUsernameAlreadyTakenAsync(updateUserDto.Username, ct)) // Если пользователь меняет username и такой username не свободен
+        if (updateUserDto.Username != userFromDb.Username && await IsUsernameAlreadyTakenAsync(updateUserDto.Username, ct)) // Если пользователь меняет username и такой username занят
             return ServiceResult.Fail(ErrorMessages.UsernameAlreadyTaken);
 
-        userFromDb.Firstname = updateUserDto.Firstname;
-        userFromDb.Username = updateUserDto.Username;
-        userFromDb.LanguageCode = updateUserDto.LanguageCode;
+        // Обновляем пользователя
+        var updatedRows = await _db.Users.Where(x => x.Id == userId && x.RowVersion == userFromDb.RowVersion)
+            .ExecuteUpdateAsync(x =>
+                x.SetProperty(p => p.Firstname, updateUserDto.Firstname)
+                .SetProperty(p => p.Username, updateUserDto.Username)
+                .SetProperty(p => p.LanguageCode, updateUserDto.LanguageCode), ct);
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultUser = await ValidateAsync(userFromDb, ct);
-        if (!validationResultUser.IsValid) // Если данные невалидны, то я уже ничего не сделаю - исключение
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(User), validationResultUser.Errors));
-
-        _db.Users.Update(userFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Найдено 0 строк (Where;MySQL:UseAffectedRows). Вероятно, из-за разных RowVersion - конфликт
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.ConcurrencyConflicts);
 
         return ServiceResult.Success();
     }
@@ -149,8 +137,8 @@ public class UserManager : IUserManager
         if (!validationResult.IsValid)
             throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(DeleteUserDto), validationResult.Errors));
 
-        // Пользователь не найден
-        var userFromDb = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, ct);
+        // Пользователь не найден. Грузим только HashedPassword, AvatarURL
+        var userFromDb = await _db.Users.Where(x => x.Id == userId).Select(x => new { x.HashedPassword, x.AvatarURL }).FirstOrDefaultAsync(ct);
         if (userFromDb == null)
             return ServiceResult.Fail(ErrorMessages.UserNotFound);
 
@@ -159,8 +147,8 @@ public class UserManager : IUserManager
             return ServiceResult.Fail(ErrorMessages.InvalidPassword);
 
         // Удаляем пользователя
-        _db.Users.Remove(userFromDb);
-        await _db.SaveChangesAsync(ct);
+        await _db.Users.Where(x => x.Id == userId)
+            .ExecuteDeleteAsync(ct);
 
         // Удаляем аватарку
         var deleteAvatarResult = await _avatarManager.DeleteAvatarAsync(userFromDb.AvatarURL, ct);
@@ -178,14 +166,14 @@ public class UserManager : IUserManager
         if (userId == Guid.Empty)
             throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
 
-        // Пользователь не найден
-        var userFromDb = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, ct);
+        // Пользователь не найден. Грузим только AvatarURL
+        var userFromDb = await _db.Users.Where(x => x.Id == userId).Select(x => new { x.AvatarURL }).FirstOrDefaultAsync(ct);
         if (userFromDb == null)
             return ServiceResult.Fail(ErrorMessages.UserNotFound);
 
         // Удаляем пользователя
-        _db.Users.Remove(userFromDb);
-        await _db.SaveChangesAsync(ct);
+        await _db.Users.Where(x => x.Id == userId)
+            .ExecuteDeleteAsync(ct);
 
         // Удаляем аватарку
         var deleteAvatarResult = await _avatarManager.DeleteAvatarAsync(userFromDb.AvatarURL, ct);
@@ -232,11 +220,6 @@ public class UserManager : IUserManager
             PhoneNumber = createUserDto.PhoneNumber
         };
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultUser = await ValidateAsync(user, ct);
-        if (!validationResultUser.IsValid) // Если данные невалидны, то я уже ничего не сделаю - исключение
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(User), validationResultUser.Errors));
-
         await _db.Users.AddAsync(user, ct);
         await _db.SaveChangesAsync(ct);
 
@@ -262,9 +245,11 @@ public class UserManager : IUserManager
         if (!validationResultCreateUserDto.IsValid)
             throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(CreateUserDto), validationResultCreateUserDto.Errors));
 
+        string createUsername = createUserDto.Username;
+
         // Username уже занят, просто меняем на рандомный
         if (await IsUsernameAlreadyTakenAsync(createUserDto.Username, ct))
-            createUserDto.Username = RandomDataGenerator.GenerateRandomUsername();
+            createUsername = RandomDataGenerator.GenerateRandomUsername();
 
         // Email уже занят
         if (await IsEmailAlreadyTakenAsync(createUserDto.Email, ct))
@@ -277,7 +262,7 @@ public class UserManager : IUserManager
         var user = new User
         {
             Firstname = createUserDto.Firstname,
-            Username = createUserDto.Username,
+            Username = createUsername,
             HashedPassword = _passwordHasher.GenerateHashedPassword(createUserDto.Password),
             LanguageCode = createUserDto.LanguageCode,
             Role = UserRoles.User,
@@ -286,11 +271,6 @@ public class UserManager : IUserManager
             Email = userInfo.Email,
             PhoneNumber = createUserDto.PhoneNumber,
         };
-
-        // Проверка валидности данных перед записью в базу
-        var validationResultUser = await ValidateAsync(user, ct);
-        if (!validationResultUser.IsValid) // Если данные невалидны, то я уже ничего не сделаю - исключение
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(User), validationResultUser.Errors));
 
         await _db.Users.AddAsync(user, ct);
         await _db.SaveChangesAsync(ct);
@@ -320,7 +300,7 @@ public class UserManager : IUserManager
             throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(SetRoleDto), validationResult.Errors));
 
         // Пользователь не найден
-        var userFromDb = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, ct);
+        var userFromDb = await _db.Users.Where(x => x.Id == userId).Select(x => new { x.Role, x.RowVersion }).FirstOrDefaultAsync(ct);
         if (userFromDb == null)
             return ServiceResult.Fail(ErrorMessages.UserNotFound);
 
@@ -328,15 +308,14 @@ public class UserManager : IUserManager
         if (userFromDb.Role == setRoleDto.Role)
             return ServiceResult.Fail(ErrorMessages.NoChangesDetected);
 
-        userFromDb.Role = setRoleDto.Role;
+        // Обновляем пользователя
+        var updatedRows = await _db.Users.Where(x => x.Id == userId && x.RowVersion == userFromDb.RowVersion)
+            .ExecuteUpdateAsync(x =>
+                x.SetProperty(p => p.Role, setRoleDto.Role), ct);
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultUser = await ValidateAsync(userFromDb, ct);
-        if (!validationResultUser.IsValid) // Если данные невалидны, то я уже ничего не сделаю - исключение
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(User), validationResultUser.Errors));
-
-        _db.Users.Update(userFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Найдено 0 строк (Where;MySQL:UseAffectedRows). Вероятно, из-за разных RowVersion - конфликт
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.ConcurrencyConflicts);
 
         return ServiceResult.Success();
     }
@@ -359,33 +338,30 @@ public class UserManager : IUserManager
         return ServiceResult.Success();
     }
 
-    public async Task<bool> IsUsernameAlreadyTakenAsync(string username, CancellationToken ct = default)
+    public Task<bool> IsUsernameAlreadyTakenAsync(string username, CancellationToken ct = default)
     {
-        return await _db.Users.AnyAsync(x => x.Username == username, ct);
+        return _db.Users.AnyAsync(x => x.Username == username, ct);
     }
 
-    public async Task<bool> IsEmailAlreadyTakenAsync(string email, CancellationToken ct = default)
+    public Task<bool> IsEmailAlreadyTakenAsync(string email, CancellationToken ct = default)
     {
-        return await _db.Users.AnyAsync(x => x.Email == email, ct);
+        return _db.Users.AnyAsync(x => x.Email == email, ct);
     }
 
-    public async Task<bool> IsPhoneNumberAlreadyTakenAsync(string phoneNumber, CancellationToken ct = default)
+    public Task<bool> IsPhoneNumberAlreadyTakenAsync(string phoneNumber, CancellationToken ct = default)
     {
-        return await _db.Users.AnyAsync(x => x.PhoneNumber == phoneNumber, ct);
+        return _db.Users.AnyAsync(x => x.PhoneNumber == phoneNumber, ct);
     }
 
-    public async Task<bool> IsUserExistsAsync(Guid userId, CancellationToken ct = default)
+    public Task<bool> IsUserExistsAsync(Guid userId, CancellationToken ct = default)
     {
-        return await _db.Users.AnyAsync(x => x.Id == userId, ct);
+        return _db.Users.AnyAsync(x => x.Id == userId, ct);
     }
 
-    public async Task<bool> IsUserExistsAsync(string username, CancellationToken ct = default)
+    public Task<bool> IsUserExistsAsync(string username, CancellationToken ct = default)
     {
-        return await _db.Users.AnyAsync(x => x.Username == username, ct);
+        return _db.Users.AnyAsync(x => x.Username == username, ct);
     }
-
-    public FluentValidation.Results.ValidationResult Validate(User user) => _userValidator.Validate(user);
-    public async Task<FluentValidation.Results.ValidationResult> ValidateAsync(User user, CancellationToken ct = default) => await _userValidator.ValidateAsync(user, ct);
 
     public async Task<ServiceResult> ConfirmEmailAsync(string token, CancellationToken ct = default)
     {
@@ -393,16 +369,27 @@ public class UserManager : IUserManager
         ArgumentNullException.ThrowIfNull(token);
 
         // Запрос не найден
-        var confirmEmailRequestFromDb = await _db.ConfirmEmailRequests.Include(x => x.User).FirstOrDefaultAsync(x => x.Token == token, ct);
+        var confirmEmailRequestFromDb = await _db.ConfirmEmailRequests.Where(x => x.Token == token)
+            .AsNoTracking()
+            .Select(x => new
+            {
+                // Очень осторожно с полной сущностью (Request = x), если где-то загрузили/создали всю сущность, а потом вызвали ExecuteUpdateAsync, то из-за кэша значения могут разниться
+                // Прикол, в том, что EF и вправду делает запрос в базу (FirstOrDefaultAsync), но после получения этих данных он сравнивает ID сущности с ID сущности в кэше и просто отдаёт кэшированные значения - так и работает ChangeTracker (в одном контексте базы)
+                // Поэтому когда грузим всю сущность через .Select() - .AsNoTracking() обязательно
+                Request = x,
+                User = new { x.User!.Id, x.User.IsEmailConfirm, x.User.RowVersion }
+            })
+            .FirstOrDefaultAsync(ct);
+
         if (confirmEmailRequestFromDb == null)
             return ServiceResult.Fail(ErrorMessages.InvalidToken);
 
         // Удаляем токен из базы (в любом случае надо удалить токен, он одноразовый)
-        _db.ConfirmEmailRequests.Remove(confirmEmailRequestFromDb);
+        _db.ConfirmEmailRequests.Remove(confirmEmailRequestFromDb.Request); // Через ExecuteDelete не получится: 'ExecuteDelete'/'ExecuteUpdate' operations on hierarchies mapped as TPT is not supported + так-то мы уже прогрузили сущность в память
         await _db.SaveChangesAsync(ct);
 
         // Проверка срока действия токена
-        if (confirmEmailRequestFromDb.IsExpired())
+        if (confirmEmailRequestFromDb.Request.IsExpired())
             return ServiceResult.Fail(ErrorMessages.InvalidToken);
 
         // Пользователь не найден
@@ -414,16 +401,14 @@ public class UserManager : IUserManager
         if (userFromDb.IsEmailConfirm)
             return ServiceResult.Fail(ErrorMessages.UserAlreadyConfirmedEmail);
 
-        userFromDb.IsEmailConfirm = true;
+        // Обновляем пользователя
+        var updatedRows = await _db.Users.Where(x => x.Id == userFromDb.Id && x.RowVersion == userFromDb.RowVersion)
+            .ExecuteUpdateAsync(x =>
+                x.SetProperty(p => p.IsEmailConfirm, true), ct);
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultUser = await ValidateAsync(userFromDb, ct);
-        if (!validationResultUser.IsValid) // Если данные невалидны, то я уже ничего не сделаю - исключение
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(User), validationResultUser.Errors));
-
-        // Сохраняем изменения
-        _db.Users.Update(userFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Найдено 0 строк (Where;MySQL:UseAffectedRows). Вероятно, из-за разных RowVersion - конфликт
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.ConcurrencyConflicts);
 
         return ServiceResult.Success();
     }
@@ -438,16 +423,27 @@ public class UserManager : IUserManager
             throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
 
         // Запрос не найден (по UserId и коду)
-        var verificationPhoneNumberRequestFromDb = await _db.VerificationPhoneNumberRequests.Include(x => x.User).FirstOrDefaultAsync(x => x.UserId == userId && x.Code == code, ct);
+        var verificationPhoneNumberRequestFromDb = await _db.VerificationPhoneNumberRequests.Where(x => x.UserId == userId && x.Code == code)
+            .AsNoTracking()
+            .Select(x => new
+            {
+                // Очень осторожно с полной сущностью (Request = x), если где-то загрузили/создали всю сущность, а потом вызвали ExecuteUpdateAsync, то из-за кэша значения могут разниться
+                // Прикол, в том, что EF и вправду делает запрос в базу (FirstOrDefaultAsync), но после получения этих данных он сравнивает ID сущности с ID сущности в кэше и просто отдаёт кэшированные значения - так и работает ChangeTracker (в одном контексте базы)
+                // Поэтому когда грузим всю сущность через .Select() - .AsNoTracking() обязательно
+                Request = x,
+                User = new { x.User!.Id, x.User.IsPhoneNumberConfirm, x.User.RowVersion }
+            })
+            .FirstOrDefaultAsync(ct);
+
         if (verificationPhoneNumberRequestFromDb == null)
             return ServiceResult.Fail(ErrorMessages.InvalidCode);
 
         // Удаляем код из базы (в любом случае надо удалить код, он одноразовый)
-        _db.VerificationPhoneNumberRequests.Remove(verificationPhoneNumberRequestFromDb);
+        _db.VerificationPhoneNumberRequests.Remove(verificationPhoneNumberRequestFromDb.Request);
         await _db.SaveChangesAsync(ct);
 
         // Проверка срока действия токена
-        if (verificationPhoneNumberRequestFromDb.IsExpired())
+        if (verificationPhoneNumberRequestFromDb.Request.IsExpired())
             return ServiceResult.Fail(ErrorMessages.InvalidCode);
 
         // Пользователь не найден
@@ -459,16 +455,14 @@ public class UserManager : IUserManager
         if (userFromDb.IsPhoneNumberConfirm)
             return ServiceResult.Fail(ErrorMessages.UserAlreadyConfirmedPhoneNumber);
 
-        userFromDb.IsPhoneNumberConfirm = true;
+        // Обновляем пользователя
+        var updatedRows = await _db.Users.Where(x => x.Id == userFromDb.Id && x.RowVersion == userFromDb.RowVersion)
+            .ExecuteUpdateAsync(x =>
+                x.SetProperty(p => p.IsPhoneNumberConfirm, true), ct);
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultUser = await ValidateAsync(userFromDb, ct);
-        if (!validationResultUser.IsValid) // Если данные невалидны, то я уже ничего не сделаю - исключение
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(User), validationResultUser.Errors));
-
-        // Сохраняем изменения
-        _db.Users.Update(userFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Найдено 0 строк (Where;MySQL:UseAffectedRows). Вероятно, из-за разных RowVersion - конфликт
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.ConcurrencyConflicts);
 
         return ServiceResult.Success();
     }

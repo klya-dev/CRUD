@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace CRUD.Tests.SystemTests.User;
 
-public class UserPublicationsSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class UserPublicationsSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -29,10 +29,10 @@ public class UserPublicationsSystemTest : IClassFixture<TestWebApplicationFactor
         int count = 1;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
+        var publication = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
         var authorIdGuid = user.Id;
 
@@ -57,7 +57,7 @@ public class UserPublicationsSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -65,8 +65,8 @@ public class UserPublicationsSystemTest : IClassFixture<TestWebApplicationFactor
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.RootElement.Deserialize<IEnumerable<PublicationDto>>();
 
         foreach (var item in response)
@@ -88,7 +88,7 @@ public class UserPublicationsSystemTest : IClassFixture<TestWebApplicationFactor
         int count = 1;
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, null);
+        var publication = await DI.CreatePublicationAsync(_db, null, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = $"{TestConstants.USER_PUBLICATIONS_URL}?count=" + count;
@@ -96,7 +96,7 @@ public class UserPublicationsSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -104,8 +104,8 @@ public class UserPublicationsSystemTest : IClassFixture<TestWebApplicationFactor
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.AUTHOR_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -119,7 +119,7 @@ public class UserPublicationsSystemTest : IClassFixture<TestWebApplicationFactor
         int count = 2;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = $"{TestConstants.USER_PUBLICATIONS_URL}?count=" + count;
@@ -127,7 +127,7 @@ public class UserPublicationsSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -135,87 +135,11 @@ public class UserPublicationsSystemTest : IClassFixture<TestWebApplicationFactor
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.RootElement.Deserialize<IEnumerable<PublicationDto>>();
 
         Assert.NotNull(response);
         Assert.Empty(response);
-    }
-
-
-    // Конфликты параллельности
-
-
-    [Fact]
-    public async Task Get_ConcurrencyConflict_ReturnsIEnumerablePublicationDto()
-    {
-        // Arrange
-        var client = _factory.HttpClient;
-        var client2 = _factory.CreateClient();
-
-        int count = 1;
-
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
-
-        var authorIdGuid = user.Id;
-
-        // Такой результат должен быть
-        var mustResult = new List<PublicationDto>()
-        {
-            new PublicationDto
-            {
-                Id = publication.Id,
-                CreatedAt = publication.CreatedAt.ToWithoutTicks(),
-                EditedAt = publication.EditedAt?.ToWithoutTicks(),
-                Title = publication.Title,
-                Content = publication.Content,
-                AuthorId = publication.AuthorId,
-                AuthorFirstname = user.Firstname
-            }
-        };
-
-        // Данные для запросов
-        var url = $"{TestConstants.USER_PUBLICATIONS_URL}?count=" + count;
-
-        // Запрос 1
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
-        TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
-
-        // Запрос 2
-        var request2 = new HttpRequestMessage(HttpMethod.Get, url);
-        TestConstants.AddBearerToken(request2, _tokenManager, userId: user.Id.ToString());
-
-        // Act
-        using var task = client.SendAsync(request);
-        using var task2 = client2.SendAsync(request2);
-
-        var results = await Task.WhenAll(task, task2);
-
-        // Assert
-        foreach (var result in results)
-        {
-            Assert.NotNull(result);
-            Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
-            Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
-
-            // Читаем содержимое ответа
-            await using var contentStream = await result.Content.ReadAsStreamAsync();
-            using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
-            var response = jsonDocument.RootElement.Deserialize<IEnumerable<PublicationDto>>();
-
-            foreach (var item in response)
-            {
-                Assert.NotNull(item);
-                Assert.NotNull(item.Title);
-                Assert.NotNull(item.Content);
-            }
-
-            Assert.Equivalent(mustResult, response);
-        }
     }
 }

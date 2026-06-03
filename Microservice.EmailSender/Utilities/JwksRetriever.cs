@@ -11,7 +11,7 @@ namespace Microservice.EmailSender.Utilities;
 /// <para>Нужен для получения публичных ключей из "/.well-known/jwks.json" в делегате <see cref="TokenValidationParameters.IssuerSigningKeyResolver"/>.</para>
 /// <para><see cref="GetConfigurationAsync(string, IDocumentRetriever, CancellationToken)"/> возвращает <see cref="JsonWebKeySet"/>.</para>
 /// </remarks>
-public class JwksRetriever : IConfigurationRetriever<JsonWebKeySet>
+public sealed class JwksRetriever : IConfigurationRetriever<JsonWebKeySet>
 {
     public async Task<JsonWebKeySet> GetConfigurationAsync(string address, IDocumentRetriever retriever, CancellationToken cancel)
     {

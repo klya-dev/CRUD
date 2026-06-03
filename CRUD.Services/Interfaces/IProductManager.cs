@@ -13,10 +13,6 @@ public interface IProductManager
     /// Возможные исключения:
     /// <list type="bullet">
     /// <item>
-    /// <term>Если после изменений данных сущности <see cref="Product"/>, сущность окажется невалидна, изменения не последуют</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
     /// <term>Если возник конфликт параллельности</term>
     /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
     /// </item>
@@ -24,7 +20,6 @@ public interface IProductManager
     /// 
     /// </remarks>
     /// <param name="ct">Токен отмены.</param>
-    /// <exception cref="InvalidOperationException">Если сущность <see cref="Product"/> окажется невалидна.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     Task AddProductsToDbAsync(CancellationToken ct = default);
 }

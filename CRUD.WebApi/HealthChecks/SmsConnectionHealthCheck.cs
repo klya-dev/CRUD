@@ -3,7 +3,7 @@
 /// <summary>
 /// Проверяет подключение к СМС серверу.
 /// </summary>
-public class SmsConnectionHealthCheck : IHealthCheck
+public sealed class SmsConnectionHealthCheck : IHealthCheck
 {
     private readonly ISmsSender _smsSender;
 

@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -9,7 +8,7 @@ using static System.Net.Mime.MediaTypeNames;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IPayManager"/>
-public class PayManager : IPayManager
+public sealed class PayManager : IPayManager
 {
     private readonly string URL;
     private readonly string ShopId;
@@ -123,20 +122,30 @@ public class PayManager : IPayManager
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         // Авторизация уже настроена в фабрике IHttpClientFactory
 
-        // Отправляем запрос
-        using var response = await httpClient.SendAsync(request, ct);
-
-        // Неуспешный ответ
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            // Читаем содержимое ответа
-            await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
-            using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: ct);
+            // Отправляем запрос
+            using var response = await httpClient.SendAsync(request, ct);
 
-            _logger.LogError("Не удалось подключится к платёжному серверу. По причине: \"{description}\".", jsonDocument.RootElement.GetString("description"));
-            return false;
+            // Неуспешный ответ
+            if (!response.IsSuccessStatusCode)
+            {
+                // Читаем содержимое ответа
+                await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
+                using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: ct);
+
+                _logger.LogError("Не удалось подключится к платёжному серверу. По причине: \"{description}\".", jsonDocument.RootElement.GetString("description"));
+                return false;
+            }
+
+            return true;
         }
+        catch (HttpRequestException ex)
+        {
+            if (ex.HttpRequestError == HttpRequestError.ConnectionError)
+                return false;
 
-        return true;
+            throw;
+        }
     }
 }

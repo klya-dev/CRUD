@@ -2,7 +2,7 @@
 
 namespace CRUD.Tests.UnitTests;
 
-public class OAuthHelperUnitTest
+public sealed class OAuthHelperUnitTest
 {
     [Fact]
     public void GenerateCodeVerifier_ReturnsCodeVerifier()

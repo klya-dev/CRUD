@@ -28,7 +28,7 @@ namespace Benchmarking;
 // Почему-то если нажимать в VS на пуск, то программа тупо пишет "завершила работу без ошибок"
 // Поэтому я лезу в папку с релизом и от туда через cmd вызываю экзешник
 
-class Config : ManualConfig
+sealed class Config : ManualConfig
 {
     public Config()
     {

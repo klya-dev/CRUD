@@ -5,7 +5,7 @@ namespace Microservice.EmailSender.Services.Grpc;
 /// <summary>
 /// Реализация gRPC EmailSender сервиса.
 /// </summary>
-public class GrpcEmailSenderService : GrpcEmailSender.GrpcEmailSenderBase
+public sealed class GrpcEmailSenderService : GrpcEmailSender.GrpcEmailSenderBase
 {
     private readonly ILogger<GrpcEmailSenderService> _logger;
     private readonly IQueueEmail _queueEmail;

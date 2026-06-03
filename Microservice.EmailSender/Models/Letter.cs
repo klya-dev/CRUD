@@ -3,7 +3,7 @@
 /// <summary>
 /// Письмо для электронной почты.
 /// </summary>
-public class Letter
+public record Letter
 {
     /// <summary>
     /// Конструктор для создания полноценного письма.

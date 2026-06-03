@@ -5,17 +5,17 @@ namespace CRUD.Models.Dtos;
 /// <summary>
 /// DTO-модель для получения постраничного списка.
 /// </summary>
-public class GetPaginatedListDto
+public sealed record GetPaginatedListDto
 {
     /// <summary>
     /// Номер страницы.
     /// </summary>
     [JsonPropertyName("pageIndex")]
-    public required int PageIndex { get; set; }
+    public required int PageIndex { get; init; }
 
     /// <summary>
     /// Размер страницы (количество объектов на странице).
     /// </summary>
     [JsonPropertyName("pageSize")]
-    public required int PageSize { get; set; }
+    public required int PageSize { get; init; }
 }

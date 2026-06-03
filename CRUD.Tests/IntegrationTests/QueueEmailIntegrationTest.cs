@@ -1,6 +1,4 @@
-﻿#nullable disable
-
-using CRUD.Utility.Options;
+﻿using CRUD.Utility.Options;
 using Grpc.Core;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -10,10 +8,8 @@ using OpenTelemetry.Metrics;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class QueueEmailIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class QueueEmailIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
-    // #nullable disable
-
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IQueueEmail _queueEmail;
 
@@ -47,7 +43,7 @@ public class QueueEmailIntegrationTest : IClassFixture<TestWebApplicationFactory
            .Build();
 
         // Act
-        var result = await _queueEmail.EnqueueAsync(letter);
+        var result = await _queueEmail.EnqueueAsync(letter, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(StatusCode.OK, result);
@@ -55,7 +51,7 @@ public class QueueEmailIntegrationTest : IClassFixture<TestWebApplicationFactory
         // Метрика добавилась
         // Ждем сбора метрик не больше 10 секунд
         for (int i = 0; i < 10 && exportedItems.Count <= 0; i++)
-            await Task.Delay(1000);
+            await Task.Delay(1000, TestContext.Current.CancellationToken);
         meterProvider.ForceFlush();
 
         // total-calls = 1
@@ -105,7 +101,7 @@ public class QueueEmailIntegrationTest : IClassFixture<TestWebApplicationFactory
         var letter = new Letter(email, subject, body);
 
         // Act
-        var result = await queueEmail.EnqueueAsync(letter);
+        var result = await queueEmail.EnqueueAsync(letter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(StatusCode.DeadlineExceeded, result);

@@ -1,17 +1,12 @@
-﻿#nullable disable
+﻿namespace CRUD.Tests.UnitTests;
 
-namespace CRUD.Tests.UnitTests;
-
-public class UserManagerUnitTest
+public sealed class UserManagerUnitTest
 {
-    // #nullable disable
-
     private readonly UserManager _userManager;
     private readonly ApplicationDbContext _db;
     private readonly Mock<IPasswordHasher> _mockPasswordHasher;
     private readonly Mock<IAvatarManager> _mockAvatarManager;
     private readonly Mock<IOptions<AvatarManagerOptions>> _mockAvatarManagerOptions;
-    private readonly Mock<IValidator<User>> _mockUserValidator;
     private readonly Mock<IValidator<CreateUserDto>> _mockCreateUserDtoValidator;
     private readonly Mock<IValidator<OAuthCompleteRegistrationDto>> _mockOAuthCompleteRegistrationDtoValidator;
     private readonly Mock<IValidator<UpdateUserDto>> _mockUpdateUserDtoValidator;
@@ -27,7 +22,6 @@ public class UserManagerUnitTest
         _mockPasswordHasher = new();
         _mockAvatarManager = new();
         _mockAvatarManagerOptions = new();
-        _mockUserValidator = new();
         _mockCreateUserDtoValidator = new();
         _mockOAuthCompleteRegistrationDtoValidator = new();
         _mockUpdateUserDtoValidator = new();
@@ -42,7 +36,6 @@ public class UserManagerUnitTest
             _mockPasswordHasher.Object,
             _mockAvatarManager.Object,
             _mockAvatarManagerOptions.Object,
-            _mockUserValidator.Object,
             _mockCreateUserDtoValidator.Object,
             _mockOAuthCompleteRegistrationDtoValidator.Object,
             _mockUpdateUserDtoValidator.Object,
@@ -50,6 +43,56 @@ public class UserManagerUnitTest
             _mockSetRoleDtoValidator.Object,
             _mockLogger.Object
         );
+    }
+
+    [Fact] // Если AvatarManager GetPresignedUrlAvatarAsync возвращает ошибку (не UserNotFound), то возвращается DTO без аватарки
+    public async Task GetUserDtoAsync_WhenGetPresignedUrlAvatarAsyncErrorNotUserNotFound_ReturnsUserDtoWithoutAvatarPresignedUrl()
+    {
+        // Arrange
+        // Добавляем пользователя в базу
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
+
+        var userIdGuid = user.Id;
+        var expectedDto = new UserDto
+        {
+            Firstname = user.Firstname,
+            Username = user.Username,
+            LanguageCode = user.LanguageCode,
+            AvatarPresignedUrl = null
+        };
+
+        // Не удалось получить аватарку
+        _mockAvatarManager.Setup(x => x.GetPresignedUrlAvatarAsync(It.IsAny<Guid>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult<string>.Fail("Some"));
+
+        // Act
+        var result = await _userManager.GetUserDtoAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Null(result.ErrorMessage);
+
+        Assert.NotNull(result.Value);
+        Assert.Equivalent(expectedDto, result.Value);
+    }
+
+    [Fact] // Если AvatarManager GetPresignedUrlAvatarAsync возвращает ошибку (UserNotFound), то возвращается эта ошибка 
+    public async Task GetUserDtoAsync_WhenGetPresignedUrlAvatarAsyncErrorUserNotFound_ReturnsServiceResult()
+    {
+        // Arrange
+        var userIdGuid = Guid.NewGuid();
+
+        // Не удалось получить аватарку - UserNotFound
+        _mockAvatarManager.Setup(x => x.GetPresignedUrlAvatarAsync(It.IsAny<Guid>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult<string>.Fail(ErrorMessages.UserNotFound));
+
+        // Act
+        var result = await _userManager.GetUserDtoAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Null(result.Value);
+        Assert.NotNull(result.ErrorMessage);
+
+        Assert.Equal(ErrorMessages.UserNotFound, result.ErrorMessage);
     }
 
     [Fact]
@@ -263,7 +306,7 @@ public class UserManagerUnitTest
         };
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Успешная валидация OAuthCompleteRegistrationDto
         _mockOAuthCompleteRegistrationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<OAuthCompleteRegistrationDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new ValidationResult());
@@ -274,21 +317,18 @@ public class UserManagerUnitTest
         // Успешная генерация хэшированного пароля
         _mockPasswordHasher.Setup(x => x.GenerateHashedPassword(It.IsAny<string>())).Returns(TestConstants.UserHashedPassword);
 
-        // Успешная валидация User
-        _mockUserValidator.Setup(x => x.ValidateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>())).ReturnsAsync(new ValidationResult());
-
         // Не удалось установить аватарку
         _mockAvatarManager.Setup(x => x.SetAvatarAsync(It.IsAny<Guid>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult.Fail(ErrorMessages.DoesNotMatchSignature));
 
         // Act
-        var result = await _userManager.CreateUserAsync(userInfo, oAuthCompleteRegistrationDto);
+        var result = await _userManager.CreateUserAsync(userInfo, oAuthCompleteRegistrationDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Пользователь создался
-        var userFromDbAfterCreate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == userInfo.Email);
+        var userFromDbAfterCreate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == userInfo.Email, TestContext.Current.CancellationToken);
         Assert.NotNull(userFromDbAfterCreate);
 
         Assert.Equal(userInfo.GivenName, userFromDbAfterCreate.Firstname);
@@ -421,49 +461,5 @@ public class UserManagerUnitTest
 
         // Assert
         Assert.Contains(ErrorMessages.EmptyUniqueIdentifier, ex.Message);
-    }
-
-
-    [Theory] // Корректные данные, но прямо перед записью в базу должно выбросится исключение, о том, что User невалидный (в интеграционном тесте такое провернуть не получится)
-    [InlineData("Никита", "niksuper", "123@", "ru", "fan.ass95@mail.ru", "12345")]
-    public async Task CreateUserAsyncByCreateUserDto_CorrectData_ThrowsInvalidOperationException_NotValidBeforeCreate(string firstname, string username, string password, string languageCode, string email, string phoneNumber)
-    {
-        // Arrange
-        var createUserDto = new CreateUserDto
-        { 
-            Firstname = firstname,
-            Username = username,
-            Password = password,
-            LanguageCode = languageCode,
-            Email = email,
-            PhoneNumber = phoneNumber
-        };
-
-        // Нет ошибок
-        var validationResultCreateUserDto = new ValidationResult();
-
-        // Какие-то ошибки
-        var validationResultUser = new ValidationResult()
-        {
-            Errors =
-            [
-                new ValidationFailure("PropertyName", "ErrorMessage")
-            ]
-        };
-
-        _mockCreateUserDtoValidator.Setup(x => x.ValidateAsync(createUserDto, default)).ReturnsAsync(validationResultCreateUserDto);
-        //_mockDb.Setup(x => x.Users.AnyAsync(It.IsAny<Expression<Func<User, bool>>>(), default)).ReturnsAsync(true); // Возвращаем true на любой предикат метода Users.AnyAsync (Чтобы IsUsernameAlreadyTakenAsync вернул true)
-        _mockUserValidator.Setup(x => x.ValidateAsync(It.IsAny<User>(), default)).ReturnsAsync(validationResultUser); // Возвращаем ошибки валидации на любого User'а, который впихивается в ValidateAsync
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _userManager.CreateUserAsync(createUserDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(User), validationResultUser.Errors), ex.Message);
     }
 }

@@ -1,11 +1,12 @@
-﻿using Grpc.Core;
+﻿#nullable enable
+using Grpc.Core;
 
 namespace Microservice.EmailSender.Tests.Helpers;
 
 /// <summary>
 /// Тестовая реализация <see cref="ServerCallContext"/>.
 /// </summary>
-public class TestServerCallContext : ServerCallContext
+public sealed class TestServerCallContext : ServerCallContext
 {
     private readonly Metadata _requestHeaders;
     private readonly CancellationToken _cancellationToken;

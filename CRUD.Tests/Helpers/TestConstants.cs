@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿#nullable enable
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Security.Claims;
 
@@ -28,7 +29,7 @@ public static class TestConstants
     /// <remarks>
     /// Достаётся из <see cref="DefaultAvatarPathObject"/>.
     /// </remarks>
-    public static readonly string DefaultAvatarPath = DefaultAvatarPathObject.Cast<string>().First();
+    public static readonly string DefaultAvatarPath = DefaultAvatarPathObject.Cast<TheoryDataRow<string>>().First();
 
     public const string EmptyGuidString = "00000000-0000-0000-0000-000000000000";
     public const string PublicationTitleMore64Chars = "большебольшебольшебольшебольшебольшебольшебольшебольшебольшебольше";
@@ -82,10 +83,13 @@ public static class TestConstants
 
     public const string USERS_URL = VERSION + "/users";
     public const string USERS_USER_ID_URL = VERSION + "/users/{0}";
-    public const string USERS_USER_ID_AVATAR_URL = VERSION + "/users/{0}/avatar";
+    public const string USERS_USER_ID_AVATAR_FILE_URL = VERSION + "/users/{0}/avatar-file";
+    public const string USERS_USER_ID_AVATAR_URL_URL = VERSION + "/users/{0}/avatar-url";
 
     public const string USER_URL = VERSION + "/user";
     public const string USER_AVATAR_URL = VERSION + "/user/avatar";
+    public const string USER_AVATAR_FILE_URL = VERSION + "/user/avatar-file";
+    public const string USER_AVATAR_URL_URL = VERSION + "/user/avatar-url";
     public const string USER_PASSWORD_URL = VERSION + "/user/password";
     public const string USER_PREMIUM_URL = VERSION + "/user/premium";
     public const string USER_CONFIRMATION_EMAIL_URL = VERSION + "/user/confirmation/email";
@@ -127,20 +131,26 @@ public static class TestConstants
     /// <param name="request">Запрос, к которому будет добавлен <c>Bearer</c> токен.</param>
     /// <param name="tokenManager"><see cref="ITokenManager"/> для генерации токена.</param>
     /// <param name="userId">Id пользователя.</param>
+    /// <param name="name">Username пользователя.</param>
     /// <param name="role">Роль пользователя.</param>
-    /// <param name="premium">Является ли пользователь премиумом.</param>
+    /// <param name="languageCode">Код языка пользователя.</param>
+    /// <param name="isEmailConfirm">Подтверждена ли почта пользователя.</param>
+    /// <param name="isPhoneNumberConfirm">Подтверждён ли номер телефона пользователя.</param>
+    /// <param name="isPremium">Является ли пользователь премиумом.</param>
     /// <returns>Сгенерированный AccessToken.</returns>
-    public static string AddBearerToken(HttpRequestMessage request, ITokenManager tokenManager, string? userId = null, string role = UserRoles.User, string premium = "false")
+    public static string AddBearerToken(HttpRequestMessage request, ITokenManager tokenManager, string? userId = null, string name = "username", string role = UserRoles.User, string languageCode = "ru", bool isEmailConfirm = true, bool isPhoneNumberConfirm = true, bool isPremium = false)
     {
         Claim[] claims =
         [
             new Claim(ClaimTypes.NameIdentifier, userId ?? Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.Name, "userFromDb.Username"),
+            new Claim(ClaimTypes.Name, name),
             new Claim(ClaimTypes.Role, role),
-            new Claim("language_code", "userFromDb.LanguageCode"),
-            new Claim("premium", premium)
+            new Claim(UserClaimTypes.LanguageCode, languageCode),
+            new Claim(UserClaimTypes.IsEmailConfirm, isEmailConfirm.ToString()),
+            new Claim(UserClaimTypes.IsPhoneNumberConfirm, isPhoneNumberConfirm.ToString()),
+            new Claim(UserClaimTypes.IsPremium, isPremium.ToString())
         ];
-        var token = tokenManager.GenerateAuthResponse(claims, "userFromDb.Username").AccessToken;
+        var token = tokenManager.GenerateAuthResponse(claims, name).AccessToken;
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
         return token;
@@ -172,6 +182,8 @@ public static class TestConstants
     /// <returns>Добавленый в запрос IdempotencyKey.</returns>
     public static string AddIdempotencyKeyQuery(HttpRequestMessage request, string? idempotencyKey = null)
     {
+        ArgumentNullException.ThrowIfNull(request.RequestUri);
+
         idempotencyKey ??= Guid.NewGuid().ToString();
 
         var newUri = QueryHelpers.AddQueryString(request.RequestUri.ToString(), "idmkey", idempotencyKey);
@@ -199,21 +211,6 @@ public static class TestConstants
 
         return false;
     }
-
-    /// <summary>
-    /// Преобразует <see cref="ApiError"/> в читабельную строку.
-    /// </summary>
-    /// <remarks>
-    /// Пример,
-    /// <c>Assert.Fail("Неожидаемое значение: " + TestConstants.ApiErrorToString(apiError));</c>
-    /// </remarks>
-    /// <param name="apiError">Ошибка для API ответа.</param>
-    /// <returns>Читабельная строка.</returns>
-    public static string ApiErrorToString(ApiError apiError)
-        => $"{nameof(apiError.Title)}: {apiError.Title}, " +
-        $"{nameof(apiError.Detail)}: {apiError.Detail}, " +
-        $"{nameof(apiError.Status)}: {apiError.Status}, " +
-        $"{nameof(apiError.Params)}: {(apiError.Params == null ? "null" : string.Join(", ", apiError.Params))}";
 
     /// <summary>
     /// Создаёт новый экземпляр <see cref="TestHttpContextAccessor"/>, со всеми зависимостями.

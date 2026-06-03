@@ -4,21 +4,19 @@ using CRUD.Services.Interfaces;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IPasswordChanger"/>
-public class PasswordChanger : IPasswordChanger
+public sealed class PasswordChanger : IPasswordChanger
 {
     private readonly ApplicationDbContext _db;
     private readonly IValidator<ChangePasswordDto> _changePasswordDtoValidator;
     private readonly IValidator<SetPasswordDto> _setPasswordDtoValidator;
-    private readonly IValidator<User> _userValidator;
     private readonly IChangePasswordRequestManager _changePasswordRequestManager;
     private readonly IPasswordHasher _passwordHasher;
 
-    public PasswordChanger(ApplicationDbContext db, IValidator<ChangePasswordDto> changePasswordDtoValidator, IValidator<SetPasswordDto> setPasswordDtoValidator, IValidator<User> userValidator, IChangePasswordRequestManager changePasswordRequestManager, IPasswordHasher passwordHasher)
+    public PasswordChanger(ApplicationDbContext db, IValidator<ChangePasswordDto> changePasswordDtoValidator, IValidator<SetPasswordDto> setPasswordDtoValidator, IChangePasswordRequestManager changePasswordRequestManager, IPasswordHasher passwordHasher)
     {
         _db = db;
         _changePasswordDtoValidator = changePasswordDtoValidator;
         _setPasswordDtoValidator = setPasswordDtoValidator;
-        _userValidator = userValidator;
         _changePasswordRequestManager = changePasswordRequestManager;
         _passwordHasher = passwordHasher;
     }
@@ -63,16 +61,27 @@ public class PasswordChanger : IPasswordChanger
         ArgumentNullException.ThrowIfNull(token);
 
         // Запрос не найден
-        var changePasswordRequestFromDb = await _db.ChangePasswordRequests.Include(x => x.User).FirstOrDefaultAsync(x => x.Token == token, ct);
+        var changePasswordRequestFromDb = await _db.ChangePasswordRequests.Where(x => x.Token == token)
+            .AsNoTracking()
+            .Select(x => new
+            {
+                // Очень осторожно с полной сущностью (Request = x), если где-то загрузили/создали всю сущность, а потом вызвали ExecuteUpdateAsync, то из-за кэша значения могут разниться
+                // Прикол, в том, что EF и вправду делает запрос в базу (FirstOrDefaultAsync), но после получения этих данных он сравнивает ID сущности с ID сущности в кэше и просто отдаёт кэшированные значения - так и работает ChangeTracker (в одном контексте базы)
+                // Поэтому когда грузим всю сущность через .Select() - .AsNoTracking() обязательно
+                Request = x,
+                User = new { x.User!.Id, x.User.IsEmailConfirm, x.User.RowVersion }
+            })
+            .FirstOrDefaultAsync(ct);
+
         if (changePasswordRequestFromDb == null)
             return ServiceResult.Fail(ErrorMessages.InvalidToken);
 
         // Удаляем токен из базы (в любом случае надо удалить токен, он одноразовый)
-        _db.ChangePasswordRequests.Remove(changePasswordRequestFromDb);
+        _db.ChangePasswordRequests.Remove(changePasswordRequestFromDb.Request);
         await _db.SaveChangesAsync(ct);
 
         // Проверка срока действия токена
-        if (changePasswordRequestFromDb.IsExpired())
+        if (changePasswordRequestFromDb.Request.IsExpired())
             return ServiceResult.Fail(ErrorMessages.InvalidToken);
 
         // Пользователь не найден
@@ -81,16 +90,12 @@ public class PasswordChanger : IPasswordChanger
             return ServiceResult.Fail(ErrorMessages.UserNotFound);
 
         // Меняем пароль
-        userFromDb.HashedPassword = changePasswordRequestFromDb.HashedNewPassword;
+        var updatedRows = await _db.Users.Where(x => x.Id == userFromDb.Id && x.RowVersion == userFromDb.RowVersion)
+            .ExecuteUpdateAsync(x => x.SetProperty(p => p.HashedPassword, changePasswordRequestFromDb.Request.HashedNewPassword), ct);
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultUser = await _userValidator.ValidateAsync(userFromDb, ct);
-        if (!validationResultUser.IsValid)
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(User), validationResultUser.Errors));
-
-        // Сохраняем изменения
-        _db.Users.Update(userFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Найдено 0 строк (Where;MySQL:UseAffectedRows). Вероятно, из-за разных RowVersion - конфликт
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.ConcurrencyConflicts);
 
         return ServiceResult.Success();
     }
@@ -109,22 +114,15 @@ public class PasswordChanger : IPasswordChanger
         if (!validationResult.IsValid)
             throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(SetPasswordDto), validationResult.Errors));
 
-        // Пользователь не найден
-        var userFromDb = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, ct);
-        if (userFromDb == null)
-            return ServiceResult.Fail(ErrorMessages.UserNotFound);
+        var newHashedPassword = _passwordHasher.GenerateHashedPassword(setPasswordDto.NewPassword);
 
         // Меняем пароль
-        userFromDb.HashedPassword = _passwordHasher.GenerateHashedPassword(setPasswordDto.NewPassword);
+        var updatedRows = await _db.Users.Where(x => x.Id == userId)
+            .ExecuteUpdateAsync(x => x.SetProperty(p => p.HashedPassword, newHashedPassword), ct);
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultUser = await _userValidator.ValidateAsync(userFromDb, ct);
-        if (!validationResultUser.IsValid)
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(User), validationResultUser.Errors));
-
-        // Сохраняем изменения
-        _db.Users.Update(userFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Пользователь не найден
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.UserNotFound);
 
         return ServiceResult.Success();
     }

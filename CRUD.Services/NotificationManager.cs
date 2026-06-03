@@ -3,18 +3,16 @@
 namespace CRUD.Services;
 
 /// <inheritdoc cref="INotificationManager"/>
-public class NotificationManager : INotificationManager
+public sealed class NotificationManager : INotificationManager
 {
     private readonly ApplicationDbContext _db;
-    private readonly IValidator<Notification> _notificationValidator;
     private readonly IValidator<GetUserNotificationsDto> _getUserNotificationsDtoValidator;
     private readonly IValidator<CreateNotificationDto> _createNotificationDtoValidator;
     private readonly IValidator<CreateNotificationSelectedUsersDto> _createNotificationSelectedUsersDtoValidator;
 
-    public NotificationManager(ApplicationDbContext db, IValidator<Notification> notificationValidator, IValidator<GetUserNotificationsDto> getUserNotificationsDtoValidator, IValidator<CreateNotificationDto> createNotificationDtoValidator, IValidator<CreateNotificationSelectedUsersDto> createNotificationSelectedUsersDtoValidator)
+    public NotificationManager(ApplicationDbContext db, IValidator<GetUserNotificationsDto> getUserNotificationsDtoValidator, IValidator<CreateNotificationDto> createNotificationDtoValidator, IValidator<CreateNotificationSelectedUsersDto> createNotificationSelectedUsersDtoValidator)
     {
         _db = db;
-        _notificationValidator = notificationValidator;
         _getUserNotificationsDtoValidator = getUserNotificationsDtoValidator;
         _createNotificationDtoValidator = createNotificationDtoValidator;
         _createNotificationSelectedUsersDtoValidator = createNotificationSelectedUsersDtoValidator;
@@ -69,11 +67,6 @@ public class NotificationManager : INotificationManager
             Content = createNotificationDto.Content
         };
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultPublication = await _notificationValidator.ValidateAsync(notification, ct);
-        if (!validationResultPublication.IsValid) // Если данные невалидны, то я уже ничего не сделаю - исключение
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(Notification), validationResultPublication.Errors));
-
         // Список кому и какое отправить уведомление
         IEnumerable<UserNotification> userNotifications = await _db.Users.Select(x => new UserNotification() { UserId = x.Id, NotificationId = notification.Id }).ToListAsync(ct);
         await _db.UserNotifications.AddRangeAsync(userNotifications, ct); // Добавляем уведомление всем пользователям
@@ -101,11 +94,6 @@ public class NotificationManager : INotificationManager
             Content = createNotificationSelectedUsersDto.Notification.Content
         };
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultPublication = await _notificationValidator.ValidateAsync(notification, ct);
-        if (!validationResultPublication.IsValid) // Если данные невалидны, то я уже ничего не сделаю - исключение
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(Notification), validationResultPublication.Errors));
-
         // Список кому и какое отправить уведомление
         IEnumerable<UserNotification> userNotifications = [];
         if (createNotificationSelectedUsersDto.UserIds != null) // Если список пользователей не пустой
@@ -125,13 +113,13 @@ public class NotificationManager : INotificationManager
         if (notificationId == Guid.Empty)
             throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
 
-        // Уведомление не найдено
-        var notificationFromDb = await _db.Notifications.FirstOrDefaultAsync(x => x.Id == notificationId, ct);
-        if (notificationFromDb == null)
-            return ServiceResult.Fail(ErrorMessages.NotificationNotFound);
+        // Удаляем уведомление
+        var deletedRows = await _db.Notifications.Where(x => x.Id == notificationId)
+            .ExecuteDeleteAsync(ct);
 
-        _db.Notifications.Remove(notificationFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Количество удалённых строк = 0. Вероятно, уведомление не найдено
+        if (deletedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.NotificationNotFound);
 
         return ServiceResult.Success();
     }
@@ -142,21 +130,17 @@ public class NotificationManager : INotificationManager
         if (userId == Guid.Empty || notificationId == Guid.Empty)
             throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
 
-        // Уведомление пользователя не найдено
-        var userNotificationFromDb = await _db.UserNotifications.FirstOrDefaultAsync(x => x.UserId == userId && x.NotificationId == notificationId, ct);
-        if (userNotificationFromDb == null)
-            return ServiceResult.Fail(ErrorMessages.UserNotificationNotFound);
-
-        // Не обнаружено изменений (уже прочитано)
-        if (userNotificationFromDb.IsRead == true)
-            return ServiceResult.Fail(ErrorMessages.NoChangesDetected);
-
-        userNotificationFromDb.IsRead = true;
-
         // Валидатора нет, и пока что незачем
 
-        _db.UserNotifications.Update(userNotificationFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Обновляем поле публикации IsRead = true
+        var updatedRows = await _db.UserNotifications.Where(x => x.UserId == userId && x.NotificationId == notificationId)
+            .ExecuteUpdateAsync(x => x.SetProperty(p => p.IsRead, true), ct);
+
+        // updatedRows это не количество затронутых строк, а найденных (Where) | UseAffectedRows MySQL
+
+        // Уведомление пользователя не найдено
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.UserNotificationNotFound);
 
         return ServiceResult.Success();
     }

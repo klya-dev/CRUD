@@ -4,7 +4,7 @@ using Grpc.Net.ClientFactory;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IQueueEmail"/>
-public class QueueEmail : IQueueEmail
+public sealed class QueueEmail : IQueueEmail
 {
     private readonly GrpcEmailSender.GrpcEmailSenderClient _client;
     private readonly ILogger<QueueEmail> _logger;

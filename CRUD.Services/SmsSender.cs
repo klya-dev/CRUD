@@ -7,7 +7,7 @@ using System.Web;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="ISmsSender"/>
-public class SmsSender : ISmsSender
+public sealed class SmsSender : ISmsSender
 {
     private readonly string URL;
     private readonly string Email;

@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции SmtpServer'а.
 /// </summary>
-public class SmtpServerOptions
+public sealed class SmtpServerOptions
 {
     /// <summary>
     /// Название секции.
@@ -13,25 +13,25 @@ public class SmtpServerOptions
     /// <summary>
     /// Хост.
     /// </summary>
-    public required string Host { get; set; }
+    public required string Host { get; init; }
 
     /// <summary>
     /// Порт.
     /// </summary>
-    public required int Port { get; set; }
+    public required int Port { get; init; }
 
     /// <summary>
     /// Пароль аутентификации.
     /// </summary>
-    public required string AuthPassword { get; set; }
+    public required string AuthPassword { get; init; }
 
     /// <summary>
     /// Отображаемое имя отправителя.
     /// </summary>
-    public required string Name { get; set; }
+    public required string Name { get; init; }
 
     /// <summary>
     /// Почта отправителя.
     /// </summary>
-    public required string Email { get; set; }
+    public required string Email { get; init; }
 }

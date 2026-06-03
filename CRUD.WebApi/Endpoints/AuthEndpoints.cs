@@ -54,26 +54,15 @@ public static class AuthEndpoints
 
         authMap.MapPost("/register", async Task<Results<ProblemHttpResult, JsonHttpResult<AuthJwtResponse>>> ([FromBody] CreateUserDto createUserDto, IAuthManager authManager, IResourceLocalizer localizer, CancellationToken ct) =>
         {
-            try
-            {
-                // Вызов сервиса
-                var result = await authManager.RegisterAsync(createUserDto, ct);
+            // Вызов сервиса
+            var result = await authManager.RegisterAsync(createUserDto, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.Json(result.Value); // JWT-токен
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.Json(result.Value); // JWT-токен
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый создал - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithValidation<CreateUserDto>()
             .WithSummary("Выполняет процесс регистрации пользователя по предоставленным данным.")
@@ -163,26 +152,15 @@ public static class AuthEndpoints
             if (userInfo == null)
                 return TypedResults.StatusCode((int)HttpStatusCode.ServiceUnavailable);
 
-            try
-            {
-                // Регистрируем пользователя
-                var result = await authManager.RegisterAsync(userInfo, oAuthCompleteRegistrationDto, ct);
+            // Регистрируем пользователя
+            var result = await authManager.RegisterAsync(userInfo, oAuthCompleteRegistrationDto, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.Json(result.Value); // Возвращаем свои токены
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.Json(result.Value); // Возвращаем свои токены
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый создал - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithValidation<OAuthCompleteRegistrationDto>()
             .WithSummary("Завершение регистрации после авторизации в MailRu.")

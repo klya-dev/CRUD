@@ -1,51 +1,48 @@
 ﻿using Microsoft.AspNetCore.OpenApi;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 namespace CRUD.WebApi.SwaggerUI;
 
 /// <summary>
 /// Добавляет "/healthz" в Swagger UI.
 /// </summary>
-public class HealthzInfoTransformer : IOpenApiDocumentTransformer
+public sealed class HealthzInfoTransformer : IOpenApiDocumentTransformer
 {
-    public async Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
+    public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
         document.Paths.Add("/healthz", new OpenApiPathItem()
         {
             Operations =
-                new Dictionary<OperationType, OpenApiOperation>()
+                new Dictionary<HttpMethod, OpenApiOperation>()
                 {
                     {
-                        OperationType.Get,
+                        HttpMethod.Get,
                         new OpenApiOperation()
                         { 
-                            Tags = [new OpenApiTag() { Name = EndpointTags.AllEndpointsForBusiness }, new OpenApiTag() { Name = EndpointTags.Healthz } ],
+                            Tags = new HashSet<OpenApiTagReference> { new(EndpointTags.AllEndpointsForBusiness), new(EndpointTags.Healthz) },
                             Summary = "Проверяет состояние работоспособности сервера и его зависимостей.",
                             Description = "Требуется авторизация.",
-                            Responses =
+                            Responses = new OpenApiResponses()
                             {
                                 ["200"] = new OpenApiResponse() { Description = "OK" },
-                                ["503"] = new OpenApiResponse() { Description = "Service Unavailable", Content = { ["text/plain"] = new OpenApiMediaType() } },
+                                ["503"] = new OpenApiResponse() { Description = "Service Unavailable",
+                                    Content = new Dictionary<string, OpenApiMediaType>()
+                                    {
+                                        ["text/plain"] = new OpenApiMediaType()
+                                    }},
                             },
                             Security =
-                            {
+                            [
                                 new OpenApiSecurityRequirement()
                                 {
-                                    [new OpenApiSecurityScheme()
-                                    {
-                                        Type = SecuritySchemeType.Http,
-                                        Scheme = "bearer",
-                                        In = ParameterLocation.Header,
-                                        BearerFormat = "Json Web Token",
-                                        Reference = new OpenApiReference { Id = "Bearer", Type = ReferenceType.SecurityScheme }
-                                    }] = []
+                                    [new OpenApiSecuritySchemeReference("Bearer", document)] = []
                                 }
-                            }
+                            ]
                         }
                     }
                 },
         });
 
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }

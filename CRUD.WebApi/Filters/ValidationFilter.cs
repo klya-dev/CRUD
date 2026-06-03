@@ -9,13 +9,15 @@
 /// <para>Исключение, если в аргументах  конечной точки нет модели <typeparamref name="T"/>.</para>
 /// </remarks>
 /// <typeparam name="T">Модель, которую нужно провалидировать.</typeparam>
-public class ValidationFilter<T> : IEndpointFilter where T : class
+public sealed class ValidationFilter<T> : IEndpointFilter where T : class
 {
     private readonly IValidator<T> _validator;
+    private readonly IResourceLocalizer _localizer;
 
-    public ValidationFilter(IValidator<T> validator)
+    public ValidationFilter(IValidator<T> validator, IResourceLocalizer localizer)
     {
         _validator = validator;
+        _localizer = localizer;
     }
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
@@ -24,13 +26,12 @@ public class ValidationFilter<T> : IEndpointFilter where T : class
 
         var model = context.Arguments.OfType<T>().First(); // Исключение, если не найдет. Мой косяк, если в аргументах эндпоинта почему-то нет модели
 
-        var localizer = context.HttpContext.RequestServices.GetRequiredService<IResourceLocalizer>();
         var ct = context.HttpContext.RequestAborted;
 
         // Валидация модели
         var validationResult = await _validator.ValidateAsync(model, ct);
         if (!validationResult.IsValid)
-            return TypedResults.Extensions.ValidationProblem(validationResult, localizer);
+            return TypedResults.Extensions.ValidationProblem(validationResult, _localizer);
 
         return await next(context);
     }

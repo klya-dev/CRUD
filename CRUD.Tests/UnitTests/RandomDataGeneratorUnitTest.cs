@@ -1,6 +1,6 @@
 ﻿namespace CRUD.Tests.UnitTests;
 
-public class RandomDataGeneratorUnitTest
+public sealed class RandomDataGeneratorUnitTest
 {
     [Fact]
     public void GenerateRandomUsername_ReturnsUsername()

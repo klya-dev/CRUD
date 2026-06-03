@@ -1,8 +1,4 @@
-﻿using CRUD.Models.Validators.ValidatorsLocalizer;
-using Microsoft.AspNetCore.Localization;
-using System.Globalization;
-
-namespace CRUD.WebApi.Extensions;
+﻿namespace CRUD.WebApi.Extensions;
 
 public static class LocalizationServiceCollectionExtensions
 {
@@ -15,8 +11,8 @@ public static class LocalizationServiceCollectionExtensions
     public static IServiceCollection AddReadyLocalization(this IServiceCollection services)
     {
         services.AddLocalization(options => options.ResourcesPath = "Resources");
-        services.AddScoped<IResourceLocalizer, ResourceLocalizer.ResourceLocalizer>();
-        services.AddScoped<IValidatorsLocalizer, Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer>();
+        services.AddSingleton<IResourceLocalizer, ResourceLocalizer>();
+        services.AddSingleton<IValidatorLocalizer, ValidatorLocalizer>();
 
         var supportedCultures = new[]
         {

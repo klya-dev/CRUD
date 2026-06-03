@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции клиентов.
 /// </summary>
-public class ClientsOptions
+public sealed class ClientsOptions
 {
     /// <summary>
     /// Название секции.
@@ -13,5 +13,5 @@ public class ClientsOptions
     /// <summary>
     /// URL-адреса веб-клиентов этого WebApi.
     /// </summary>
-    public required string[] WebClientURLs { get; set; }
+    public required string[] WebClientURLs { get; init; }
 }

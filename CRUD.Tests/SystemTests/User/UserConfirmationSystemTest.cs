@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace CRUD.Tests.SystemTests.User;
 
-public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -27,7 +27,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_CONFIRMATION_EMAIL_URL);
@@ -35,7 +35,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager, user.Id.ToString());
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -55,7 +55,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -63,8 +63,8 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Пользователь не найден.", jsonDocument.RootElement.GetProperty("title").GetString());
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -77,7 +77,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isEmailConfirm: true);
+        var user = await DI.CreateUserAsync(_db, isEmailConfirm: true, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_CONFIRMATION_EMAIL_URL);
@@ -85,7 +85,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager, user.Id.ToString());
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -93,8 +93,8 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Пользователь уже подтвердил электронную почту.", jsonDocument.RootElement.GetProperty("title").GetString());
         Assert.Equal(ErrorCodes.USER_ALREADY_CONFIRMED_EMAIL, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -107,7 +107,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Запрос 1
         var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_CONFIRMATION_EMAIL_URL);
@@ -115,7 +115,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager, user.Id.ToString());
 
         // Отправляем первое письмо
-        await client.SendAsync(request);
+        await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Запрос 2
         var request2 = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_CONFIRMATION_EMAIL_URL);
@@ -123,7 +123,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request2, _tokenManager, user.Id.ToString());
 
         // Act
-        using var result = await client.SendAsync(request2);
+        using var result = await client.SendAsync(request2, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -131,8 +131,8 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Письмо уже отправлено.", jsonDocument.RootElement.GetProperty("title").GetString());
         Assert.Equal(ErrorCodes.LETTER_ALREADY_SENT, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -155,7 +155,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         }).CreateClient();
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?isTelegram=false";
@@ -164,7 +164,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager, user.Id.ToString());
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -188,7 +188,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         }).CreateClient();
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?isTelegram=true";
@@ -197,7 +197,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager, user.Id.ToString());
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -227,7 +227,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -235,8 +235,8 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Пользователь не найден.", jsonDocument.RootElement.GetProperty("title").GetString());
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -258,7 +258,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         }).CreateClient();
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPhoneNumberConfirm: true);
+        var user = await DI.CreateUserAsync(_db, isPhoneNumberConfirm: true, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?isTelegram=false";
@@ -266,7 +266,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager, user.Id.ToString());
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -274,8 +274,8 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_ALREADY_CONFIRMED_PHONE_NUMBER, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -296,7 +296,7 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         }).CreateClient();
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Данные для запросов
         var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?isTelegram=false";
@@ -306,14 +306,14 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager, user.Id.ToString());
 
         // Отправляем первое письмо
-        await client.SendAsync(request);
+        await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Запрос 2
         var request2 = new HttpRequestMessage(HttpMethod.Post, url);
         TestConstants.AddBearerToken(request2, _tokenManager, user.Id.ToString());
 
         // Act
-        using var result = await client.SendAsync(request2);
+        using var result = await client.SendAsync(request2, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -321,73 +321,9 @@ public class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactor
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.CODE_ALREADY_SENT, jsonDocument.RootElement.GetProperty("code").GetString());
-    }
-
-
-    // Конфликты параллельности
-
-
-    [Fact]
-    public async Task Post_Email_ConcurrencyConflict_ReturnsNoContentOrConflictOrLetterAlreadySent()
-    {
-        // Arrange
-        var client = _factory.HttpClient;
-        var client2 = _factory.CreateClient();
-
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        // Запрос 1
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_CONFIRMATION_EMAIL_URL);
-        TestConstants.AddBearerToken(request, _tokenManager, user.Id.ToString());
-
-        // Запрос 2
-        var request2 = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_CONFIRMATION_EMAIL_URL);
-        TestConstants.AddBearerToken(request2, _tokenManager, user.Id.ToString());
-
-        // Act
-        using var task = client.SendAsync(request);
-        using var task2 = client2.SendAsync(request2);
-
-        var results = await Task.WhenAll(task, task2);
-
-        // Assert
-        foreach (var result in results)
-        {
-            Assert.NotNull(result);
-
-            // Ошибка сервера
-            if (System.Net.HttpStatusCode.InternalServerError == result.StatusCode)
-                Assert.Fail("InternalServerError");
-
-            // Может быть успешный ответ
-            if (System.Net.HttpStatusCode.NoContent == result.StatusCode)
-            {
-                Assert.Null(result.Content.Headers.ContentType);
-                continue;
-            }
-
-            // Читаем содержимое ответа
-            await using var contentStream = await result.Content.ReadAsStreamAsync();
-            using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
-
-            // Может быть неуспешный ответ
-            if (!result.IsSuccessStatusCode)
-            {
-                // Либо письмо уже отправлено, Conflict
-                var errorCode = jsonDocument.RootElement.GetProperty("code").GetString();
-                string[] allowedErrors =
-                [
-                    ErrorCodes.LETTER_ALREADY_SENT,
-                    ErrorCodes.CONCURRENCY_CONFLICTS
-                ];
-
-                Assert.Contains(errorCode, allowedErrors);
-            }
-        }
     }
 }

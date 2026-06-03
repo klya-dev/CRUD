@@ -1,4 +1,4 @@
-﻿namespace CRUD.Models.Validators;
+namespace CRUD.Models.Validators;
 
 /// <summary>
 /// Валидатор класса <see cref="GetPaginatedListDto"/>.
@@ -6,11 +6,11 @@
 /// <remarks>
 /// Валидация реализована через Fluent Validation.
 /// </remarks>
-public class GetPaginatedListDtoValidator : AbstractValidator<GetPaginatedListDto>
+public sealed class GetPaginatedListDtoValidator : AbstractValidator<GetPaginatedListDto>
 {
-    public GetPaginatedListDtoValidator(IValidatorsLocalizer localizer)
+    public GetPaginatedListDtoValidator(IValidatorLocalizer localizer)
     {
-        RuleFor(x => x.PageIndex).NotEmpty().GreaterThanOrEqualTo(1).WithName(localizer[ValidatorsLocalizerConstants.PropertyPageIndex]);
-        RuleFor(x => x.PageSize).NotEmpty().InclusiveBetween(1, 25).WithName(localizer[ValidatorsLocalizerConstants.PropertyPageSize]);
+        RuleFor(x => x.PageIndex).NotEmpty().GreaterThanOrEqualTo(1).WithName(localizer[ValidatorLocalizerConstants.PropertyPageIndex]);
+        RuleFor(x => x.PageSize).NotEmpty().InclusiveBetween(1, 25).WithName(localizer[ValidatorLocalizerConstants.PropertyPageSize]);
     }
 }

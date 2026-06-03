@@ -8,11 +8,11 @@ namespace CRUD.Models.Validators;
 /// <remarks>
 /// Валидация реализована через Fluent Validation.
 /// </remarks>
-public class CreateNotificationDtoValidator : AbstractValidator<CreateNotificationDto>
+public sealed class CreateNotificationDtoValidator : AbstractValidator<CreateNotificationDto>
 {
-    public CreateNotificationDtoValidator(IValidatorsLocalizer localizer)
+    public CreateNotificationDtoValidator(IValidatorLocalizer localizer)
     {
-        RuleFor(x => x.Title).NotEmpty().Length(3, 48).WithName(localizer[ValidatorsLocalizerConstants.PropertyTitle]);
-        RuleFor(x => x.Content).NotEmpty().Length(3, 96).WithName(localizer[ValidatorsLocalizerConstants.PropertyContent]);
+        RuleFor(x => x.Title).NotEmpty().Length(3, 48).WithName(localizer[ValidatorLocalizerConstants.PropertyTitle]);
+        RuleFor(x => x.Content).NotEmpty().Length(3, 96).WithName(localizer[ValidatorLocalizerConstants.PropertyContent]);
     }
 }

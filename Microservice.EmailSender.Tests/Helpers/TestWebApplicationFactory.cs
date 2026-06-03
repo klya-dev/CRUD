@@ -14,20 +14,20 @@ namespace Microservice.EmailSender.Tests.Helpers;
 /// <item>Изменённый <see cref="JwtBearerOptions"/> на тестовые значения.</item>
 /// </list>
 /// </remarks>
-public class TestWebApplicationFactory : WebApplicationFactory<IApiMarker>, IAsyncLifetime
+public sealed class TestWebApplicationFactory : WebApplicationFactory<IApiMarker>, IAsyncLifetime
 {
     public HttpClient HttpClient { get; private set; } = null!;
 
-    public async Task InitializeAsync()
+    public ValueTask InitializeAsync()
     {
         HttpClient = CreateClient();
 
-        await Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
-    public new async Task DisposeAsync()
+    public override async ValueTask DisposeAsync()
     {
-        await Task.CompletedTask;
+        await base.DisposeAsync();
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции TelegramIntegrationManager'а.
 /// </summary>
-public class TelegramIntegrationOptions
+public sealed class TelegramIntegrationOptions
 {
     /// <summary>
     /// Название секции.
@@ -13,15 +13,15 @@ public class TelegramIntegrationOptions
     /// <summary>
     /// URL сервиса (шлюза).
     /// </summary>
-    public required string ServiceURL { get; set; }
+    public required string ServiceURL { get; init; }
 
     /// <summary>
     /// API-ключ.
     /// </summary>
-    public required string ApiKey { get; set; }
+    public required string ApiKey { get; init; }
 
     /// <summary>
     /// Если сообщение не будет доставлено или прочитано в течение этого времени (в секундах), плата за запрос будет возвращена.
     /// </summary>
-    public required int TimeToLive { get; set; }
+    public required int TimeToLive { get; init; }
 }

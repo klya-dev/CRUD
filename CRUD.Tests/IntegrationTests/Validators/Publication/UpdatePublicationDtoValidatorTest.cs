@@ -1,15 +1,12 @@
-﻿#nullable disable
-namespace CRUD.Tests.IntegrationTests.Validators.Publication;
+﻿namespace CRUD.Tests.IntegrationTests.Validators.Publication;
 
-public class UpdatePublicationDtoValidatorTest
+public sealed class UpdatePublicationDtoValidatorTest
 {
-    // #nullable disable
-
     private readonly UpdatePublicationDtoValidator _validator;
 
     public UpdatePublicationDtoValidatorTest()
     {
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
+        var validatorsLocalizer = new ValidatorLocalizer();
         _validator = new UpdatePublicationDtoValidator(validatorsLocalizer);
     }
 
@@ -29,7 +26,7 @@ public class UpdatePublicationDtoValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(updatePublicationDto);
+        var result = await _validator.ValidateAsync(updatePublicationDto, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -59,7 +56,7 @@ public class UpdatePublicationDtoValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(updatePublicationDtoValidator);
+        var result = await _validator.ValidateAsync(updatePublicationDtoValidator, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -81,7 +78,7 @@ public class UpdatePublicationDtoValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(updatePublicationDtoValidator);
+        var result = await _validator.ValidateAsync(updatePublicationDtoValidator, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -99,7 +96,7 @@ public class UpdatePublicationDtoValidatorTest
         // Act
         Func<Task> a = async () =>
         {
-            await _validator.ValidateAsync(updatePublicationDto);
+            await _validator.ValidateAsync(updatePublicationDto, TestContext.Current.CancellationToken);
         };
 
         // Assert

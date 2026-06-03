@@ -2,7 +2,7 @@
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class SmsSenderIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class SmsSenderIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly ISmsSender _smsSender;
@@ -22,7 +22,7 @@ public class SmsSenderIntegrationTest : IClassFixture<TestWebApplicationFactory>
         // Arrange
 
         // Act
-        var result = await _smsSender.TestAuthAsync();
+        var result = await _smsSender.TestAuthAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(result);

@@ -1,12 +1,9 @@
-﻿#nullable disable
-using Microsoft.Extensions.Localization;
+﻿using Microsoft.Extensions.Localization;
 
 namespace CRUD.Tests.UnitTests;
 
-public class ResourceLocalizerUnitTest
+public sealed class ResourceLocalizerUnitTest
 {
-    // #nullable disable
-
     private readonly Mock<IStringLocalizer> _localizerMock;
     private readonly Mock<IStringLocalizerFactory> _localizerFactoryMock;
 
@@ -232,7 +229,7 @@ public class ResourceLocalizerUnitTest
     //public void ReplaceParams_NullObject_CurrentUICultureNotDefine_ThrowsArgumentNullException(string original, params string[] args)
     //{
     //    // Arrange
-    //    var localizer = CreateValidatorsLocalizer();
+    //    var localizer = CreateValidatorLocalizer();
 
     //    // Act
     //    Action a = () =>

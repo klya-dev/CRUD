@@ -8,13 +8,13 @@ using System.Text.RegularExpressions;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IOAuthMailRuProvider"/>
-public partial class OAuthMailRuProvider : IOAuthMailRuProvider
+public sealed partial class OAuthMailRuProvider : IOAuthMailRuProvider
 {
     private readonly OAuthMailRuOptions _oAuthMailRuOptions;
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<OAuthMailRuProvider> _logger;
-    private readonly IMemoryCache _cache; // Хочу хранить только в памяти, а не в Redis. HybridCache не подойдёт
+    private readonly IMemoryCache _cache; // Хочу хранить только в памяти, а не в Redis. HybridCache и DistributedCache не подойдёт
 
     public OAuthMailRuProvider(IOptions<OAuthMailRuOptions> options, IHttpClientFactory httpClientFactory, ILogger<OAuthMailRuProvider> logger, IMemoryCache cache)
     {
@@ -65,7 +65,7 @@ public partial class OAuthMailRuProvider : IOAuthMailRuProvider
         var contentString = await response.Content.ReadAsStringAsync(ct);
 
         // Достаём Url из ответа
-        var match = UrlFromScriptRegex().Match(contentString);
+        var match = UrlFromScriptRegex.Match(contentString);
         var matchUrl = match.Groups[1].Value;
         if (matchUrl == string.Empty) // Если значения нет (string.Empty), возвращаем null
         {
@@ -238,6 +238,6 @@ public partial class OAuthMailRuProvider : IOAuthMailRuProvider
         return openIdConfiguration;
     }
 
-    [GeneratedRegex("<script>var url = '(.*?)';")]
-    private static partial Regex UrlFromScriptRegex(); // Достаёт Url из скрипта
+    [GeneratedRegex("<script>var url = '(.*?)';", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex UrlFromScriptRegex { get; } // Достаёт Url из скрипта
 }

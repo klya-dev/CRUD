@@ -1,10 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace CRUD.Tests.SystemTests.Admin;
 
-public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -23,16 +22,14 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         _s3Manager = scopedServices.GetRequiredService<IS3Manager>();
     }
 
-    [Theory]
-    [InlineData($"{TestConstants.TEST_FILES_PATH}/test.png")]
-    [MemberData(nameof(TestConstants.DefaultAvatarPathObject), MemberType = typeof(TestConstants))]
-    public async Task Post_ReturnsNoContent(string currentAvatar)
+    [Fact] // У пользователя сейчас тестовая аватарка, будем устанавливать любую (путь не поменяется)
+    public async Task Post_WhenAvatarUserIsNotDefaultAvatar_ReturnsNoContent()
     {
         // Arrange
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, avatarUrl: currentAvatar);
+        var user = await DI.CreateUserAsync(_db, avatarUrl: $"{TestConstants.TEST_FILES_PATH}/test.png", ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_USERS_USER_ID_AVATAR_URL, user.Id);
@@ -40,7 +37,7 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Контент
-        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/test.png")).Value;
+        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/test.png", ct: TestContext.Current.CancellationToken)).Value.Stream;
         using MemoryStream memStream = new MemoryStream();
         stream.CopyTo(memStream);
         memStream.Seek(0, SeekOrigin.Begin);
@@ -51,37 +48,63 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         content.Add(fileContent, "file", "test.png");
         request.Content = content;
 
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, result.StatusCode);
         Assert.Null(result.Content.Headers.ContentType);
 
-        // Аватарка и вправду обновилась, а прошлая удалилась, если не дефолтная
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+        // Путь до аватарки не изменился
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(userFromDbAfterUpdate.AvatarURL, userFromDbBeforeUpdate.AvatarURL);
+    }
+
+    [Fact] // У пользователя дефолтная аватарка, будем устанавливать тестовую (путь поменяется)
+    public async Task Post_WhenAvatarUserIsDefaultAvatar_ReturnsNoContent()
+    {
+        // Arrange
+        var client = _factory.HttpClient;
+
+        // Добавляем пользователя в базу
+        var user = await DI.CreateUserAsync(_db, avatarUrl: TestConstants.DefaultAvatarPath, ct: TestContext.Current.CancellationToken);
+
+        // Запрос
+        var url = string.Format(TestConstants.ADMIN_USERS_USER_ID_AVATAR_URL, user.Id);
+        var request = new HttpRequestMessage(HttpMethod.Post, url);
+        TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
+
+        // Контент
+        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/test.png", ct: TestContext.Current.CancellationToken)).Value.Stream;
+        using MemoryStream memStream = new MemoryStream();
+        stream.CopyTo(memStream);
+        memStream.Seek(0, SeekOrigin.Begin);
+
+        var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(memStream.ToArray());
+        fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
+        content.Add(fileContent, "file", "test.png");
+        request.Content = content;
+
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
+
+        // Act
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, result.StatusCode);
+        Assert.Null(result.Content.Headers.ContentType);
+
+        // Путь до аватарки изменился
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
         Assert.NotEqual(userFromDbAfterUpdate.AvatarURL, userFromDbBeforeUpdate.AvatarURL);
 
-        if (userFromDbBeforeUpdate.AvatarURL != TestConstants.DefaultAvatarPath)
-            Assert.False(await _s3Manager.IsObjectExistsAsync(userFromDbBeforeUpdate.AvatarURL));
-
         // Удаляем за собой
-        if (userFromDbAfterUpdate.AvatarURL != $"{TestConstants.TEST_FILES_PATH}/test.png")
-            await _s3Manager.DeleteObjectAsync(userFromDbAfterUpdate.AvatarURL);
-
-        // AvatarManager удалит $"{TestConstants.TEST_FILES_PATH}/test.png", а мы восстановим
-        if (userFromDbBeforeUpdate.AvatarURL == $"{TestConstants.TEST_FILES_PATH}/test.png")
-        {
-            using var stream2 = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/test2.png")).Value;
-            using MemoryStream memStream2 = new MemoryStream();
-            stream2.CopyTo(memStream2);
-            memStream2.Seek(0, SeekOrigin.Begin);
-
-            await _s3Manager.CreateObjectAsync(memStream2, $"{TestConstants.TEST_FILES_PATH}/test.png");
-        }
+        await _s3Manager.DeleteObjectAsync(userFromDbAfterUpdate.AvatarURL, ct: TestContext.Current.CancellationToken);
     }
 
     [Theory]
@@ -93,7 +116,7 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, avatarUrl: currentAvatar);
+        var user = await DI.CreateUserAsync(_db, avatarUrl: currentAvatar, ct: TestContext.Current.CancellationToken);
 
         // Одинаковый результат для трёх случаев (bmp, png, который на самом деле bmp)
         string[] files = ["NVtest2.bmp", "NVtest3.png"];
@@ -105,7 +128,7 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
             TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
             // Контент
-            using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/{item}")).Value;
+            using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/{item}", ct: TestContext.Current.CancellationToken)).Value.Stream;
             using MemoryStream memStream = new MemoryStream();
             stream.CopyTo(memStream);
             memStream.Seek(0, SeekOrigin.Begin);
@@ -116,10 +139,10 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
             content.Add(fileContent, "file", "test.png");
             request.Content = content;
 
-            var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+            var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
 
             // Act
-            using var result = await client.SendAsync(request);
+            using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -127,13 +150,13 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
             Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
             // Читаем содержимое ответа
-            await using var contentStream = await result.Content.ReadAsStreamAsync();
-            using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+            await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+            using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.Equal(ErrorCodes.DOES_NOT_MATCH_SIGNATURE, jsonDocument.RootElement.GetProperty("code").GetString());
 
             // Аватарка и вправду не обновилась
-            var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+            var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
             Assert.Equal(userFromDbAfterUpdate.AvatarURL, userFromDbBeforeUpdate.AvatarURL);
         }
     }
@@ -145,7 +168,7 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, avatarUrl: $"{TestConstants.TEST_FILES_PATH}/test.png");
+        var user = await DI.CreateUserAsync(_db, avatarUrl: $"{TestConstants.TEST_FILES_PATH}/test.png", ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_USERS_USER_ID_AVATAR_URL, user.Id);
@@ -153,7 +176,7 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Контент
-        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/NVtest4.png")).Value;
+        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/NVtest4.png", ct: TestContext.Current.CancellationToken)).Value.Stream;
         using MemoryStream memStream = new MemoryStream();
         stream.CopyTo(memStream);
         memStream.Seek(0, SeekOrigin.Begin);
@@ -164,10 +187,10 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         content.Add(fileContent, "file", "test.png");
         request.Content = content;
 
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -175,13 +198,13 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.FILE_IS_EMPTY, jsonDocument.RootElement.GetProperty("code").GetString());
 
         // Аватарка и вправду не обновилась
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
         Assert.Equal(userFromDbAfterUpdate.AvatarURL, userFromDbBeforeUpdate.AvatarURL);
     }
 
@@ -194,7 +217,7 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, avatarUrl: currentAvatar);
+        var user = await DI.CreateUserAsync(_db, avatarUrl: currentAvatar, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_USERS_USER_ID_AVATAR_URL, user.Id);
@@ -202,7 +225,7 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Контент
-        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/NVtest.png")).Value;
+        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/NVtest.png", ct: TestContext.Current.CancellationToken)).Value.Stream;
         using MemoryStream memStream = new MemoryStream();
         stream.CopyTo(memStream);
         memStream.Seek(0, SeekOrigin.Begin);
@@ -213,10 +236,10 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         content.Add(fileContent, "file", "test.png");
         request.Content = content;
 
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -224,13 +247,13 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.FILE_SIZE_LIMIT_EXCEEDED, jsonDocument.RootElement.GetProperty("code").GetString());
 
         // Аватарка и вправду не обновилась
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
         Assert.Equal(userFromDbAfterUpdate.AvatarURL, userFromDbBeforeUpdate.AvatarURL);
     }
 
@@ -246,7 +269,7 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Контент
-        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/test.png")).Value;
+        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/test.png", ct: TestContext.Current.CancellationToken)).Value.Stream;
         using MemoryStream memStream = new MemoryStream();
         stream.CopyTo(memStream);
         memStream.Seek(0, SeekOrigin.Begin);
@@ -258,7 +281,7 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         request.Content = content;
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -266,8 +289,8 @@ public class AdminUsersAvatarSystemTest : IClassFixture<TestWebApplicationFactor
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }

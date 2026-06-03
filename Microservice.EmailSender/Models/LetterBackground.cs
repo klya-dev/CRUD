@@ -3,7 +3,7 @@
 /// <summary>
 /// Письмо для электронной почты с элементами необходимыми для фоновой отправки.
 /// </summary>
-public class LetterBackground : Letter
+public sealed record LetterBackground : Letter
 {
     /// <summary>
     /// Конструктор для создания <see cref="LetterBackground"/> по <see cref="Letter"/>.

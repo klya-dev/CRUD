@@ -5,11 +5,11 @@ namespace CRUD.Models.Dtos.Publication;
 /// <summary>
 /// DTO-модель для получения авторов.
 /// </summary>
-public class GetAuthorsDto
+public sealed record GetAuthorsDto
 {
     /// <summary>
     /// Количество авторов.
     /// </summary>
     [JsonPropertyName("count")]
-    public required int Count { get; set; }
+    public required int Count { get; init; }
 }

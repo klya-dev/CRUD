@@ -6,9 +6,9 @@
 /// <remarks>
 /// Валидация реализована через Fluent Validation.
 /// </remarks>
-public class CreateUserDtoValidator : AbstractValidator<CreateUserDto>
+public sealed class CreateUserDtoValidator : AbstractValidator<CreateUserDto>
 {
-    public CreateUserDtoValidator(IValidatorsLocalizer localizer)
+    public CreateUserDtoValidator(IValidatorLocalizer localizer)
     {
         RuleFor(x => x.Firstname).Firstname(localizer);
         RuleFor(x => x.Username).Username(localizer);

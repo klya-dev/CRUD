@@ -3,16 +3,14 @@
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IAuthRefreshTokenManager"/>
-public class AuthRefreshTokenManager : IAuthRefreshTokenManager
+public sealed class AuthRefreshTokenManager : IAuthRefreshTokenManager
 {
     private readonly ApplicationDbContext _db;
-    private readonly IValidator<AuthRefreshToken> _authRefreshTokenValidator;
     private readonly IOptionsMonitor<AuthWebApiOptions> _authWebApiOptions;
 
-    public AuthRefreshTokenManager(ApplicationDbContext db, IValidator<AuthRefreshToken> authRefreshTokenValidator, IOptionsMonitor<AuthWebApiOptions> authWebApiOptions)
+    public AuthRefreshTokenManager(ApplicationDbContext db, IOptionsMonitor<AuthWebApiOptions> authWebApiOptions)
     {
         _db = db;
-        _authRefreshTokenValidator = authRefreshTokenValidator;
         _authWebApiOptions = authWebApiOptions;
     }
 
@@ -31,11 +29,6 @@ public class AuthRefreshTokenManager : IAuthRefreshTokenManager
             UserId = userId,
             Expires = DateTime.UtcNow.Add(_authWebApiOptions.CurrentValue.ExpiresRefreshToken),
         };
-
-        // Валидация модели
-        var validationResult = await _authRefreshTokenValidator.ValidateAsync(authRefreshToken, ct);
-        if (!validationResult.IsValid)
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(AuthRefreshToken), validationResult.Errors));
 
         await _db.AuthRefreshTokens.AddAsync(authRefreshToken, ct);
         await _db.SaveChangesAsync(ct);

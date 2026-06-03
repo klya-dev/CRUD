@@ -10,16 +10,11 @@ public interface IPayManager
     /// </summary>
     /// <remarks>
     /// <para>Если не удалось — <see langword="null"/>.</para>
-    /// <para>Для валидации <see cref="Order"/> используется <see cref="IValidator{Order}"/>.</para>
     /// 
     /// Возможные исключения:
     /// <list type="bullet">
     /// <item>
     /// <term>Если <paramref name="userId"/> является <see cref="Guid.Empty"/></term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="Order"/>, сущность окажется невалидна, изменения не последуют</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
     /// <item>

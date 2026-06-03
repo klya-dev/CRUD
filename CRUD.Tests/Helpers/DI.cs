@@ -1,4 +1,5 @@
-﻿namespace CRUD.Tests.Helpers;
+﻿#nullable enable
+namespace CRUD.Tests.Helpers;
 
 /// <summary>
 /// Статический класс для создания тестовых данных для тестов.
@@ -26,7 +27,8 @@ public static class DI
         string email = "fan.ass95@mail.ru",
         bool isEmailConfirm = false,
         string phoneNumber = "12345",
-        bool isPhoneNumberConfirm = false)
+        bool isPhoneNumberConfirm = false,
+        CancellationToken ct = default)
     {
         // В базе лежит захешированный пароль
         hashedPassword = new PasswordHasher().GenerateHashedPassword(hashedPassword);
@@ -49,8 +51,8 @@ public static class DI
             IsPhoneNumberConfirm = isPhoneNumberConfirm
         };
 
-        await db.Users.AddAsync(user);
-        await db.SaveChangesAsync();
+        await db.Users.AddAsync(user, ct);
+        await db.SaveChangesAsync(ct);
 
         return user;
     }
@@ -64,7 +66,8 @@ public static class DI
        DateTime? createdAt = null,
        string title = "title",
        string content = TestConstants.PublicationContent,
-       DateTime? editedAt = null)
+       DateTime? editedAt = null,
+        CancellationToken ct = default)
     {
         var publication = new Publication
         {
@@ -76,8 +79,8 @@ public static class DI
             EditedAt = editedAt,
         };
 
-        await db.Publications.AddAsync(publication);
-        await db.SaveChangesAsync();
+        await db.Publications.AddAsync(publication, ct);
+        await db.SaveChangesAsync(ct);
 
         return publication;
     }
@@ -88,7 +91,8 @@ public static class DI
     public static async Task<Product> CreateProductAsync(
         ApplicationDbContext db,
         string name = Products.Premium,
-        decimal price = 750)
+        decimal price = 750,
+        CancellationToken ct = default)
     {
         var product = new Product
         {
@@ -96,8 +100,8 @@ public static class DI
             Price = price
         };
 
-        await db.Products.AddAsync(product);
-        await db.SaveChangesAsync();
+        await db.Products.AddAsync(product, ct);
+        await db.SaveChangesAsync(ct);
 
         return product;
     }
@@ -116,7 +120,8 @@ public static class DI
         decimal amount = 100,
         string currency = "RUB",
         string description = "Description",
-        bool refundable = false)
+        bool refundable = false,
+        CancellationToken ct = default)
     {
         var order = new Order
         {
@@ -133,8 +138,8 @@ public static class DI
             Refundable = refundable,
         };
 
-        await db.Orders.AddAsync(order);
-        await db.SaveChangesAsync();
+        await db.Orders.AddAsync(order, ct);
+        await db.SaveChangesAsync(ct);
 
         return order;
     }
@@ -151,7 +156,8 @@ public static class DI
         DateTime? createdAt = null,
         DateTime? expires = null,
         string hashedNewPassword = "12345",
-        string token = "token")
+        string token = "token",
+        CancellationToken ct = default)
     {
         // В базе лежит захешированный пароль
         hashedNewPassword = new PasswordHasher().GenerateHashedPassword(hashedNewPassword);
@@ -167,8 +173,8 @@ public static class DI
             Expires = expires ?? createdAtNow.Add(TestSettingsHelper.GetConfigurationValue<TimeSpan, TestMarker>($"{ChangePasswordRequestOptions.SectionName}:{nameof(ChangePasswordRequestOptions.Expires)}"))
         };
 
-        await db.ChangePasswordRequests.AddAsync(changePasswordRequest);
-        await db.SaveChangesAsync();
+        await db.ChangePasswordRequests.AddAsync(changePasswordRequest, ct);
+        await db.SaveChangesAsync(ct);
 
         return changePasswordRequest;
     }
@@ -181,7 +187,8 @@ public static class DI
         Guid userId,
         DateTime? createdAt = null,
         DateTime? expires = null,
-        string token = "token")
+        string token = "token",
+        CancellationToken ct = default)
     {
         var createdAtNow = DateTime.UtcNow;
 
@@ -193,8 +200,8 @@ public static class DI
             Expires = expires ?? createdAtNow.Add(TestSettingsHelper.GetConfigurationValue<TimeSpan, TestMarker>($"{ConfirmEmailRequestOptions.SectionName}:{nameof(ConfirmEmailRequestOptions.Expires)}"))
         };
 
-        await db.ConfirmEmailRequests.AddAsync(confirmEmailRequest);
-        await db.SaveChangesAsync();
+        await db.ConfirmEmailRequests.AddAsync(confirmEmailRequest, ct);
+        await db.SaveChangesAsync(ct);
 
         return confirmEmailRequest;
     }
@@ -207,7 +214,8 @@ public static class DI
         Guid userId,
         DateTime? createdAt = null,
         DateTime? expires = null,
-        string code = "123456") // VerificationPhoneNumberRequestOptions.LengthCode
+        string code = "123456", // VerificationPhoneNumberRequestOptions.LengthCode,
+        CancellationToken ct = default)
     {
         var createdAtNow = DateTime.UtcNow;
 
@@ -219,8 +227,8 @@ public static class DI
             Expires = expires ?? createdAtNow.Add(TestSettingsHelper.GetConfigurationValue<TimeSpan, TestMarker>($"{VerificationPhoneNumberRequestOptions.SectionName}:{nameof(VerificationPhoneNumberRequestOptions.Expires)}"))
         };
 
-        await db.VerificationPhoneNumberRequests.AddAsync(verificationPhoneNumberRequest);
-        await db.SaveChangesAsync();
+        await db.VerificationPhoneNumberRequests.AddAsync(verificationPhoneNumberRequest, ct);
+        await db.SaveChangesAsync(ct);
 
         return verificationPhoneNumberRequest;
     }
@@ -232,7 +240,8 @@ public static class DI
        ApplicationDbContext db,
        DateTime? date = null,
        string title = "title",
-       string content = "content")
+       string content = "content",
+        CancellationToken ct = default)
     {
         var notification = new Notification
         {
@@ -242,8 +251,8 @@ public static class DI
             CreatedAt = date ?? DateTime.UtcNow
         };
 
-        await db.Notifications.AddAsync(notification);
-        await db.SaveChangesAsync();
+        await db.Notifications.AddAsync(notification, ct);
+        await db.SaveChangesAsync(ct);
 
         return notification;
     }
@@ -255,7 +264,8 @@ public static class DI
         ApplicationDbContext db,
         Guid userId,
         Guid notificationId,
-        bool isRead = false)
+        bool isRead = false,
+        CancellationToken ct = default)
     {
         var userNotification = new UserNotification
         {
@@ -264,8 +274,8 @@ public static class DI
             IsRead = isRead,
         };
 
-        await db.UserNotifications.AddAsync(userNotification);
-        await db.SaveChangesAsync();
+        await db.UserNotifications.AddAsync(userNotification, ct);
+        await db.SaveChangesAsync(ct);
 
         return userNotification;
     }
@@ -277,7 +287,8 @@ public static class DI
         ApplicationDbContext db,
         Guid userId,
         string token = "sadawdwddw1231",
-        DateTime? expires = null)
+        DateTime? expires = null,
+        CancellationToken ct = default)
     {
         var authRefreshToken = new AuthRefreshToken
         {
@@ -286,8 +297,8 @@ public static class DI
             Expires = expires ?? DateTime.UtcNow.Add(TestSettingsHelper.GetConfigurationValue<TimeSpan, TestMarker>($"{AuthWebApiOptions.SectionName}:{nameof(AuthWebApiOptions.ExpiresRefreshToken)}"))
         };
 
-        await db.AuthRefreshTokens.AddAsync(authRefreshToken);
-        await db.SaveChangesAsync();
+        await db.AuthRefreshTokens.AddAsync(authRefreshToken, ct);
+        await db.SaveChangesAsync(ct);
 
         return authRefreshToken;
     }

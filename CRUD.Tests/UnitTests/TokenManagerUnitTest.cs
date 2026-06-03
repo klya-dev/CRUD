@@ -2,7 +2,7 @@
 
 namespace CRUD.Tests.UnitTests;
 
-public class TokenManagerUnitTest
+public sealed class TokenManagerUnitTest
 {
     private readonly TokenManager _tokenManager;
     private readonly Mock<IOptionsMonitor<AuthOptions>> _mockAuthOptions;
@@ -42,6 +42,8 @@ public class TokenManagerUnitTest
         string username = null;
         string role = "role";
         string languageCode = "ru";
+        bool isEmailConfirm = true;
+        bool isPhoneNumberConfirm = true;
         bool isPremium = true;
 
         IEnumerable<Claim> claims =
@@ -49,8 +51,10 @@ public class TokenManagerUnitTest
             new Claim(ClaimTypes.NameIdentifier, userId),
             new Claim(ClaimTypes.Name, "username"), // Claim сам по себе не даст записать null
             new Claim(ClaimTypes.Role, role),
-            new Claim("language_code", languageCode),
-            new Claim("premium", isPremium.ToString())
+            new Claim(UserClaimTypes.LanguageCode, languageCode),
+            new Claim(UserClaimTypes.IsEmailConfirm, isEmailConfirm.ToString()),
+            new Claim(UserClaimTypes.IsPhoneNumberConfirm, isPhoneNumberConfirm.ToString()),
+            new Claim(UserClaimTypes.IsPremium, isPremium.ToString())
         ];
 
         // Act
@@ -72,6 +76,8 @@ public class TokenManagerUnitTest
         string username = " ";
         string role = "role";
         string languageCode = "ru"; 
+        bool isEmailConfirm = true;
+        bool isPhoneNumberConfirm = true;
         bool isPremium = true;
 
         IEnumerable<Claim> claims =
@@ -79,8 +85,10 @@ public class TokenManagerUnitTest
             new Claim(ClaimTypes.NameIdentifier, userId),
             new Claim(ClaimTypes.Name, username),
             new Claim(ClaimTypes.Role, role),
-            new Claim("language_code", languageCode),
-            new Claim("premium", isPremium.ToString())
+            new Claim(UserClaimTypes.LanguageCode, languageCode),
+            new Claim(UserClaimTypes.IsEmailConfirm, isEmailConfirm.ToString()),
+            new Claim(UserClaimTypes.IsPhoneNumberConfirm, isPhoneNumberConfirm.ToString()),
+            new Claim(UserClaimTypes.IsPremium, isPremium.ToString())
         ];
 
         // Act

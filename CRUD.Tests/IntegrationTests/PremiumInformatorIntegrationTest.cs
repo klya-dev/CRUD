@@ -5,10 +5,8 @@ using System.Text.Json;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class PremiumInformatorIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class PremiumInformatorIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
-    // #nullable disable
-
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IPremiumInformator _premiumInformator;
 
@@ -39,16 +37,28 @@ public class PremiumInformatorIntegrationTest : IClassFixture<TestWebApplication
         string languageCode = "ru";
 
         // Act
-        await _premiumInformator.InformateAsync(email, languageCode);
+        await _premiumInformator.InformateAsync(email, languageCode, TestContext.Current.CancellationToken);
 
         // Assert
         // Подключаемся к RabbitMQ
         var factory = new ConnectionFactory() { HostName = Hostname, Port = Port };
-        using var connection = await factory.CreateConnectionAsync();
-        using var channel = await connection.CreateChannelAsync();
+        using var connection = await factory.CreateConnectionAsync(TestContext.Current.CancellationToken);
+        using var channel = await connection.CreateChannelAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Объявляем очередь для этого потребителя
+        await channel.QueueDeclareAsync(
+            queue: "informs-consumer-test",
+            durable: true, // Очередь не удалится после перезапуска Rabbit'а (сообщения внутри удалятся, если только не указать Persistent в BasicPublishAsync)
+            exclusive: false, // Очередь может использоваться другими соединениями, а не только текущим (получить, удалить и тд)
+            autoDelete: false, // Не удалять очередь даже, когда все потребители отключатся
+            arguments: null,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Привязываем очередь к обменнику
+        await channel.QueueBindAsync("informs-consumer-test", "informs", routingKey: string.Empty, cancellationToken: TestContext.Current.CancellationToken);
 
         // Получаем сообщение
-        var result = await channel.BasicGetAsync("informs-consumer-1", autoAck: false);
+        var result = await channel.BasicGetAsync("informs-consumer-test", autoAck: false, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(result);
 
         // Сравниваем содержимое

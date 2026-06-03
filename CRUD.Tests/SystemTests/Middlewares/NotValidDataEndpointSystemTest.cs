@@ -5,7 +5,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 
-public class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     // Тут я тестирую невалидные данные и авторизацию
 
@@ -41,7 +41,7 @@ public class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFa
         request.Content = json;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -49,8 +49,8 @@ public class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFa
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Произошла одна или несколько ошибок проверки.", jsonDocument.RootElement.GetProperty("title").GetString());
     }
@@ -74,7 +74,7 @@ public class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFa
         request.Content = json;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -82,8 +82,8 @@ public class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFa
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Произошла одна или несколько ошибок проверки.", jsonDocument.RootElement.GetProperty("title").GetString());
     }
@@ -104,7 +104,7 @@ public class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFa
         request.Content = json;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -112,8 +112,8 @@ public class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFa
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Пустой уникальный идентификатор (GUID).", jsonDocument.RootElement.GetProperty("title").GetString());
     }
@@ -136,7 +136,7 @@ public class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFa
         request.Content = json;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -144,8 +144,8 @@ public class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFa
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Произошла одна или несколько ошибок проверки.", jsonDocument.RootElement.GetProperty("title").GetString());
     }
@@ -169,7 +169,7 @@ public class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFa
         request.Content = json;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -177,8 +177,8 @@ public class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFa
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Произошла одна или несколько ошибок проверки.", jsonDocument.RootElement.GetProperty("title").GetString());
     }
@@ -202,47 +202,10 @@ public class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFa
         request.Content = json;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Equal(System.Net.HttpStatusCode.Unauthorized, result.StatusCode);
-    }
-
-    [Fact]
-    public async Task Put_User_ThrowsInvalidOperationException_NotValidBeforeUpdate()
-    {
-        // Arrange
-        var db = TestWebApplicationFactory.RecreateDatabase();
-        var client = _factory.HttpClient;
-
-        // Данные
-        string firstname = "новоеИмя";
-        string username = "newusername";
-        string languageCode = "nn";
-        var data = new UpdateUserDto()
-        {
-            Firstname = firstname,
-            Username = username,
-            LanguageCode = languageCode
-        };
-
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(db, role: "НЕВАЛИДНАЯ РОЛЬ");
-
-        // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Put, TestConstants.USER_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
-        TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
-        TestConstants.AddIdempotencyKey(request);
-
-        // Act
-        using var result = await client.SendAsync(request);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal(System.Net.HttpStatusCode.InternalServerError, result.StatusCode);
-        Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
     }
 }

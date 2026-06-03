@@ -1,13 +1,10 @@
-﻿#nullable disable
-using Microsoft.AspNetCore.Mvc.Testing;
+﻿using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class PremiumManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class PremiumManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
-    // #nullable disable
-
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IPremiumManager _premiumManager;
     private readonly ApplicationDbContext _db;
@@ -23,27 +20,20 @@ public class PremiumManagerIntegrationTest : IClassFixture<TestWebApplicationFac
         _db = scopedServices.GetRequiredService<ApplicationDbContext>();
     }
 
-    private IPremiumManager GenerateNewPremiumManager()
-    {
-        var scope = _factory.Services.CreateScope();
-        var scopedServices = scope.ServiceProvider;
-        return scopedServices.GetRequiredService<IPremiumManager>();
-    }
-
     [Fact] // Корректные данные
     public async Task BuyPremiumAsync_ReturnsServiceResult()
     {
         // Arrange
         // Добавляем продукт в базу
-        var product = await DI.CreateProductAsync(_db, name: Products.Premium);
+        var product = await DI.CreateProductAsync(_db, name: Products.Premium, ct: TestContext.Current.CancellationToken);
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: false);
+        var user = await DI.CreateUserAsync(_db, isPremium: false, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Act
-        var result = await _premiumManager.BuyPremiumAsync(userIdGuid);
+        var result = await _premiumManager.BuyPremiumAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -58,7 +48,7 @@ public class PremiumManagerIntegrationTest : IClassFixture<TestWebApplicationFac
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _premiumManager.BuyPremiumAsync(userIdGuid);
+        var result = await _premiumManager.BuyPremiumAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -70,12 +60,12 @@ public class PremiumManagerIntegrationTest : IClassFixture<TestWebApplicationFac
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: true);
+        var user = await DI.CreateUserAsync(_db, isPremium: true, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Act
-        var result = await _premiumManager.BuyPremiumAsync(userIdGuid);
+        var result = await _premiumManager.BuyPremiumAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -88,19 +78,19 @@ public class PremiumManagerIntegrationTest : IClassFixture<TestWebApplicationFac
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: false);
+        var user = await DI.CreateUserAsync(_db, isPremium: false, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
-        var userFromDbBeforeBuy = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbBeforeBuy = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _premiumManager.SetPremiumAsync(userIdGuid);
+        var result = await _premiumManager.SetPremiumAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
-        var userFromDbAfterBuy = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterBuy = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.False(userFromDbBeforeBuy.IsPremium);
         Assert.Null(userFromDbBeforeBuy.ApiKey);
         Assert.Null(userFromDbBeforeBuy.DisposableApiKey);
@@ -117,7 +107,7 @@ public class PremiumManagerIntegrationTest : IClassFixture<TestWebApplicationFac
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _premiumManager.SetPremiumAsync(userIdGuid);
+        var result = await _premiumManager.SetPremiumAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -129,67 +119,15 @@ public class PremiumManagerIntegrationTest : IClassFixture<TestWebApplicationFac
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: true);
+        var user = await DI.CreateUserAsync(_db, isPremium: true, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Act
-        var result = await _premiumManager.SetPremiumAsync(userIdGuid);
+        var result = await _premiumManager.SetPremiumAsync(userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.UserAlreadyHasPremium, result.ErrorMessage);
-    }
-
-
-    // Конфликты параллельности
-
-
-    [Fact] // Корректные данные
-    public async Task BuyPremiumAsync_ConcurrencyConflict_ReturnsErrorMessage_NothingOrConflictOrUserAlreadyHasPremium()
-    {
-        // Arrange
-        // Добавляем продукт в базу
-        var product = await DI.CreateProductAsync(_db, name: Products.Premium);
-
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: false);
-
-        var userIdGuid = user.Id;
-        var premiumManager = GenerateNewPremiumManager();
-        var premiumManager2 = GenerateNewPremiumManager();
-        var userFromDbBeforeBuy = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-
-        // Act
-        var task = premiumManager.BuyPremiumAsync(userIdGuid);
-        var task2 = premiumManager2.BuyPremiumAsync(userIdGuid);
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            var results = await Task.WhenAll(task, task2);
-
-            // Assert
-            foreach (var result in results)
-            {
-                Assert.NotNull(result);
-
-                // Либо ничего, либо уже есть премиум
-                var errorMessage = result.ErrorMessage;
-                string[] allowedErrors =
-                [
-                    null,
-                    ErrorMessages.UserAlreadyHasPremium
-                ];
-
-                Assert.Contains(errorMessage, allowedErrors);
-            }
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
     }
 }

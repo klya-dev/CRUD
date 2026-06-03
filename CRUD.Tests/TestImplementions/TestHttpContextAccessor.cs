@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿#nullable enable
+using Microsoft.AspNetCore.Http;
 
 namespace CRUD.Tests.TestImplementions;
 
 /// <summary>
 /// Тестовая реализация интерфейса <see cref="IHttpContextAccessor"/>.
 /// </summary>
-public class TestHttpContextAccessor : IHttpContextAccessor
+public sealed class TestHttpContextAccessor : IHttpContextAccessor
 {
     public HttpContext? HttpContext { get; set; }
 

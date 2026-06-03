@@ -7,7 +7,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 
-public class RateLimiterSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class RateLimiterSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly HttpClient _client;
@@ -67,13 +67,13 @@ public class RateLimiterSystemTest : IClassFixture<TestWebApplicationFactory>
         var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL);
         request.Headers.Add("Accept-Language", "ru");
         request.Content = json;
-        using var result1 = await _client.SendAsync(request);
+        using var result1 = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // 2 запрос
         var request2 = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL);
         request2.Headers.Add("Accept-Language", "ru");
         request2.Content = json;
-        using var result2 = await _client.SendAsync(request2);
+        using var result2 = await _client.SendAsync(request2, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result1);
@@ -87,8 +87,8 @@ public class RateLimiterSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("10", result2.Headers.RetryAfter.ToString());
 
         // Читаем содержимое ответа
-        await using var contentStream = await result2.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result2.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Превышен лимит скорости, слишком много запросов. Попробуйте позже.", jsonDocument.RootElement.GetProperty("detail").GetString());
         Assert.Equal(ErrorCodes.RATE_LIMIT_EXCEEDED, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -102,20 +102,20 @@ public class RateLimiterSystemTest : IClassFixture<TestWebApplicationFactory>
         // Arrange
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Act
         // 1 запрос
         var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.USER_URL);
         request.Headers.Add("Accept-Language", "ru");
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
-        using var result1 = await _client.SendAsync(request);
+        using var result1 = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // 2 запрос
         var request2 = new HttpRequestMessage(HttpMethod.Get, TestConstants.USER_URL);
         request2.Headers.Add("Accept-Language", "ru");
         TestConstants.AddBearerToken(request2, _tokenManager, userId: user.Id.ToString());
-        using var result2 = await _client.SendAsync(request2);
+        using var result2 = await _client.SendAsync(request2, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result1);
@@ -129,8 +129,8 @@ public class RateLimiterSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("10", result2.Headers.RetryAfter.ToString());
 
         // Читаем содержимое ответа
-        await using var contentStream = await result2.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result2.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Превышен лимит скорости, слишком много запросов. Попробуйте позже.", jsonDocument.RootElement.GetProperty("detail").GetString());
         Assert.Equal(ErrorCodes.RATE_LIMIT_EXCEEDED, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -143,20 +143,20 @@ public class RateLimiterSystemTest : IClassFixture<TestWebApplicationFactory>
 
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Act
         // 1 запрос
         var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.USER_URL);
         request.Headers.Add("Accept-Language", "ru");
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString(), role: UserRoles.Admin);
-        using var result1 = await _client.SendAsync(request);
+        using var result1 = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // 2 запрос
         var request2 = new HttpRequestMessage(HttpMethod.Get, TestConstants.USER_URL);
         request2.Headers.Add("Accept-Language", "ru");
         TestConstants.AddBearerToken(request2, _tokenManager, userId: user.Id.ToString(), role: UserRoles.Admin);
-        using var result2 = await _client.SendAsync(request2);
+        using var result2 = await _client.SendAsync(request2, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result1);
@@ -179,12 +179,12 @@ public class RateLimiterSystemTest : IClassFixture<TestWebApplicationFactory>
         // 1 запрос
         var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.USER_URL);
         request.Headers.Add("Accept-Language", "ru");
-        using var result1 = await _client.SendAsync(request);
+        using var result1 = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // 2 запрос
         var request2 = new HttpRequestMessage(HttpMethod.Get, TestConstants.USER_URL);
         request2.Headers.Add("Accept-Language", "ru");
-        using var result2 = await _client.SendAsync(request2);
+        using var result2 = await _client.SendAsync(request2, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result1);
@@ -198,8 +198,8 @@ public class RateLimiterSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("10", result2.Headers.RetryAfter.ToString());
 
         // Читаем содержимое ответа
-        await using var contentStream = await result2.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result2.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Превышен лимит скорости, слишком много запросов. Попробуйте позже.", jsonDocument.RootElement.GetProperty("detail").GetString());
         Assert.Equal(ErrorCodes.RATE_LIMIT_EXCEEDED, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -215,17 +215,17 @@ public class RateLimiterSystemTest : IClassFixture<TestWebApplicationFactory>
         // 1 запрос
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Add("Accept-Language", "ru");
-        using var result1 = await _client.SendAsync(request);
+        using var result1 = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // 2 запрос
         var request2 = new HttpRequestMessage(HttpMethod.Get, url);
         request2.Headers.Add("Accept-Language", "ru");
-        using var result2 = await _client.SendAsync(request2);
+        using var result2 = await _client.SendAsync(request2, TestContext.Current.CancellationToken);
 
         // 3 запрос
         var request3 = new HttpRequestMessage(HttpMethod.Get, url);
         request3.Headers.Add("Accept-Language", "ru");
-        var result3 = await _client.SendAsync(request3);
+        var result3 = await _client.SendAsync(request3, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result1);
@@ -244,8 +244,8 @@ public class RateLimiterSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("11", result3.Headers.RetryAfter.ToString());
 
         // Читаем содержимое ответа
-        await using var contentStream = await result3.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result3.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Превышен лимит скорости, слишком много запросов. Попробуйте позже.", jsonDocument.RootElement.GetProperty("detail").GetString());
         Assert.Equal(ErrorCodes.RATE_LIMIT_EXCEEDED, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -260,12 +260,12 @@ public class RateLimiterSystemTest : IClassFixture<TestWebApplicationFactory>
         // 1 запрос
         var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.METRICS_URL);
         request.Headers.Add("Accept-Language", "ru");
-        using var result1 = await _client.SendAsync(request);
+        using var result1 = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // 2 запрос
         var request2 = new HttpRequestMessage(HttpMethod.Get, TestConstants.METRICS_URL);
         request2.Headers.Add("Accept-Language", "ru");
-        using var result2 = await _client.SendAsync(request2);
+        using var result2 = await _client.SendAsync(request2, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result1);

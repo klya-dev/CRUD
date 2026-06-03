@@ -1,4 +1,5 @@
-﻿using Microservice.EmailSender.Services.RabbitMqConsumer;
+﻿#nullable enable
+using Microservice.EmailSender.Services.RabbitMqConsumer;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
@@ -6,7 +7,7 @@ using System.Text.Json;
 
 namespace Microservice.EmailSender.Tests.IntegrationTests;
 
-public class RabbitMqConsumerBackgroundCoreUnitTest
+public sealed class RabbitMqConsumerBackgroundCoreUnitTest
 {
     private readonly Mock<IQueueEmail> _mockQueueEmail;
     private readonly Mock<ILogger<RabbitMqConsumerBackgroundCore>> _mockLogger;
@@ -29,7 +30,7 @@ public class RabbitMqConsumerBackgroundCoreUnitTest
 
         // Act
         // Выполняем настройки очередей (обменник, привязка, обработчик)
-        await _rabbitMqConsumerBackgroundCore.DoWorkAsync(_mockChannel.Object);
+        await _rabbitMqConsumerBackgroundCore.DoWorkAsync(_mockChannel.Object, TestContext.Current.CancellationToken);
 
         // Assert
         // Обменник объявлен
@@ -69,7 +70,7 @@ public class RabbitMqConsumerBackgroundCoreUnitTest
             .ReturnsAsync("consumer-tag");
 
         // Выполняем настройки очередей (обменник, привязка, обработчик)
-        await _rabbitMqConsumerBackgroundCore.DoWorkAsync(_mockChannel.Object);
+        await _rabbitMqConsumerBackgroundCore.DoWorkAsync(_mockChannel.Object, TestContext.Current.CancellationToken);
 
         // Act
         // Приход сообщения
@@ -80,7 +81,8 @@ public class RabbitMqConsumerBackgroundCoreUnitTest
             exchange: "informs",
             routingKey: string.Empty,
             properties: new ReadOnlyBasicProperties([]),
-            body: new ReadOnlyMemory<byte>(body)
+            body: new ReadOnlyMemory<byte>(body),
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -96,7 +98,7 @@ public class RabbitMqConsumerBackgroundCoreUnitTest
     {
         // Assert
         var letterId = "NOT VALID GUID";
-        var request = new EnqueueLetterRequest { Id = letterId.ToString(), Email = "test@test.test", Subject = "sub", Body = "body" };
+        var request = new EnqueueLetterRequest { Id = letterId, Email = "test@test.test", Subject = "sub", Body = "body" };
         var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request));
 
         // Перехватываем AsyncEventingBasicConsumer
@@ -115,7 +117,7 @@ public class RabbitMqConsumerBackgroundCoreUnitTest
             .ReturnsAsync("consumer-tag");
 
         // Выполняем настройки очередей (обменник, привязка, обработчик)
-        await _rabbitMqConsumerBackgroundCore.DoWorkAsync(_mockChannel.Object);
+        await _rabbitMqConsumerBackgroundCore.DoWorkAsync(_mockChannel.Object, TestContext.Current.CancellationToken);
 
         // Act
         // Приход сообщения
@@ -126,7 +128,8 @@ public class RabbitMqConsumerBackgroundCoreUnitTest
             exchange: "informs",
             routingKey: string.Empty,
             properties: new ReadOnlyBasicProperties([]),
-            body: new ReadOnlyMemory<byte>(body)
+            body: new ReadOnlyMemory<byte>(body),
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -158,7 +161,7 @@ public class RabbitMqConsumerBackgroundCoreUnitTest
             .ReturnsAsync("consumer-tag");
 
         // Выполняем настройки очередей (обменник, привязка, обработчик)
-        await _rabbitMqConsumerBackgroundCore.DoWorkAsync(_mockChannel.Object);
+        await _rabbitMqConsumerBackgroundCore.DoWorkAsync(_mockChannel.Object, TestContext.Current.CancellationToken);
 
         // QueueEmail выбросило исключение
         _mockQueueEmail.Setup(x => x.EnqueueAsync(It.IsAny<Letter>(), It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("some"));
@@ -172,7 +175,8 @@ public class RabbitMqConsumerBackgroundCoreUnitTest
             exchange: "informs",
             routingKey: string.Empty,
             properties: new ReadOnlyBasicProperties([]),
-            body: new ReadOnlyMemory<byte>(body)
+            body: new ReadOnlyMemory<byte>(body),
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -204,7 +208,7 @@ public class RabbitMqConsumerBackgroundCoreUnitTest
             .ReturnsAsync("consumer-tag");
 
         // Выполняем настройки очередей (обменник, привязка, обработчик)
-        await _rabbitMqConsumerBackgroundCore.DoWorkAsync(_mockChannel.Object);
+        await _rabbitMqConsumerBackgroundCore.DoWorkAsync(_mockChannel.Object, TestContext.Current.CancellationToken);
 
         // QueueEmail выбросило исключение
         _mockQueueEmail.Setup(x => x.EnqueueAsync(It.IsAny<Letter>(), It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("some"));
@@ -218,7 +222,8 @@ public class RabbitMqConsumerBackgroundCoreUnitTest
             exchange: "informs",
             routingKey: string.Empty,
             properties: new ReadOnlyBasicProperties([]),
-            body: new ReadOnlyMemory<byte>(body)
+            body: new ReadOnlyMemory<byte>(body),
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert

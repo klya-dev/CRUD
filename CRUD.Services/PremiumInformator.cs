@@ -7,7 +7,7 @@ using System.Text.Json;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IPremiumInformator"/>
-public class PremiumInformator : IPremiumInformator
+public sealed class PremiumInformator : IPremiumInformator
 {
     private readonly ILogger<PremiumInformator> _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;

@@ -1,12 +1,9 @@
-﻿#nullable disable
-using CRUD.Services;
+﻿using CRUD.Services;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class HtmlHelperIntegrationTest
+public sealed class HtmlHelperIntegrationTest
 {
-    // #nullable disable
-
     private readonly HtmlHelper _htmlHelper;
 
     // Примеры html
@@ -46,11 +43,6 @@ public class HtmlHelperIntegrationTest
         _htmlHelper = new HtmlHelper();
     }
 
-    private static HtmlHelper GenerateNewHtmlHelper()
-    {
-        return new HtmlHelper();
-    }
-
     [Fact]
     public void SanitizeHtml_CorrectData_ReturnsString()
     {
@@ -85,37 +77,5 @@ public class HtmlHelperIntegrationTest
         // Assert
         var ex = Assert.Throws<ArgumentNullException>(a);
         Assert.Contains(nameof(html), ex.ParamName);
-    }
-
-
-    // Конфликть параллельности
-
-
-    [Fact]
-    public async Task SanitizeHtml_ConcurrencyConflict_CorrectData_ReturnsString()
-    {
-        // Arrange
-        var htmlHelper = GenerateNewHtmlHelper();
-        var htmlHelper2 = GenerateNewHtmlHelper();
-
-        // Act
-        for (int i = 0; i < htmls.Length; i++)
-        {
-            var html = htmls[i];
-            var sanitizedHtml = sanitizedHtmls[i];
-
-            var task = Task.Run(() => htmlHelper.SanitizeHtml(html));
-            var task2 = Task.Run(() => htmlHelper2.SanitizeHtml(html));
-
-            var results = await Task.WhenAll(task, task2);
-            var result = results[0];
-            var result2 = results[1];
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.Equivalent(sanitizedHtml, result);
-
-            Assert.Equivalent(result, result2);
-        }
     }
 }

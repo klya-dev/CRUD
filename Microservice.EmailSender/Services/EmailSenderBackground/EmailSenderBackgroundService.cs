@@ -3,7 +3,7 @@
 /// <summary>
 /// Сервис для отправки писем в фоне.
 /// </summary>
-public class EmailSenderBackgroundService : BackgroundService
+public sealed class EmailSenderBackgroundService : BackgroundService
 {
     private readonly IEmailSenderBackgroundCore _emailSenderBackgroundCore;
     private readonly ILogger<EmailSenderBackgroundService> _logger;

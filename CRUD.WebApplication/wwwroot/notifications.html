@@ -46,7 +46,7 @@
             // Отправляем запрос на установление статуса "прочитано"
             const response = await fetch(`https://localhost:7260/v1/user/notifications/${notificationId}/read`, {
                 method: "PUT",
-                headers: { "Authorization": "Bearer " + sessionStorage.getItem("accessToken") }
+                headers: { "Authorization": "Bearer " + sessionStorage.getItem("accessToken"), "Idempotency-Key": crypto.randomUUID() }
             });
             if (response.ok === false) {
                 console.log("не удалось поменять статус уведомления на \"прочитано\"")

@@ -5,7 +5,7 @@ namespace CRUD.WebApi.Helpers;
 /// <summary>
 /// Фабрика подключений Unix domain sockets (UDS).
 /// </summary>
-public class UnixDomainSocketsConnectionFactory
+public sealed class UnixDomainSocketsConnectionFactory
 {
     private readonly EndPoint endPoint;
 

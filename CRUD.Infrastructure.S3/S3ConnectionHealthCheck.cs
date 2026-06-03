@@ -5,7 +5,7 @@ namespace CRUD.Infrastructure.S3;
 /// <summary>
 /// Проверяет подключение к S3.
 /// </summary>
-public class S3ConnectionHealthCheck : IHealthCheck
+public sealed class S3ConnectionHealthCheck : IHealthCheck
 {
     private readonly IS3Manager _s3Manager;
 

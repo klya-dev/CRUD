@@ -5,7 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IGrpcTokenManager"/>
-public class GrpcTokenManager : IGrpcTokenManager
+public sealed class GrpcTokenManager : IGrpcTokenManager
 {
     private static readonly JwtSecurityTokenHandler _tokenHandler = new JwtSecurityTokenHandler();
     private string? _grpcToken;

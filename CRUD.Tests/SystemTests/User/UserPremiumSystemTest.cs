@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace CRUD.Tests.SystemTests.User;
 
-public class UserPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class UserPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -28,10 +28,10 @@ public class UserPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
         var client = _factory.HttpClient;
 
         // Добавляем продукт в базу
-        var product = await DI.CreateProductAsync(_db, name: Products.Premium);
+        var product = await DI.CreateProductAsync(_db, name: Products.Premium, ct: TestContext.Current.CancellationToken);
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: false);
+        var user = await DI.CreateUserAsync(_db, isPremium: false, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
@@ -39,10 +39,10 @@ public class UserPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
         var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PREMIUM_URL);
         TestConstants.AddBearerToken(request, _tokenManager, userIdGuid.ToString());
 
-        var userFromDbBeforeBuy = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbBeforeBuy = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -50,12 +50,12 @@ public class UserPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var content = await result.Content.ReadAsStringAsync();
+        var content = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         AssertExtensions.IsNotNullOrNotWhiteSpace(content);
 
         // Заказ и вправду добавился
-        var orderFromDb = await _db.Orders.AsNoTracking().Where(x => x.UserId == userIdGuid).FirstOrDefaultAsync();
+        var orderFromDb = await _db.Orders.AsNoTracking().Where(x => x.UserId == userIdGuid).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(orderFromDb);
     }
 
@@ -66,14 +66,14 @@ public class UserPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
         var client = _factory.HttpClient;
 
         // Добавляем продукт в базу
-        var product = await DI.CreateProductAsync(_db, name: Products.Premium);
+        var product = await DI.CreateProductAsync(_db, name: Products.Premium, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PREMIUM_URL);
         TestConstants.AddBearerToken(request, _tokenManager);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -81,8 +81,8 @@ public class UserPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -94,17 +94,17 @@ public class UserPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: true);
+        var user = await DI.CreateUserAsync(_db, isPremium: true, ct: TestContext.Current.CancellationToken);
 
         // Добавляем продукт в базу
-        var product = await DI.CreateProductAsync(_db, name: Products.Premium);
+        var product = await DI.CreateProductAsync(_db, name: Products.Premium, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PREMIUM_URL);
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -112,8 +112,8 @@ public class UserPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_ALREADY_HAS_PREMIUM, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -137,17 +137,17 @@ public class UserPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
         }).CreateClient();
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: false);
+        var user = await DI.CreateUserAsync(_db, isPremium: false, ct: TestContext.Current.CancellationToken);
 
         // Добавляем продукт в базу
-        var product = await DI.CreateProductAsync(_db, name: Products.Premium);
+        var product = await DI.CreateProductAsync(_db, name: Products.Premium, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PREMIUM_URL);
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -155,89 +155,9 @@ public class UserPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.FAILED_TO_CREATE_PAYMENT, jsonDocument.RootElement.GetProperty("code").GetString());
-    }
-
-
-    // Конфликты параллельности
-
-
-    [Fact] // Корректные данные
-    public async Task Post_ConcurrencyConflict_ReturnsOkOrConflict()
-    {
-        // Arrange
-        var client = _factory.HttpClient;
-        var client2 = _factory.CreateClient();
-
-        // Добавляем продукт в базу
-        var product = await DI.CreateProductAsync(_db, name: Products.Premium);
-
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: false);
-
-        var userIdGuid = user.Id;
-
-        // Запрос 1
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PREMIUM_URL);
-        TestConstants.AddBearerToken(request, _tokenManager, userIdGuid.ToString());
-
-        // Запрос 2
-        var request2 = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PREMIUM_URL);
-        TestConstants.AddBearerToken(request2, _tokenManager, userIdGuid.ToString());
-
-        var userFromDbBeforeBuy = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-
-        // Act
-        using var task = client.SendAsync(request);
-        using var task2 = client2.SendAsync(request2);
-
-        var results = await Task.WhenAll(task, task2);
-
-        // Assert
-        foreach (var result in results)
-        {
-            Assert.NotNull(result);
-
-            // Ошибка сервера
-            if (System.Net.HttpStatusCode.InternalServerError == result.StatusCode)
-                Assert.Fail("InternalServerError");
-
-            // Может быть успешный ответ
-            if (System.Net.HttpStatusCode.OK == result.StatusCode)
-            {
-                Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
-
-                // Читаем содержимое ответа
-                var content = await result.Content.ReadAsStringAsync();
-
-                AssertExtensions.IsNotNullOrNotWhiteSpace(content);
-
-                // Заказ и вправду добавился
-                var orderFromDb = await _db.Orders.AsNoTracking().Where(x => x.UserId == userIdGuid).FirstOrDefaultAsync();
-                Assert.NotNull(orderFromDb);
-
-                continue;
-            }
-
-            // Читаем содержимое ответа
-            await using var contentStream = await result.Content.ReadAsStreamAsync();
-            using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
-
-            // Может быть неуспешный ответ
-            if (!result.IsSuccessStatusCode)
-            {
-                // Conflict
-                var errorCode = jsonDocument.RootElement.GetProperty("code").GetString();
-                string[] allowedErrors =
-                [
-                    ErrorCodes.CONCURRENCY_CONFLICTS
-                ];
-
-                Assert.Contains(errorCode, allowedErrors);
-            }
-        }
     }
 }

@@ -5,7 +5,7 @@ using OpenTelemetry.Metrics;
 
 namespace Microservice.EmailSender.Tests.IntegrationTests;
 
-public class GrpcEmailSenderServiceIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class GrpcEmailSenderServiceIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IQueueEmail _queueEmail;
@@ -60,7 +60,7 @@ public class GrpcEmailSenderServiceIntegrationTest : IClassFixture<TestWebApplic
         var client = new GrpcEmailSender.GrpcEmailSenderClient(channel);
 
         // Act
-        var result = await client.EnqueueAsync(request, headers);
+        var result = await client.EnqueueAsync(request, headers, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -71,7 +71,7 @@ public class GrpcEmailSenderServiceIntegrationTest : IClassFixture<TestWebApplic
         // Метрика добавилась
         // Ждем сбора метрик не больше 10 секунд
         for (int i = 0; i < 10 && exportedItems.Count <= 0; i++)
-            await Task.Delay(1000);
+            await Task.Delay(1000, TestContext.Current.CancellationToken);
         meterProvider.ForceFlush();
 
         // total-calls = 1
@@ -116,7 +116,7 @@ public class GrpcEmailSenderServiceIntegrationTest : IClassFixture<TestWebApplic
         // Act
         Func<Task> a = async () =>
         {
-            await client.EnqueueAsync(request);
+            await client.EnqueueAsync(request, cancellationToken: TestContext.Current.CancellationToken);
         };
 
         // Assert
@@ -157,7 +157,7 @@ public class GrpcEmailSenderServiceIntegrationTest : IClassFixture<TestWebApplic
         // Act
         Func<Task> a = async () =>
         {
-            await client.EnqueueAsync(request, headers);
+            await client.EnqueueAsync(request, headers, cancellationToken: TestContext.Current.CancellationToken);
         };
 
         // Assert
@@ -208,7 +208,7 @@ public class GrpcEmailSenderServiceIntegrationTest : IClassFixture<TestWebApplic
         // Act
         Func<Task> a = async () =>
         {
-            await client.EnqueueAsync(request, headers);
+            await client.EnqueueAsync(request, headers, cancellationToken: TestContext.Current.CancellationToken);
         };
 
         // Assert
@@ -259,7 +259,7 @@ public class GrpcEmailSenderServiceIntegrationTest : IClassFixture<TestWebApplic
         // Act
         Func<Task> a = async () =>
         {
-            await client.EnqueueAsync(request, headers);
+            await client.EnqueueAsync(request, headers, cancellationToken: TestContext.Current.CancellationToken);
         };
 
         // Assert

@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Options;
 
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IS3Initializer"/>
-public class S3Initializer : IS3Initializer
+public sealed class S3Initializer : IS3Initializer
 {
     // Чтобы заюзать IWebHostEnvironment тут
     // Нужно в .csproj написать <ItemGroup> <FrameworkReference Include="Microsoft.AspNetCore.App" /> </ItemGroup>
@@ -26,19 +25,15 @@ public class S3Initializer : IS3Initializer
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
-        // S3 сам создаст папку по пути дефотной аватарки
-        //await _s3Manager.CreateObjectAsync(_avatarManagerOptions.AvatarsInS3Directory); // Создаём папку avatars
+        // Создавать пустой объект ("папка"), плохой тон, подробнее в S3Manager IsObjectExistsAsync
 
         // Для инициализации S3 экосистемы приложения, ОБЯЗАТЕЛЬНО должен существовать архив, из которого всё копируется в рабочие папки
         // Архив нужен, чтобы не держать необходимые файлы в самом приложении, и чтобы провести инициализацию
 
-        // Существует ли архив. Чтобы оттуда всё копировать
-        if (!await _s3Manager.IsObjectExistsAsync(_s3InitializerOptions.ArchiveInS3Directory, ct))
-        {
-            _logger.LogError("Инициализация рабочих папок и файлов была пропущена, т.к архива по ключу \"{key}\" несуществует.", _s3InitializerOptions.ArchiveInS3Directory);
-            return;
-        }
-        
+        // Проверять наличие папки "archive", не нужно, т.к её не существует (подробнее в S3Manager IsObjectExistsAsync)
+        // Это "визуальная" папка. Объекта "archive" нет, есть только "archive/default.png"
+        // *СОЗДАНИЕ "archive" через моё консольное приложение S3UI, чтобы папка стала "визуальной", т.к Beget UI такого не предоставляет
+
         // Копируем из архива дефолтную аватарку в папку для работы с аватарками (archive/default.png to avatars/default.png)
         // Существует ли дефолтная аватарка в архиве
         var archiveDefaultAvatarKey = _s3InitializerOptions.ArchiveInS3Directory + "/default.png";
@@ -49,7 +44,7 @@ public class S3Initializer : IS3Initializer
         }
 
         // Копируем объект из архива
-        var copyResult = await _s3Manager.CopyObjectAsync(archiveDefaultAvatarKey, _avatarManagerOptions.DefaultAvatarPath, ct);
+        var copyResult = await _s3Manager.CopyObjectAsync(archiveDefaultAvatarKey, _avatarManagerOptions.DefaultAvatarPath, ct: ct);
         if (copyResult.ErrorMessage != null)
         {
             _logger.LogError("Не удалось скопировать объект \"{sourceKey}\" в \"{destinationKey}\" по причине: \"{error}\". Инициализация остановлена.", archiveDefaultAvatarKey, _avatarManagerOptions.DefaultAvatarPath, copyResult.ErrorMessage);

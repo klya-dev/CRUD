@@ -1,17 +1,14 @@
-﻿#nullable disable
-using CRUD.Models.Validators;
+﻿using CRUD.Models.Validators;
 
 namespace CRUD.Tests.IntegrationTests.Validators.User;
 
-public class UpdateUserDtoValidatorTest
+public sealed class UpdateUserDtoValidatorTest
 {
-    // #nullable disable
-
     private readonly UpdateUserDtoValidator _validator;
 
     public UpdateUserDtoValidatorTest()
     {
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
+        var validatorsLocalizer = new ValidatorLocalizer();
         _validator = new UpdateUserDtoValidator(validatorsLocalizer);
     }
 
@@ -30,7 +27,7 @@ public class UpdateUserDtoValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(updateUserDto);
+        var result = await _validator.ValidateAsync(updateUserDto, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -94,7 +91,7 @@ public class UpdateUserDtoValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(updateUserDto);
+        var result = await _validator.ValidateAsync(updateUserDto, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -112,7 +109,7 @@ public class UpdateUserDtoValidatorTest
         // Act
         Func<Task> a = async () =>
         {
-            await _validator.ValidateAsync(updateUserDto);
+            await _validator.ValidateAsync(updateUserDto, TestContext.Current.CancellationToken);
         };
 
         // Assert

@@ -5,7 +5,7 @@ namespace CRUD.Utility.Metrics;
 /// <summary>
 /// Пользовательские метрики приложения.
 /// </summary>
-public class ApiMeters
+public sealed class ApiMeters
 {
     public const string MeterName = "CRUD.WebApi.Meters";
     public const string ProductIssueMeterName = "crud.product.issue";

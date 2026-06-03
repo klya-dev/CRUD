@@ -35,7 +35,7 @@ public interface IOrderCreator
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="paymentResponse"/> или <paramref name="productName"/> являются <see langword="null"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или невалидная сущность <see cref="Order"/> перед записью в базу.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
     Task AddOrderToDbAsync(PaymentResponse paymentResponse, Guid userId, string productName, CancellationToken ct = default);
 
     /// <summary>

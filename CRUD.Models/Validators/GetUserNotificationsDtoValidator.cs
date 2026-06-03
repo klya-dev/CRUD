@@ -8,9 +8,9 @@ namespace CRUD.Models.Validators;
 /// <remarks>
 /// Валидация реализована через Fluent Validation.
 /// </remarks>
-public class GetUserNotificationsDtoValidator : AbstractValidator<GetUserNotificationsDto>
+public sealed class GetUserNotificationsDtoValidator : AbstractValidator<GetUserNotificationsDto>
 {
-    public GetUserNotificationsDtoValidator(IValidatorsLocalizer localizer)
+    public GetUserNotificationsDtoValidator(IValidatorLocalizer localizer)
     {
         RuleFor(x => x.Count).Count(1, 100, localizer);
     }

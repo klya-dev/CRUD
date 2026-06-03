@@ -7,7 +7,7 @@
 /// Внутри <see cref="ServiceResult{T}"/> свойства: <see cref="Value"/>, <see cref="ErrorMessage"/>, <see cref="ErrorCode"/> и <see cref="ErrorParams"/>, значение, ошибка, код ошибки и аргументы соответственно.
 /// </remarks>
 /// <typeparam name="T">Значение работы сервиса.</typeparam>
-public class ServiceResult<T>
+public sealed record ServiceResult<T>
 {
     /// <summary>
     /// Успешный конструктор.
@@ -163,7 +163,7 @@ public class ServiceResult<T>
 /// <remarks>
 /// Внутри <see cref="ServiceResult"/> свойства: <see cref="ErrorMessage"/>, <see cref="ErrorCode"/> и <see cref="ErrorParams"/>, ошибка, код ошибки и аргументы соответственно.
 /// </remarks>
-public class ServiceResult
+public sealed record ServiceResult
 {
     /// <summary>
     /// Успешный конструктор.

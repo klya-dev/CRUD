@@ -1,6 +1,6 @@
 ﻿namespace CRUD.Tests.UnitTests;
 
-public class MapperExtensionsUnitTest
+public sealed class MapperExtensionsUnitTest
 {
     public MapperExtensionsUnitTest()
     {

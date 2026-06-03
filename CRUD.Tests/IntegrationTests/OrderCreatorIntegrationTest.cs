@@ -1,10 +1,8 @@
-﻿#nullable disable
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class OrderCreatorIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class OrderCreatorIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IOrderCreator _orderCreator;
@@ -35,11 +33,11 @@ public class OrderCreatorIntegrationTest : IClassFixture<TestWebApplicationFacto
         string productName = Products.Premium;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Добавляем продукт в базу
-        var product = await DI.CreateProductAsync(_db, name: productName);
+        var product = await DI.CreateProductAsync(_db, name: productName, ct: TestContext.Current.CancellationToken);
 
         // Модель оплаты
         var paymentResponse = new PaymentResponse()
@@ -56,14 +54,14 @@ public class OrderCreatorIntegrationTest : IClassFixture<TestWebApplicationFacto
             Test = true
         };
 
-        var countOrdersWithThisProductBefore = (await _db.Products.AsNoTracking().Include(x => x.Orders).FirstOrDefaultAsync(x => x.Name == productName)).Orders.Count;
+        var countOrdersWithThisProductBefore = (await _db.Products.AsNoTracking().Include(x => x.Orders).FirstOrDefaultAsync(x => x.Name == productName, TestContext.Current.CancellationToken)).Orders.Count;
 
         // Act
-        await _orderCreator.AddOrderToDbAsync(paymentResponse, userIdGuid, productName);
+        await _orderCreator.AddOrderToDbAsync(paymentResponse, userIdGuid, productName, TestContext.Current.CancellationToken);
 
         // Assert
         // Стало на один заказ больше
-        var countOrdersWithThisProductAfter = (await _db.Products.AsNoTracking().Include(x => x.Orders).FirstOrDefaultAsync(x => x.Name == productName)).Orders.Count;
+        var countOrdersWithThisProductAfter = (await _db.Products.AsNoTracking().Include(x => x.Orders).FirstOrDefaultAsync(x => x.Name == productName, TestContext.Current.CancellationToken)).Orders.Count;
         Assert.Equal(countOrdersWithThisProductBefore + 1, countOrdersWithThisProductAfter);
     }
 
@@ -105,28 +103,28 @@ public class OrderCreatorIntegrationTest : IClassFixture<TestWebApplicationFacto
     public async Task GetOrderNumberAsync_ShouldReturnsInt_WhenCorrectData()
     {
         // Arrange
-        var orderCount = await _db.Orders.CountAsync();
+        var orderCount = await _db.Orders.CountAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _orderCreator.GetOrderNumberAsync();
+        var result = await _orderCreator.GetOrderNumberAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(orderCount + 1, result);
     }
 
-    [Fact]
+    [Fact] // Номера заказов не повторяются при одновременном вызове метода
     public async Task GetOrderNumberAsync_Conflict_ShouldReturnsInt_WhenCorrectData()
     {
         // Arrange
-        var orderCount = await _db.Orders.CountAsync();
+        var orderCount = await _db.Orders.CountAsync(TestContext.Current.CancellationToken);
         var orderCreator = GenerateNewOrderCreator();
         var orderCreator2 = GenerateNewOrderCreator();
         var orderCreator3 = GenerateNewOrderCreator();
 
         // Act
-        var task = orderCreator.GetOrderNumberAsync();
-        var task2 = orderCreator2.GetOrderNumberAsync();
-        var task3 = orderCreator3.GetOrderNumberAsync();
+        var task = orderCreator.GetOrderNumberAsync(TestContext.Current.CancellationToken);
+        var task2 = orderCreator2.GetOrderNumberAsync(TestContext.Current.CancellationToken);
+        var task3 = orderCreator3.GetOrderNumberAsync(TestContext.Current.CancellationToken);
 
         var results = await Task.WhenAll(task, task2, task3);
 

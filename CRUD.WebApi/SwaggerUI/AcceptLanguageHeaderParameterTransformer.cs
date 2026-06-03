@@ -1,14 +1,14 @@
 ﻿using Microsoft.AspNetCore.OpenApi;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 namespace CRUD.WebApi.SwaggerUI;
 
 /// <summary>
 /// Добавляет поле <c>Accept-Language</c> для заголовока запроса в Swagger UI.
 /// </summary>
-public class AcceptLanguageHeaderParameterTransformer : IOpenApiOperationTransformer
+public sealed class AcceptLanguageHeaderParameterTransformer : IOpenApiOperationTransformer
 {
-    public async Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
+    public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
     {
         operation.Parameters ??= [];
 
@@ -19,6 +19,6 @@ public class AcceptLanguageHeaderParameterTransformer : IOpenApiOperationTransfo
             Description = "Код языка (ru, en)."
         });
 
-        await Task.CompletedTask; // Подавить предупреждение компилятора CS1998, т.к async есть, а ожидания нет
+        return Task.CompletedTask;
     }
 }

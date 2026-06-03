@@ -9,7 +9,7 @@ namespace CRUD.DataAccess.Data;
 /// <summary>
 /// Контекст базы данных приложения.
 /// </summary>
-public class ApplicationDbContext : DbContext
+public sealed class ApplicationDbContext : DbContext
 {
     private readonly ILogger<ApplicationDbContext> _logger;
 

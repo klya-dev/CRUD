@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции фонового сервиса DeleteExpiredRequestsBackgroundService.
 /// </summary>
-public class DeleteExpiredRequestsBackgroundServiceOptions
+public sealed class DeleteExpiredRequestsBackgroundServiceOptions
 {
     /// <summary>
     /// Название секции.
@@ -16,5 +16,5 @@ public class DeleteExpiredRequestsBackgroundServiceOptions
     /// <remarks>
     /// Например, 1 день, значит раз в день минут будут удаляться истёкшие запросы.
     /// </remarks>
-    public required TimeSpan Timer { get; set; }
+    public required TimeSpan Timer { get; init; }
 }

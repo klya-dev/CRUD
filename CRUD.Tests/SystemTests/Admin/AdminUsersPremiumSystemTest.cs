@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace CRUD.Tests.SystemTests.Admin;
 
-public class AdminUsersPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class AdminUsersPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -27,9 +27,9 @@ public class AdminUsersPremiumSystemTest : IClassFixture<TestWebApplicationFacto
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: false);
+        var user = await DI.CreateUserAsync(_db, isPremium: false, ct: TestContext.Current.CancellationToken);
         
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_USERS_USER_ID_PREMIUM_URL, user.Id);
@@ -38,7 +38,7 @@ public class AdminUsersPremiumSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -46,7 +46,7 @@ public class AdminUsersPremiumSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Null(result.Content.Headers.ContentType);
 
         // Премиум и вправду установился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
         Assert.True(userFromDbAfterUpdate.IsPremium);
     }
 
@@ -63,7 +63,7 @@ public class AdminUsersPremiumSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -71,8 +71,8 @@ public class AdminUsersPremiumSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -84,7 +84,7 @@ public class AdminUsersPremiumSystemTest : IClassFixture<TestWebApplicationFacto
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: true);
+        var user = await DI.CreateUserAsync(_db, isPremium: true, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_USERS_USER_ID_PREMIUM_URL, user.Id);
@@ -93,7 +93,7 @@ public class AdminUsersPremiumSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -101,8 +101,8 @@ public class AdminUsersPremiumSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_ALREADY_HAS_PREMIUM, jsonDocument.RootElement.GetProperty("code").GetString());
     }

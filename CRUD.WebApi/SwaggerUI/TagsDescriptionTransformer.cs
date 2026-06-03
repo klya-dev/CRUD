@@ -1,16 +1,19 @@
 ﻿using Microsoft.AspNetCore.OpenApi;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 namespace CRUD.WebApi.SwaggerUI;
 
 /// <summary>
 /// Добавляет описание к тегам.
 /// </summary>
-public class TagsDescriptionTransformer : IOpenApiDocumentTransformer
+public sealed class TagsDescriptionTransformer : IOpenApiDocumentTransformer
 {
-    public async Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
+    public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
         // Найти все теги можно в файле "/openapi/v1.json" в самом низу
+
+        if (document.Tags == null)
+            throw new InvalidOperationException("Tags no defined.");
 
         document.Tags.First(x => x.Name == EndpointTags.Admin).Description = "Админ-панель.";
         document.Tags.First(x => x.Name == EndpointTags.Users).Description = "Пользователи (public).";
@@ -24,6 +27,6 @@ public class TagsDescriptionTransformer : IOpenApiDocumentTransformer
         document.Tags.First(x => x.Name == EndpointTags.WellKnown).Description = "Общеизвестные конечные точки.";
         document.Tags.First(x => x.Name == EndpointTags.AllEndpointsForBusiness).Description = "Все конечные точки для бизнеса.";
 
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }

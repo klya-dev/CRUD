@@ -1,0 +1,13 @@
+﻿Покрытие тестов
+
+https://learn.microsoft.com/ru-ru/dotnet/core/testing/unit-testing-code-coverage?tabs=windows
+https://learn.microsoft.com/ru-ru/dotnet/core/testing/selective-unit-tests?pivots=xunit
+
+1. Должен быть установлен пакет "coverlet.collector" в проекте тестов
+2. Открываем консоль в CRUD.Tests: dotnet test --filter "DisplayName~PayManagerUnitTest" (выполняет все тесты класса PayManagerUnitTest)
+3. dotnet test --collect "XPlat Code Coverage" --filter "DisplayName~PayManagerUnitTest" (Собирает инфу для теста PayManagerUnitTest)
+4. Появляется папка "CRUD.Tests\TestResults\GUID" открываем консоль и скачиваем репорт генератор: dotnet tool install -g dotnet-reportgenerator-globaltool
+5. Генерируем HTML: reportgenerator -reports:coverage.cobertura.xml -targetdir:coveragereport -reporttypes:Html
+6. В появившейся папке "coveragereport", открываем index.html ищем PayManager, и смотрим
+
+Можно ещё добавить файл настроек "cobertura.settings.xml", например, чтобы игнорировать покрытие кода у указанных проектов

@@ -5,7 +5,7 @@ namespace CRUD.Models.Dtos;
 /// <summary>
 /// Постраничный список.
 /// </summary>
-public class PaginatedList<T> : List<T>
+public sealed class PaginatedList<T> : List<T>
 {
     /// <summary>
     /// Номер страницы.
@@ -41,7 +41,7 @@ public class PaginatedList<T> : List<T>
     /// <param name="pageSize">Размер страницы.</param>
     /// <param name="searchString">Строка поиска.</param>
     /// <param name="sortBy">Вариант сортировки.</param>
-    public PaginatedList(List<T> items, int count, int pageIndex, int pageSize, string? searchString = null, string? sortBy = null)
+    public PaginatedList(IEnumerable<T> items, int count, int pageIndex, int pageSize, string? searchString = null, string? sortBy = null)
     {
         PageIndex = pageIndex;
         PageSize = pageSize;

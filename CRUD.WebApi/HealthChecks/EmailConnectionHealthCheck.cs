@@ -6,7 +6,7 @@ namespace CRUD.WebApi.HealthChecks;
 /// <summary>
 /// Проверяет подключение к микросервису, отвечающему за отправку электронных писем.
 /// </summary>
-public class EmailConnectionHealthCheck : IHealthCheck
+public sealed class EmailConnectionHealthCheck : IHealthCheck
 {
     private readonly string ServiceUrl;
     private readonly string HealthzEndpoint;

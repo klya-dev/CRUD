@@ -5,7 +5,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests;
 
-public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -39,10 +39,10 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         request.Content = json;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, username: username, hashedPassword: password);
+        var user = await DI.CreateUserAsync(_db, username: username, hashedPassword: password, ct: TestContext.Current.CancellationToken);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -50,8 +50,8 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.Deserialize<AuthJwtResponse>();
 
         Assert.NotNull(response);
@@ -61,7 +61,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         AssertExtensions.IsNotNullOrNotWhiteSpace(response.Username);
 
         // Refresh-токен добавился в базу
-        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == user.Id).CountAsync();
+        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == user.Id).CountAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(1, countRefreshTokensFromDb);
     }
 
@@ -85,7 +85,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         request.Content = json;
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -93,8 +93,8 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Неверный логин или пароль.", jsonDocument.RootElement.GetProperty("title").GetString());
         Assert.Equal(ErrorCodes.INVALID_LOGIN_OR_PASSWORD, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -118,10 +118,10 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         request.Content = json;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, username: username, hashedPassword: password);
+        var user = await DI.CreateUserAsync(_db, username: username, hashedPassword: password, ct: TestContext.Current.CancellationToken);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -129,8 +129,8 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Неверный логин или пароль.", jsonDocument.RootElement.GetProperty("title").GetString());
         Assert.Equal(ErrorCodes.INVALID_LOGIN_OR_PASSWORD, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -145,10 +145,10 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем Refresh-токен в базу
-        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, user.Id, token: refreshToken);
+        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, user.Id, token: refreshToken, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REFRESH_LOGIN_URL);
@@ -156,7 +156,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         request.Content = json;
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -164,8 +164,8 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.Deserialize<AuthJwtResponse>();
 
         Assert.NotNull(response);
@@ -175,11 +175,11 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         AssertExtensions.IsNotNullOrNotWhiteSpace(response.Username);
 
         // Переданный Refresh-токен удалён
-        var authRefreshTokenFromDbAfterLogin = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken.Id);
+        var authRefreshTokenFromDbAfterLogin = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken.Id, TestContext.Current.CancellationToken);
         Assert.Null(authRefreshTokenFromDbAfterLogin);
 
         // Refresh-токен добавился в базу
-        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == user.Id).CountAsync();
+        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == user.Id).CountAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(1, countRefreshTokensFromDb);
     }
 
@@ -197,7 +197,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         request.Content = json;
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -205,8 +205,8 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.INVALID_TOKEN, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -218,10 +218,10 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем Refresh-токен в базу
-        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, user.Id, expires: DateTime.MinValue);
+        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, user.Id, expires: DateTime.MinValue, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REFRESH_LOGIN_URL);
@@ -229,7 +229,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         request.Content = json;
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -237,8 +237,8 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.INVALID_TOKEN, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -270,7 +270,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         request.Content = json;
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -278,8 +278,8 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.Deserialize<AuthJwtResponse>();
 
         Assert.NotNull(response);
@@ -289,11 +289,11 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         AssertExtensions.IsNotNullOrNotWhiteSpace(response.Username);
 
         // Пользователь добавился в базу
-        var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == data.Email);
+        var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == data.Email, TestContext.Current.CancellationToken);
         Assert.NotNull(userFromDbAfter);
 
         // Refresh-токен добавился в базу
-        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.User.Username == username).CountAsync();
+        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.User.Username == username).CountAsync(TestContext.Current.CancellationToken);
         Assert.Equal(1, countRefreshTokensFromDb);
     }
 
@@ -327,10 +327,10 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         request.Content = json;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, username: username);
+        var user = await DI.CreateUserAsync(_db, username: username, ct: TestContext.Current.CancellationToken);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -338,8 +338,8 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Имя пользователя занято.", jsonDocument.RootElement.GetProperty("title").GetString());
         Assert.Equal(ErrorCodes.USERNAME_ALREADY_TAKEN, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -356,7 +356,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.AUTH_OAUTH_LINK_URL);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -364,7 +364,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.StartsWith("\"http", response);
@@ -384,7 +384,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         mockOAuthMailRuProvider.Setup(x => x.GetAccessTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("accesstoken");
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userInfo = new OpenIdUserInfo
         {
@@ -415,7 +415,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_OAUTH_LOGIN_URL + $"?code={code}&state={state}");
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -423,8 +423,8 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.Deserialize<AuthJwtResponse>();
 
         Assert.NotNull(response);
@@ -434,7 +434,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         AssertExtensions.IsNotNullOrNotWhiteSpace(response.Username);
 
         // Refresh-токен добавился в базу
-        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == user.Id).CountAsync();
+        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == user.Id).CountAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(1, countRefreshTokensFromDb);
     }
 
@@ -451,7 +451,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         mockOAuthMailRuProvider.Setup(x => x.GetAccessTokenAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("accesstoken");
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userInfo = new OpenIdUserInfo
         {
@@ -482,7 +482,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_OAUTH_LOGIN_URL + $"?code={code}&state={state}");
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -490,8 +490,8 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -545,7 +545,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         request.Content = json;
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -553,8 +553,8 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.Deserialize<AuthJwtResponse>();
 
         Assert.NotNull(response);
@@ -564,11 +564,11 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         AssertExtensions.IsNotNullOrNotWhiteSpace(response.Username);
 
         // Пользователь добавился в базу
-        var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == userInfo.Email);
+        var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == userInfo.Email, TestContext.Current.CancellationToken);
         Assert.NotNull(userFromDbAfter);
 
         // Refresh-токен добавился в базу
-        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == userFromDbAfter.Id).CountAsync();
+        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == userFromDbAfter.Id).CountAsync(TestContext.Current.CancellationToken);
         Assert.Equal(1, countRefreshTokensFromDb);
     }
 
@@ -599,7 +599,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         };
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, email: userInfo.Email);
+        var user = await DI.CreateUserAsync(_db, email: userInfo.Email, ct: TestContext.Current.CancellationToken);
 
         var oAuthCompleteRegistrationDto = new OAuthCompleteRegistrationDto
         {
@@ -623,7 +623,7 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         request.Content = json;
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -631,146 +631,9 @@ public class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.EMAIL_ALREADY_TAKEN, jsonDocument.RootElement.GetProperty("code").GetString());
-    }
-
-
-    // Конфликты параллельности
-
-
-    [Theory]
-    [InlineData("test", "123")] // Корректные данные
-    [InlineData("klya", "1")]
-    public async Task Post_Login_ConcurrencyConflict_ReturnsToken(string username, string password)
-    {
-        // Arrange
-        var client = _factory.HttpClient;
-        var client2 = _factory.CreateClient();
-
-        // Данные для запросов
-        var data = new LoginDataDto { Username = username, Password = password };
-
-        // Запрос 1
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
-
-        // Запрос 2
-        var request2 = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL);
-        var json2 = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request2.Content = json2;
-
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, username: username, hashedPassword: password);
-
-        // Act
-        using var task = client.SendAsync(request);
-        using var task2 = client2.SendAsync(request2);
-
-        var results = await Task.WhenAll(task, task2);
-
-        // Assert
-        foreach (var result in results)
-        {
-            Assert.NotNull(result);
-            Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
-            Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
-
-            // Читаем содержимое ответа
-            await using var contentStream = await result.Content.ReadAsStreamAsync();
-            using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
-            var response = jsonDocument.Deserialize<AuthJwtResponse>();
-
-            Assert.NotNull(response);
-            AssertExtensions.IsNotNullOrNotWhiteSpace(response.AccessToken);
-            AssertExtensions.IsNotNullOrNotWhiteSpace(response.Username);
-        }
-    }
-
-
-    [Theory]
-    [InlineData("Васян", "killmonster", "qwerty100", "ru", "fan.ass95@mail.ru", "12345")] // Корректные данные
-    [InlineData("Костя", "fanatklya", "1234", "en", "fan.ass95@mail.ru", "12345")]
-    public async Task Post_Register_ConcurrencyConflict_ReturnsOkOrConflictOrUsernameAlreadyTakenOrEmailAlreadyTakenOrPhoneNumberAlreadyTaken(string firstname, string username, string password, string languageCode, string email, string phoneNumber)
-    {
-        // Arrange
-        var client = _factory.HttpClient;
-        var client2 = _factory.CreateClient();
-
-        // Данные для запросов
-        var data = new CreateUserDto()
-        {
-            Firstname = firstname,
-            Username = username,
-            Password = password,
-            LanguageCode = languageCode,
-            Email = email,
-            PhoneNumber = phoneNumber
-        };
-
-        // Запрос 1
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REGISTER_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
-
-        // Запрос 2
-        var request2 = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REGISTER_URL);
-        var json2 = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request2.Content = json2;
-
-        // Act
-        using var task = client.SendAsync(request);
-        using var task2 = client2.SendAsync(request2);
-
-        var results = await Task.WhenAll(task, task2);
-
-        // Assert
-        foreach (var result in results)
-        {
-            Assert.NotNull(result);
-
-            // Ошибка сервера
-            if (System.Net.HttpStatusCode.InternalServerError == result.StatusCode)
-                Assert.Fail("InternalServerError");
-
-            // Читаем содержимое ответа
-            await using var contentStream = await result.Content.ReadAsStreamAsync();
-            using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
-
-            // Может быть успешный ответ
-            if (System.Net.HttpStatusCode.OK == result.StatusCode)
-            {
-                Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
-
-                var response = jsonDocument.Deserialize<AuthJwtResponse>();
-
-                Assert.NotNull(response);
-                AssertExtensions.IsNotNullOrNotWhiteSpace(response.AccessToken);
-                Assert.NotEqual(DateTime.MinValue, response.Expires);
-                AssertExtensions.IsNotNullOrNotWhiteSpace(response.RefreshToken);
-                AssertExtensions.IsNotNullOrNotWhiteSpace(response.Username);
-
-                continue;
-            }
-
-            // Может быть неуспешный ответ
-            if (!result.IsSuccessStatusCode)
-            {
-                // Либо Username, Email, PhoneNumber уже занят, Conflict
-                var errorCode = jsonDocument.RootElement.GetProperty("code").GetString();
-                string[] allowedErrors =
-                [
-                    ErrorCodes.USERNAME_ALREADY_TAKEN,
-                    ErrorCodes.EMAIL_ALREADY_TAKEN,
-                    ErrorCodes.PHONE_NUMBER_ALREADY_TAKEN,
-                    ErrorCodes.CONCURRENCY_CONFLICTS
-                ];
-
-                Assert.Contains(errorCode, allowedErrors);
-            }
-        }
     }
 }

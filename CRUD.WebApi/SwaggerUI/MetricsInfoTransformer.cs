@@ -1,28 +1,28 @@
 ﻿using Microsoft.AspNetCore.OpenApi;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 namespace CRUD.WebApi.SwaggerUI;
 
 /// <summary>
 /// Добавляет "/metrics" в Swagger UI.
 /// </summary>
-public class MetricsInfoTransformer : IOpenApiDocumentTransformer
+public sealed class MetricsInfoTransformer : IOpenApiDocumentTransformer
 {
-    public async Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
+    public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
         document.Paths.Add("/metrics", new OpenApiPathItem()
         {
             Operations =
-                new Dictionary<OperationType, OpenApiOperation>()
+                new Dictionary<HttpMethod, OpenApiOperation>()
                 {
                     {
-                        OperationType.Get,
+                        HttpMethod.Get,
                         new OpenApiOperation()
-                        { 
-                            Tags = [new OpenApiTag() { Name = EndpointTags.AllEndpointsForBusiness }, new OpenApiTag() { Name = EndpointTags.Metrics } ],
+                        {
+                            Tags = new HashSet<OpenApiTagReference> { new(EndpointTags.AllEndpointsForBusiness), new(EndpointTags.Metrics) },
                             Summary = "Метрики приложения.",
                             Description = "Используется для Prometheus.",
-                            Responses =
+                            Responses = new OpenApiResponses()
                             {
                                 ["200"] = new OpenApiResponse() { Description = "OK" }
                             }
@@ -31,6 +31,6 @@ public class MetricsInfoTransformer : IOpenApiDocumentTransformer
                 },
         });
 
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }

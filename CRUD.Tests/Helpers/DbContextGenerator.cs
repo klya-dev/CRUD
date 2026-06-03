@@ -1,4 +1,5 @@
-﻿namespace CRUD.Tests.Helpers;
+﻿#nullable enable
+namespace CRUD.Tests.Helpers;
 
 /// <summary>
 /// Класс для работы с тестовой базой.
@@ -27,7 +28,7 @@ public static class DbContextGenerator
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(databaseName);
 
-        ApplicationDbContext db = null;
+        ApplicationDbContext? db = null;
         if (logging)
         {
             using var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder.SetMinimumLevel(LogLevel.Trace).AddConsole());

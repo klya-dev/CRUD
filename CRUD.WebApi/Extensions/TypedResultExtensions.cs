@@ -1,5 +1,4 @@
-﻿using CRUD.WebApi.ApiError;
-using FluentValidation.Results;
+﻿using FluentValidation.Results;
 
 namespace CRUD.WebApi.Extensions;
 
@@ -47,7 +46,7 @@ public static class TypedResultExtensions
     /// <param name="apiError">Ошибка для API ответа.</param>
     /// <param name="localizer">Ресурсный локализатор.</param>
     /// <returns><see cref="ProblemHttpResult"/>, созданный через <see cref="TypedResults.Problem(string?, string?, int?, string?, string?, IEnumerable{KeyValuePair{string, object?}}?)"/>.</returns>
-    public static ProblemHttpResult Problem(this IResultExtensions _, CRUD.WebApi.ApiError.ApiError apiError, IResourceLocalizer localizer)
+    public static ProblemHttpResult Problem(this IResultExtensions _, ApiError apiError, IResourceLocalizer localizer)
     {
         var error = apiError;
         var title = localizer[error.Title];
@@ -72,7 +71,7 @@ public static class TypedResultExtensions
     /// <param name="localizer">Ресурсный локализатор.</param>
     /// <param name="args">Аргументы к ошибкке.</param>
     /// <returns><see cref="ProblemHttpResult"/>, созданный через <see cref="TypedResults.Problem(string?, string?, int?, string?, string?, IEnumerable{KeyValuePair{string, object?}}?)"/>.</returns>
-    public static ProblemHttpResult Problem(this IResultExtensions _, CRUD.WebApi.ApiError.ApiError apiError, IResourceLocalizer localizer, params object[] args)
+    public static ProblemHttpResult Problem(this IResultExtensions _, ApiError apiError, IResourceLocalizer localizer, params object[] args)
     {
         var error = apiError;
         var title = localizer[error.Title];

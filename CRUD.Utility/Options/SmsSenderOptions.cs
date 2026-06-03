@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции SmsSender'а.
 /// </summary>
-public class SmsSenderOptions
+public sealed class SmsSenderOptions
 {
     /// <summary>
     /// Название секции.
@@ -13,20 +13,20 @@ public class SmsSenderOptions
     /// <summary>
     /// URL сервиса (шлюза).
     /// </summary>
-    public required string ServiceURL { get; set; }
+    public required string ServiceURL { get; init; }
 
     /// <summary>
     /// Электронная почта зарегистрированная на сервисе.
     /// </summary>
-    public required string Email { get; set; }
+    public required string Email { get; init; }
 
     /// <summary>
     /// API-ключ.
     /// </summary>
-    public required string ApiKey { get; set; }
+    public required string ApiKey { get; init; }
 
     /// <summary>
     /// Отображаемое имя в СМС.
     /// </summary>
-    public required string Sign { get; set; }
+    public required string Sign { get; init; }
 }

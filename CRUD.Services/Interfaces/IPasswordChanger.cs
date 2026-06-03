@@ -13,7 +13,6 @@ public interface IPasswordChanger
     /// <remarks>
     /// <para>Вызывающий метод должен предоставить валидные, не пустые данные для <paramref name="changePasswordDto"/>.</para>
     /// <para>Для валидации <paramref name="changePasswordDto"/> используется <see cref="IValidator{ChangePasswordDto}"/>.</para>
-    /// <para>Для валидации <see cref="User"/> используется <see cref="IValidator{User}"/>.</para>
     /// 
     /// Возможные исключения:
     /// <list type="bullet">
@@ -27,10 +26,6 @@ public interface IPasswordChanger
     /// </item>
     /// <item>
     /// <term>Если <paramref name="changePasswordDto"/> невалидна</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="User"/> или <see cref="ChangePasswordRequest"/>, сущность окажется невалидна, изменения не последуют</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
     /// <item>
@@ -60,7 +55,7 @@ public interface IPasswordChanger
     /// <param name="changePasswordDto">DTO-модель изменения пароля пользователя.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="changePasswordDto"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если <paramref name="changePasswordDto"/> невалиден или если после изменений данных сущности <see cref="User"/> или <see cref="ChangePasswordRequest"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
     /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
@@ -71,17 +66,12 @@ public interface IPasswordChanger
     /// Подтверждает смену пароля и изменяет пароль пользователя в базе.
     /// </summary>
     /// <remarks>
-    /// <para>Для валидации <see cref="User"/> используется <see cref="IValidator{User}"/>.</para>
     /// 
     /// Возможные исключения:
     /// <list type="bullet">
     /// <item>
     /// <term>Если <paramref name="token"/> <see langword="null"/></term>
     /// <description>исключение <see cref="ArgumentNullException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="User"/>, сущность окажется невалидна, изменения не последуют</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
     /// <item>
     /// <term>Если возник конфликт параллельности</term>
@@ -117,7 +107,6 @@ public interface IPasswordChanger
     /// <remarks>
     /// <para>Вызывающий метод должен предоставить валидные, не пустые данные для <paramref name="setPasswordDto"/>.</para>
     /// <para>Для валидации <see cref="SetPasswordDto"/> используется <see cref="IValidator{SetPasswordDto}"/>.</para>
-    /// <para>Для валидации <see cref="User"/> используется <see cref="IValidator{User}"/>.</para>
     /// 
     /// Возможные исключения:
     /// <list type="bullet">
@@ -133,14 +122,6 @@ public interface IPasswordChanger
     /// <term>Если <paramref name="setPasswordDto"/> невалидна</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="User"/> или <see cref="SetPasswordDto"/>, сущность окажется невалидна, изменения не последуют</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
-    /// </item>
     /// </list>
     /// 
     /// Возможные ошибки сервиса:
@@ -155,10 +136,8 @@ public interface IPasswordChanger
     /// <param name="userId">Id пользователя.</param>
     /// <param name="setPasswordDto">DTO-модель изменения пароля пользователя.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="setPasswordDto"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если <paramref name="setPasswordDto"/> невалиден или если после изменений данных сущности <see cref="User"/> или <see cref="SetPasswordRequest"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/> результат сервиса.</returns>
     Task<ServiceResult> SetPasswordAsync(Guid userId, SetPasswordDto setPasswordDto, CancellationToken ct = default);
 }

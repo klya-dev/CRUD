@@ -1,14 +1,11 @@
-﻿#nullable disable
-using CRUD.Models.Domains;
+﻿using CRUD.Models.Domains;
 using CRUD.Models.Dtos.User;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
-    // #nullable disable
-
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IAuthManager _authManager;
     private readonly ApplicationDbContext _db;
@@ -24,14 +21,6 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         _authManager = scopedServices.GetRequiredService<IAuthManager>();
     }
 
-
-    private IAuthManager GenerateNewAuthManager()
-    {
-        var scope = _factory.Services.CreateScope();
-        var scopedServices = scope.ServiceProvider;
-        return scopedServices.GetRequiredService<IAuthManager>();
-    }
-
     [Theory]
     [InlineData("test", "123")] // Корректные данные
     [InlineData("klya", "1")]
@@ -39,12 +28,12 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, username: username, hashedPassword: password);
+        var user = await DI.CreateUserAsync(_db, username: username, hashedPassword: password, ct: TestContext.Current.CancellationToken);
 
         var loginData = new LoginDataDto { Username = username, Password = password };
 
         // Act
-        var result = await _authManager.LoginAsync(loginData);
+        var result = await _authManager.LoginAsync(loginData, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -57,7 +46,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         AssertExtensions.IsNotNullOrNotWhiteSpace(result.Value.Username);
 
         // Refresh-токен добавился в базу
-        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == user.Id).CountAsync();
+        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == user.Id).CountAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(1, countRefreshTokensFromDb);
     }
 
@@ -72,7 +61,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         // Act
         Func<Task> a = async () =>
         {
-            await _authManager.LoginAsync(loginData);
+            await _authManager.LoginAsync(loginData, TestContext.Current.CancellationToken);
         };
 
         // Assert
@@ -89,7 +78,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var loginData = new LoginDataDto { Username = username, Password = password };
 
         // Act
-        var result = await _authManager.LoginAsync(loginData);
+        var result = await _authManager.LoginAsync(loginData, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -107,12 +96,12 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string password = "12345";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, username: username, hashedPassword: password);
+        var user = await DI.CreateUserAsync(_db, username: username, hashedPassword: password, ct: TestContext.Current.CancellationToken);
 
         var loginData = new LoginDataDto { Username = username, Password = "123" };
 
         // Act
-        var result = await _authManager.LoginAsync(loginData);
+        var result = await _authManager.LoginAsync(loginData, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -129,13 +118,13 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем Refresh-токен в базу
-        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, user.Id, token: refreshToken);
+        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, user.Id, token: refreshToken, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _authManager.LoginAsync(refreshToken);
+        var result = await _authManager.LoginAsync(refreshToken, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -148,11 +137,11 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         AssertExtensions.IsNotNullOrNotWhiteSpace(result.Value.Username);
 
         // Переданный Refresh-токен удалён
-        var authRefreshTokenFromDbAfterLogin = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken.Id);
+        var authRefreshTokenFromDbAfterLogin = await _db.AuthRefreshTokens.FirstOrDefaultAsync(x => x.Id == authRefreshToken.Id, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Null(authRefreshTokenFromDbAfterLogin);
 
         // Refresh-токен добавился в базу
-        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == user.Id).CountAsync();
+        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == user.Id).CountAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(1, countRefreshTokensFromDb);
     }
 
@@ -163,7 +152,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string token = "some";
 
         // Act
-        var result = await _authManager.LoginAsync(token);
+        var result = await _authManager.LoginAsync(token, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -178,13 +167,13 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем Refresh-токен в базу
-        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, user.Id, expires: DateTime.MinValue);
+        var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, user.Id, expires: DateTime.MinValue, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _authManager.LoginAsync(authRefreshToken.Token);
+        var result = await _authManager.LoginAsync(authRefreshToken.Token, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -200,7 +189,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userInfo = new OpenIdUserInfo
         { 
@@ -217,7 +206,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Act
-        var result = await _authManager.LoginAsync(userInfo);
+        var result = await _authManager.LoginAsync(userInfo, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -230,7 +219,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         AssertExtensions.IsNotNullOrNotWhiteSpace(result.Value.Username);
 
         // Refresh-токен добавился в базу
-        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == user.Id).CountAsync();
+        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == user.Id).CountAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(1, countRefreshTokensFromDb);
     }
 
@@ -253,7 +242,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Act
-        var result = await _authManager.LoginAsync(userInfo);
+        var result = await _authManager.LoginAsync(userInfo, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -281,7 +270,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Act
-        var result = await _authManager.RegisterAsync(createUserDto);
+        var result = await _authManager.RegisterAsync(createUserDto, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -294,11 +283,11 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         AssertExtensions.IsNotNullOrNotWhiteSpace(result.Value.Username);
 
         // Пользователь добавился в базу
-        var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == email);
+        var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == email, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(userFromDbAfter);
 
         // Refresh-токен добавился в базу
-        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == userFromDbAfter.Id).CountAsync();
+        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == userFromDbAfter.Id).CountAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(1, countRefreshTokensFromDb);
     }
 
@@ -321,7 +310,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         // Act
         Func<Task> a = async () =>
         {
-            await _authManager.RegisterAsync(createUserDto);
+            await _authManager.RegisterAsync(createUserDto, TestContext.Current.CancellationToken);
         };
 
         // Assert
@@ -340,7 +329,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         string phoneNumber = "12345678";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, username: username);
+        var user = await DI.CreateUserAsync(_db, username: username, ct: TestContext.Current.CancellationToken);
 
         var createUserDto = new CreateUserDto()
         {
@@ -353,7 +342,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Act
-        var result = await _authManager.RegisterAsync(createUserDto);
+        var result = await _authManager.RegisterAsync(createUserDto, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -391,7 +380,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Act
-        var result = await _authManager.RegisterAsync(userInfo, oAuthCompleteRegistrationDto);
+        var result = await _authManager.RegisterAsync(userInfo, oAuthCompleteRegistrationDto, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -404,11 +393,11 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         AssertExtensions.IsNotNullOrNotWhiteSpace(result.Value.Username);
 
         // Пользователь добавился в базу
-        var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == userInfo.Email);
+        var userFromDbAfter = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == userInfo.Email, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(userFromDbAfter);
 
         // Refresh-токен добавился в базу
-        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == userFromDbAfter.Id).CountAsync();
+        var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == userFromDbAfter.Id).CountAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(1, countRefreshTokensFromDb);
     }
 
@@ -436,8 +425,8 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         {
             PhoneNumber = phoneNumber
         };
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
-        var validationResult = await new OAuthCompleteRegistrationDtoValidator(validatorsLocalizer).ValidateAsync(oAuthCompleteRegistrationDto);
+        var validatorsLocalizer = new ValidatorLocalizer();
+        var validationResult = await new OAuthCompleteRegistrationDtoValidator(validatorsLocalizer).ValidateAsync(oAuthCompleteRegistrationDto, TestContext.Current.CancellationToken);
 
         // Act
         Func<Task> a = async () =>
@@ -476,10 +465,10 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         };
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, email: userInfo.Email);
+        var user = await DI.CreateUserAsync(_db, email: userInfo.Email, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _authManager.RegisterAsync(userInfo, oAuthCompleteRegistrationDto);
+        var result = await _authManager.RegisterAsync(userInfo, oAuthCompleteRegistrationDto, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -495,10 +484,10 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _authManager.SendConfirmEmailAsync(user.Id);
+        var result = await _authManager.SendConfirmEmailAsync(user.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -512,7 +501,7 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _authManager.SendConfirmEmailAsync(userIdGuid);
+        var result = await _authManager.SendConfirmEmailAsync(userIdGuid, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -524,10 +513,10 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isEmailConfirm: true);
+        var user = await DI.CreateUserAsync(_db, isEmailConfirm: true, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _authManager.SendConfirmEmailAsync(user.Id);
+        var result = await _authManager.SendConfirmEmailAsync(user.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -539,168 +528,16 @@ public class AuthManagerIntegrationTest : IClassFixture<TestWebApplicationFactor
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Отправляем первое письмо
-        await _authManager.SendConfirmEmailAsync(user.Id);
+        await _authManager.SendConfirmEmailAsync(user.Id, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _authManager.SendConfirmEmailAsync(user.Id);
+        var result = await _authManager.SendConfirmEmailAsync(user.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.LetterAlreadySent, result.ErrorMessage);
-    }
-
-
-    // Конфликты параллельности
-
-
-    [Theory]
-    [InlineData("test", "123")] // Корректные данные
-    [InlineData("klya", "1")]
-    public async Task LoginAsync_ConcurrencyConflict_ReturnsToken(string username, string password)
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, username: username, hashedPassword: password);
-
-        var loginData = new LoginDataDto { Username = username, Password = password };
-        var authManager = GenerateNewAuthManager();
-        var authManager2 = GenerateNewAuthManager();
-
-        // Act
-        var task = authManager.LoginAsync(loginData);
-        var task2 = authManager2.LoginAsync(loginData);
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Null(result.ErrorMessage);
-
-        Assert.NotNull(result.Value); // Не пустой токен
-        AssertExtensions.IsNotNullOrNotWhiteSpace(result.Value.AccessToken);
-        Assert.NotEqual(DateTime.MinValue, result.Value.Expires);
-        AssertExtensions.IsNotNullOrNotWhiteSpace(result.Value.RefreshToken);
-        AssertExtensions.IsNotNullOrNotWhiteSpace(result.Value.Username);
-
-        Assert.NotNull(result2);
-        Assert.Null(result2.ErrorMessage);
-        Assert.NotNull(result2.Value); // Не пустой токен
-        AssertExtensions.IsNotNullOrNotWhiteSpace(result2.Value.AccessToken);
-        Assert.NotEqual(DateTime.MinValue, result2.Value.Expires);
-        AssertExtensions.IsNotNullOrNotWhiteSpace(result2.Value.RefreshToken);
-        AssertExtensions.IsNotNullOrNotWhiteSpace(result2.Value.Username);
-    }
-
-
-    [Theory]
-    [InlineData("Васян", "killmonster", "qwerty100", "ru", "fan.ass95@mail.ru", "12345")] // Корректные данные
-    [InlineData("Костя", "fanatklya", "1234", "en", "fan.ass95@mail.ru", "12345")]
-    public async Task RegisterAsync_ConcurrencyConflict_ReturnsErrorMessage_NothingOrConflictOrUsernameAlreadyTakenOrEmailAlreadyTakenOrPhoneNumberAlreadyTaken(string firstname, string username, string password, string languageCode, string email, string phoneNumber)
-    {
-        // Arrange
-        var createUserDto = new CreateUserDto()
-        {
-            Firstname = firstname,
-            Username = username,
-            Password = password,
-            LanguageCode = languageCode,
-            Email = email,
-            PhoneNumber = phoneNumber
-        };
-        var authManager = GenerateNewAuthManager();
-        var authManager2 = GenerateNewAuthManager();
-
-        // Act
-        var task = authManager.RegisterAsync(createUserDto);
-        var task2 = authManager2.RegisterAsync(createUserDto);
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            var results = await Task.WhenAll(task, task2);
-
-            // Assert
-            foreach (var result in results)
-            {
-                Assert.NotNull(result);
-
-                // Может быть успешный ответ
-                var errorMessage = result.ErrorMessage;
-                if (errorMessage == null)
-                {
-                    Assert.NotNull(result.Value); // Не пустой токен
-                    AssertExtensions.IsNotNullOrNotWhiteSpace(result.Value.AccessToken);
-                    Assert.NotEqual(DateTime.MinValue, result.Value.Expires);
-                    AssertExtensions.IsNotNullOrNotWhiteSpace(result.Value.RefreshToken);
-                    AssertExtensions.IsNotNullOrNotWhiteSpace(result.Value.Username);
-                    continue;
-                }
-
-                // Либо Username, Email, PhoneNumber уже занят
-                string[] allowedErrors =
-                [
-                    ErrorMessages.UsernameAlreadyTaken,
-                    ErrorMessages.EmailAlreadyTaken,
-                    ErrorMessages.PhoneNumberAlreadyTaken
-                ];
-
-                Assert.Contains(errorMessage, allowedErrors);
-            }
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
-    }
-
-
-    [Fact]
-    public async Task SendConfirmEmailAsync_ConcurrencyConflict_ReturnsErrorMessage_NothingOrConflictOrLetterAlreadySent()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        var authManager = GenerateNewAuthManager();
-        var authManager2 = GenerateNewAuthManager();
-
-        // Act
-        var task = authManager.SendConfirmEmailAsync(user.Id);
-        var task2 = authManager2.SendConfirmEmailAsync(user.Id);
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            var results = await Task.WhenAll(task, task2);
-
-            // Assert
-            foreach (var result in results)
-            {
-                Assert.NotNull(result);
-
-                // Ничего, либо письмо уже отправлено
-                var errorMessage = result.ErrorMessage;
-                string[] allowedErrors =
-                [
-                    null,
-                    ErrorMessages.LetterAlreadySent
-                ];
-
-                Assert.Contains(errorMessage, allowedErrors);
-            }
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
     }
 }

@@ -3,7 +3,7 @@
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IAuthManager"/>
-public class AuthManager : IAuthManager
+public sealed class AuthManager : IAuthManager
 {
     private readonly IUserManager _userManager;
     private readonly IValidator<LoginDataDto> _loginDataValidator;
@@ -51,12 +51,12 @@ public class AuthManager : IAuthManager
 
         // Пользователь не найден | Неверный логин или пароль
         // Дабы не раскрывать пользователей, всё трактуется, как "неверный логин или пароль"
-        var userFromDb = await _db.Users.AsNoTracking().Where(x => x.Username == loginData.Username).Select(x => new { x.Id, x.Username, x.Role, x.LanguageCode, x.IsPremium, x.HashedPassword }).FirstOrDefaultAsync(ct);
+        var userFromDb = await _db.Users.AsNoTracking().Where(x => x.Username == loginData.Username).Select(x => new { x.Id, x.Username, x.Role, x.LanguageCode, x.IsEmailConfirm, x.IsPhoneNumberConfirm, x.IsPremium, x.HashedPassword }).FirstOrDefaultAsync(ct);
         if (userFromDb == null || !_passwordHasher.Verify(loginData.Password, userFromDb.HashedPassword))
             return ServiceResult<AuthJwtResponse>.Fail(ErrorMessages.InvalidLoginOrPassword);
 
         // Полезная информация, которая будет в JWT-токене
-        Claim[] claims = CreateClaims(userFromDb.Id, userFromDb.Username, userFromDb.Role, userFromDb.LanguageCode, userFromDb.IsPremium);
+        Claim[] claims = CreateClaims(userFromDb.Id, userFromDb.Username, userFromDb.Role, userFromDb.LanguageCode, userFromDb.IsEmailConfirm, userFromDb.IsPhoneNumberConfirm, userFromDb.IsPremium);
 
         // Генерация токенов
         var authResponse = _tokenManager.GenerateAuthResponse(claims, loginData.Username);
@@ -104,12 +104,12 @@ public class AuthManager : IAuthManager
         ArgumentNullException.ThrowIfNull(userInfo);
 
         // Пользователь не найден
-        var userFromDb = await _db.Users.AsNoTracking().Where(x => x.Email == userInfo.Email).Select(x => new { x.Id, x.Username, x.Role, x.LanguageCode, x.IsPremium }).FirstOrDefaultAsync(ct);
+        var userFromDb = await _db.Users.AsNoTracking().Where(x => x.Email == userInfo.Email).Select(x => new { x.Id, x.Username, x.Role, x.LanguageCode, x.IsEmailConfirm, x.IsPhoneNumberConfirm, x.IsPremium }).FirstOrDefaultAsync(ct);
         if (userFromDb == null)
             return ServiceResult<AuthJwtResponse>.Fail(ErrorMessages.UserNotFound);
 
         // Полезная информация, которая будет в JWT-токене
-        Claim[] claims = CreateClaims(userFromDb.Id, userFromDb.Username, userFromDb.Role, userFromDb.LanguageCode, userFromDb.IsPremium);
+        Claim[] claims = CreateClaims(userFromDb.Id, userFromDb.Username, userFromDb.Role, userFromDb.LanguageCode, userFromDb.IsEmailConfirm, userFromDb.IsPhoneNumberConfirm, userFromDb.IsPremium);
 
         // Генерация токенов
         var authResponse = _tokenManager.GenerateAuthResponse(claims, userFromDb.Username);
@@ -252,12 +252,14 @@ public class AuthManager : IAuthManager
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
             new Claim(ClaimTypes.Role, user.Role),
-            new Claim("language_code", user.LanguageCode),
-            new Claim("premium", user.IsPremium.ToString())
+            new Claim(UserClaimTypes.LanguageCode, user.LanguageCode),
+            new Claim(UserClaimTypes.IsEmailConfirm, user.IsEmailConfirm.ToString()),
+            new Claim(UserClaimTypes.IsPhoneNumberConfirm, user.IsPhoneNumberConfirm.ToString()),
+            new Claim(UserClaimTypes.IsPremium, user.IsPremium.ToString())
         ];
     }
 
-    private static Claim[] CreateClaims(Guid userId, string username, string role, string languageCode, bool isPremium)
+    private static Claim[] CreateClaims(Guid userId, string username, string role, string languageCode, bool isEmailConfirm, bool isPhoneNumberConfirm, bool isPremium)
     {
         // Полезная информация, которая будет в JWT-токене
         return
@@ -265,8 +267,10 @@ public class AuthManager : IAuthManager
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
             new Claim(ClaimTypes.Name, username),
             new Claim(ClaimTypes.Role, role),
-            new Claim("language_code", languageCode),
-            new Claim("premium", isPremium.ToString())
+            new Claim(UserClaimTypes.LanguageCode, languageCode),
+            new Claim(UserClaimTypes.IsEmailConfirm, isEmailConfirm.ToString()),
+            new Claim(UserClaimTypes.IsPhoneNumberConfirm, isPhoneNumberConfirm.ToString()),
+            new Claim(UserClaimTypes.IsPremium, isPremium.ToString())
         ];
     }
 }

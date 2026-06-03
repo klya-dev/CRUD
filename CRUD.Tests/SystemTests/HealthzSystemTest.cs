@@ -5,7 +5,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace CRUD.Tests.SystemTests;
 
-public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -45,7 +45,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -53,7 +53,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Healthy", response);
@@ -88,7 +88,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -96,7 +96,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Unhealthy", response);
@@ -109,14 +109,14 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         var client = _factory.HttpClient;
 
         // Удаляем таблицу
-        await _db.Database.ExecuteSqlRawAsync(string.Format("DROP TABLE {0}", "OrderNumberSequences"));
+        await _db.Database.ExecuteSqlRawAsync(string.Format("DROP TABLE {0}", "OrderNumberSequences"), cancellationToken: TestContext.Current.CancellationToken);
 
         // Запрос
         var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.HEALTHZ_URL);
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -124,7 +124,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Unhealthy", response);
@@ -159,7 +159,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -167,7 +167,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Unhealthy", response);
@@ -180,20 +180,20 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         var client = _factory.HttpClient;
 
         // Чтобы восстановить за собой
-        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/default.png")).Value;
+        using var stream = (await _s3Manager.GetObjectAsync($"{TestConstants.TEST_FILES_PATH}/default.png", ct: TestContext.Current.CancellationToken)).Value.Stream;
         using MemoryStream memStream = new MemoryStream();
         stream.CopyTo(memStream);
         memStream.Seek(0, SeekOrigin.Begin);
 
         // Удаляем объект
-        await _s3Manager.DeleteObjectAsync($"{TestConstants.TEST_FILES_PATH}/default.png");
+        await _s3Manager.DeleteObjectAsync($"{TestConstants.TEST_FILES_PATH}/default.png", ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.HEALTHZ_URL);
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -201,13 +201,13 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Unhealthy", response);
 
         // Восстанавливаем объект
-        await _s3Manager.CreateObjectAsync(memStream, $"{TestConstants.TEST_FILES_PATH}/default.png");
+        await _s3Manager.CreateObjectAsync($"{TestConstants.TEST_FILES_PATH}/default.png", memStream, ct: TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -239,7 +239,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -247,7 +247,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Unhealthy", response);
@@ -282,7 +282,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -290,7 +290,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Unhealthy", response);
@@ -325,7 +325,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -333,7 +333,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Unhealthy", response);
@@ -368,7 +368,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -376,7 +376,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Unhealthy", response);
@@ -411,7 +411,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -419,7 +419,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Unhealthy", response);
@@ -454,7 +454,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -462,7 +462,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Unhealthy", response);
@@ -497,7 +497,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -505,7 +505,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Unhealthy", response);
@@ -540,7 +540,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -548,7 +548,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Unhealthy", response);
@@ -583,7 +583,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -591,7 +591,7 @@ public class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("text/plain", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(response);
         Assert.Equal("Unhealthy", response);

@@ -1,11 +1,7 @@
-﻿#nullable disable
+﻿namespace Microservice.EmailSender.Tests.IntegrationTests;
 
-namespace Microservice.EmailSender.Tests.IntegrationTests;
-
-public class EmailSenderBackgroundCoreIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class EmailSenderBackgroundCoreIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
-    // #nullable disable
-
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IQueueEmail _queueEmail;
     private readonly IEmailSenderBackgroundCore _emailSenderBackgroundCore;
@@ -28,7 +24,7 @@ public class EmailSenderBackgroundCoreIntegrationTest : IClassFixture<TestWebApp
         // Arrange
 
         // Act
-        var result = await _emailSenderBackgroundCore.CreateSmtpClientsAsync();
+        var result = await _emailSenderBackgroundCore.CreateSmtpClientsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         foreach (var smtpClient in result)
@@ -41,7 +37,7 @@ public class EmailSenderBackgroundCoreIntegrationTest : IClassFixture<TestWebApp
         // Arrange
 
         // Act
-        var result = await _emailSenderBackgroundCore.CreateSmtpClientsAsync();
+        var result = await _emailSenderBackgroundCore.CreateSmtpClientsAsync(TestContext.Current.CancellationToken);
 
         // Assert
         foreach (var smtpClient in result)
@@ -49,7 +45,7 @@ public class EmailSenderBackgroundCoreIntegrationTest : IClassFixture<TestWebApp
 
         // Отключаемся, и проверяем переподключение
         foreach (var smtpClient in result)
-            await _emailSender.DisconnectAsync(smtpClient);
+            await _emailSender.DisconnectAsync(smtpClient, TestContext.Current.CancellationToken);
 
         int i = 0;
         while (i < 25)
@@ -59,7 +55,7 @@ public class EmailSenderBackgroundCoreIntegrationTest : IClassFixture<TestWebApp
                 return;
 
             i++;
-            await Task.Delay(500);
+            await Task.Delay(500, TestContext.Current.CancellationToken);
         }
 
         Assert.Fail("Переподключение не удалось");

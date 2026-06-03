@@ -1,20 +1,15 @@
-﻿#nullable disable
-
-using CRUD.Models.Validators;
-using CRUD.Models.Validators.ValidatorsLocalizer;
+﻿using CRUD.Models.Validators.Localization;
 
 namespace CRUD.Tests.IntegrationTests.Validators;
 
-public class LoginDataValidatorTest
+public sealed class LoginDataValidatorTest
 {
-    // #nullable disable
-
-    private readonly ValidatorsLocalizer _validatorsLocalizer;
+    private readonly ValidatorLocalizer _validatorsLocalizer;
     private readonly LoginDataDtoValidator _validator;
 
     public LoginDataValidatorTest()
     {
-        _validatorsLocalizer = new ValidatorsLocalizer();
+        _validatorsLocalizer = new ValidatorLocalizer();
         _validator = new LoginDataDtoValidator(_validatorsLocalizer);
     }
 
@@ -32,7 +27,7 @@ public class LoginDataValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(loginData);
+        var result = await _validator.ValidateAsync(loginData, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -73,7 +68,7 @@ public class LoginDataValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(loginData);
+        var result = await _validator.ValidateAsync(loginData, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -91,7 +86,7 @@ public class LoginDataValidatorTest
         // Act
         Func<Task> a = async () =>
         {
-            await _validator.ValidateAsync(loginData);
+            await _validator.ValidateAsync(loginData, TestContext.Current.CancellationToken);
         };
 
         // Assert

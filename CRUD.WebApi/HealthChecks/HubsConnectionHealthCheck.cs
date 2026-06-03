@@ -5,7 +5,7 @@ namespace CRUD.WebApi.HealthChecks;
 /// <summary>
 /// Проверяет подключение к хабам.
 /// </summary>
-public class HubsConnectionHealthCheck : IHealthCheck
+public sealed class HubsConnectionHealthCheck : IHealthCheck
 {
     private readonly ITokenManager _tokenManager;
     private readonly ILogger<HubsConnectionHealthCheck> _logger;
@@ -26,8 +26,10 @@ public class HubsConnectionHealthCheck : IHealthCheck
             new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.Name, "username"),
             new Claim(ClaimTypes.Role, UserRoles.Admin),
-            new Claim("language_code", "ru"),
-            new Claim("premium", "true")
+            new Claim(UserClaimTypes.LanguageCode, "ru"),
+            new Claim(UserClaimTypes.IsEmailConfirm, "true"),
+            new Claim(UserClaimTypes.IsPhoneNumberConfirm, "true"),
+            new Claim(UserClaimTypes.IsPremium, "true")
         ];
         var token = _tokenManager.GenerateAuthResponse(claims, "username").AccessToken;
 

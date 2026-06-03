@@ -6,7 +6,7 @@
 /// <remarks>
 /// Существует нативный <see cref="Microsoft.AspNetCore.HttpLogging.HttpLoggingMiddleware"/> (<c>UseHttpLogging</c>), но мне достаточно моего функционала.
 /// </remarks>
-public class LoggingRequestHeadersMiddleware
+public sealed class LoggingRequestHeadersMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<LoggingRequestHeadersMiddleware> _logger;

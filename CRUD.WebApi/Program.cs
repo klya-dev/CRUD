@@ -24,7 +24,12 @@ builder.Services.AddEndpointsApiExplorer();
 builder.ConfigureOpenApi();
 builder.ConfigureApiVersioning();
 
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+// Порядок регистраций обработчиков имеет значение, 1 - BadRequestExceptionHandler, 2 - ConcurrencyConflictExceptionHandler, 3 - GlobalExceptionHandler (не как в Middleware)
+builder.Services.AddExceptionHandler<BadRequestExceptionHandler>(); // Обработка BadRequest исключений
+builder.Services.AddExceptionHandler<ConcurrencyConflictExceptionHandler>(); // Обработка конфликтов параллельности
+// Глобальный обработчик ошибок только в Production, т.к он скрывает трейс
+if (builder.Environment.IsProduction())
+    builder.Services.AddExceptionHandler<GlobalExceptionHandler>(); 
 builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true); // Выбрасывать исключение BadRequest в Production +у меня есть обработчик этих исключений // https://github.com/dotnet/aspnetcore/issues/48355
 builder.Services.AddProblemDetails(options =>
 {
@@ -68,7 +73,6 @@ builder.ConfigureGrpcClients();
 builder.Services.AddScoped<IValidator<UpdateUserDto>, UpdateUserDtoValidator>();
 builder.Services.AddScoped<IValidator<CreateUserDto>, CreateUserDtoValidator>();
 builder.Services.AddScoped<IValidator<DeleteUserDto>, DeleteUserDtoValidator>();
-builder.Services.AddScoped<IValidator<User>, UserValidator>();
 builder.Services.AddScoped<IValidator<LoginDataDto>, LoginDataDtoValidator>();
 builder.Services.AddScoped<IValidator<ChangePasswordDto>, ChangePasswordDtoValidator>();
 builder.Services.AddScoped<IValidator<SetPasswordDto>, SetPasswordDtoValidator>();
@@ -78,19 +82,11 @@ builder.Services.AddScoped<IValidator<GetAuthorsDto>, GetAuthorsDtoValidator>();
 builder.Services.AddScoped<IValidator<UpdatePublicationDto>, UpdatePublicationDtoValidator>();
 builder.Services.AddScoped<IValidator<UpdatePublicationFullDto>, UpdatePublicationFullDtoValidator>();
 builder.Services.AddScoped<IValidator<CreatePublicationDto>, CreatePublicationDtoValidator>();
-builder.Services.AddScoped<IValidator<Publication>, PublicationValidator>();
 builder.Services.AddScoped<IValidator<ClientApiCreatePublicationDto>, ClientApiCreatePublicationDtoValidator>();
-builder.Services.AddScoped<IValidator<ConfirmEmailRequest>, ConfirmEmailRequestValidator>();
-builder.Services.AddScoped<IValidator<ChangePasswordRequest>, ChangePasswordRequestValidator>();
-builder.Services.AddScoped<IValidator<VerificationPhoneNumberRequest>, VerificationPhoneNumberRequestValidator>();
-builder.Services.AddScoped<IValidator<Order>, OrderValidator>();
-builder.Services.AddScoped<IValidator<Product>, ProductValidator>();
-builder.Services.AddScoped<IValidator<Notification>, NotificationValidator>();
 builder.Services.AddScoped<IValidator<CreateNotificationDto>, CreateNotificationDtoValidator>();
 builder.Services.AddScoped<IValidator<CreateNotificationSelectedUsersDto>, CreateNotificationSelectedUsersDtoValidator>();
 builder.Services.AddScoped<IValidator<GetUserNotificationsDto>, GetUserNotificationsDtoValidator>();
 builder.Services.AddScoped<IValidator<GetPaginatedListDto>, GetPaginatedListDtoValidator>();
-builder.Services.AddScoped<IValidator<AuthRefreshToken>, AuthRefreshTokenValidator>();
 builder.Services.AddScoped<IValidator<OAuthCompleteRegistrationDto>, OAuthCompleteRegistrationDtoValidator>();
 
 builder.Services.AddScoped<IClientApiManager, ClientApiManager>();
@@ -106,7 +102,7 @@ if (!programOptions.SkipInitializers) // Пропускаем ли инициализаторы
 }
 builder.Services.AddScoped<IUserManager, UserManager>();
 builder.Services.AddScoped<IPublicationManager, PublicationManager>();
-builder.Services.AddSingleton<IS3Manager,  S3Manager>();
+builder.Services.AddSingleton<IS3Manager, S3Manager>();
 builder.Services.AddScoped<IAvatarManager, AvatarManager>();
 builder.Services.AddScoped<IAuthManager, AuthManager>();
 builder.Services.AddSingleton<IHtmlHelper, HtmlHelper>();
@@ -131,7 +127,7 @@ builder.Services.AddScoped<IAuthRefreshTokenManager, AuthRefreshTokenManager>();
 builder.Services.AddSingleton<IOAuthMailRuProvider, OAuthMailRuProvider>();
 builder.Services.AddSingleton<IPremiumInformator, PremiumInformator>();
 
-builder.Services.AddTransient<IAuthorizationHandler, LanguageDenyHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, LanguageDenyHandler>();
 
 builder.Services.AddHostedService<SaveLogsToS3BackgroundService>();
 builder.Services.AddHostedService<RevokeExpiredRefreshTokensBackgroundService>();
@@ -153,6 +149,7 @@ if (app.Environment.IsDevelopment())
     // Для API генерируется грамотный, красивый ответ application/problem+json, учитывая, что я выше добавил .AddProblemDetails()
 
     app.MapOpenApi(); // Конечная точка "/openapi/v1.json"
+    app.MapScalarApiReference();
     app.UseSwaggerUi(options =>
     {
         options.Path = "/openapi";
@@ -160,20 +157,22 @@ if (app.Environment.IsDevelopment())
         options.DocumentTitle = "CRUD"; // Название вкладки
     });
 }
-else if (app.Environment.IsProduction())
+
+app.UseRequestLocalization(); // В обработчиках исключений используется локализация
+
+// Добавить обработчики ошибок в pipeline (выше добавлены AddExceptionHandler)
+app.UseExceptionHandler(); // GlobalExceptionHandler, который скрывает внутренности включается только в Production, а остальные обработчики везде
+// СПЕЦИАЛЬНО после UseDeveloperExceptionPage, чтобы сначала мои обработчики обработают всё что смогут, потом уже исключение с трейсом
+
+if (app.Environment.IsProduction())
 {
-    // Добавить глобальный обработчик ошибок в pipeline, чтобы вместо трейса и других внутренностей была грамотно сформированная ошибка для клиента (выше добавлен AddExceptionHandler)
-    app.UseExceptionHandler();
     app.UseHsts();
 }
-
-app.UseMiddleware<UsefulBadRequestMiddleware>(); // Обязательно после UseExceptionHandler
 
 //app.UseHttpsRedirection(); // Если не закомментировать, то ЮКасса не будет работать с Tuna (307 статус код)
 app.UseReadyStaticFilesAndDirectoryBrowser();
 app.UseRouting();
 app.UseRequestTimeouts();
-app.UseRequestLocalization();
 app.UseCors();
 app.UseAuthentication();
 app.UseRateLimiter(); // Использует локализацию и аутентификацию
@@ -215,7 +214,7 @@ app.MapHealthChecks("/healthz", new Microsoft.AspNetCore.Diagnostics.HealthCheck
         [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
     }
 })
-    .RequireAuthorization(UserRoles.Admin) // С авторизацией
+    .RequireAuthorization(AuthorizationPolicyNames.OnlyAdmin) // С авторизацией админа
     .DisableHttpMetrics(); // Без метрик
 #endregion
 
@@ -237,12 +236,12 @@ app.MapShortCircuit(404, "robots.txt", "favicon.ico"); // Т.к у меня нет этих фа
 
 app.Logger.LogInformation("Приложение запущено.");
 
-app.Run();
+await app.RunAsync();
 
 
 async Task InitializeDatabaseAsync(CancellationToken ct = default)
 {
-    using var scope = app.Services.CreateScope();
+    await using var scope = app.Services.CreateAsyncScope();
     var dbInitializer = scope.ServiceProvider.GetRequiredService<IDbInitializer>();
     await dbInitializer.InitializeAsync(ct);
 
@@ -255,7 +254,7 @@ async Task InitializeDatabaseAsync(CancellationToken ct = default)
 
 async Task InitializeS3EcosystemAsync(CancellationToken ct = default)
 {
-    using var scope = app.Services.CreateScope();
+    await using var scope = app.Services.CreateAsyncScope();
     var s3Initializer = scope.ServiceProvider.GetRequiredService<IS3Initializer>();
     await s3Initializer.InitializeAsync(ct);
 }

@@ -4,15 +4,13 @@ using System.Text.Json;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IOrderCreator"/>
-public class OrderCreator : IOrderCreator
+public sealed class OrderCreator : IOrderCreator
 {
     private readonly ApplicationDbContext _db;
-    private readonly IValidator<Order> _orderValidator;
 
-    public OrderCreator(ApplicationDbContext db, IValidator<Order> orderValidator)
+    public OrderCreator(ApplicationDbContext db)
     {
         _db = db;
-        _orderValidator = orderValidator;
     }
 
     public async Task AddOrderToDbAsync(PaymentResponse paymentResponse, Guid userId, string productName, CancellationToken ct = default)
@@ -39,11 +37,6 @@ public class OrderCreator : IOrderCreator
             Description = paymentResponse.Description,
             Refundable = paymentResponse.Refundable,
         };
-
-        // Проверка валидности данных перед записью в базу
-        var validationResult = await _orderValidator.ValidateAsync(order, ct);
-        if (!validationResult.IsValid)
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(Order), validationResult.Errors));
 
         // Добавляем заказ в базу
         await _db.Orders.AddAsync(order, ct);

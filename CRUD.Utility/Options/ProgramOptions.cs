@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции <c>Program.cs</c>.
 /// </summary>
-public class ProgramOptions
+public sealed class ProgramOptions
 {
     /// <summary>
     /// Название секции.
@@ -13,10 +13,10 @@ public class ProgramOptions
     /// <summary>
     /// Пропустить ли логирование.
     /// </summary>
-    public required bool SkipLogging { get; set; }
+    public required bool SkipLogging { get; init; }
 
     /// <summary>
     /// Пропустить ли инициализаторы (база данных, S3).
     /// </summary>
-    public required bool SkipInitializers { get; set; }
+    public required bool SkipInitializers { get; init; }
 }

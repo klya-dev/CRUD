@@ -1,18 +1,15 @@
-﻿#nullable disable
-using CRUD;
+﻿using CRUD;
 using CRUD.Models.Validators;
 
 namespace CRUD.Tests.IntegrationTests.Validators.User;
 
-public class DeleteUserDtoValidatorTest
+public sealed class DeleteUserDtoValidatorTest
 {
-    // #nullable disable
-
     private readonly DeleteUserDtoValidator _validator;
 
     public DeleteUserDtoValidatorTest()
     {
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
+        var validatorsLocalizer = new ValidatorLocalizer();
         _validator = new DeleteUserDtoValidator(validatorsLocalizer);
     }
 
@@ -31,7 +28,7 @@ public class DeleteUserDtoValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(deleteUserDto);
+        var result = await _validator.ValidateAsync(deleteUserDto, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -53,7 +50,7 @@ public class DeleteUserDtoValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(deleteUserDto);
+        var result = await _validator.ValidateAsync(deleteUserDto, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -71,7 +68,7 @@ public class DeleteUserDtoValidatorTest
         // Act
         Func<Task> a = async () =>
         {
-            await _validator.ValidateAsync(deleteUserDto);
+            await _validator.ValidateAsync(deleteUserDto, TestContext.Current.CancellationToken);
         };
 
         // Assert

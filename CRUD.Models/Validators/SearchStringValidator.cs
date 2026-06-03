@@ -3,7 +3,7 @@
 /// <summary>
 /// Валидатор строки поиска.
 /// </summary>
-public class SearchStringValidator
+public sealed class SearchStringValidator
 {
     /// <summary>
     /// Максимальная длина поисковой строки.

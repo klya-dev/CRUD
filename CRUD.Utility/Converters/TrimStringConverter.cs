@@ -10,7 +10,7 @@ namespace CRUD.Utility.Converters;
 /// <para>Обрезка используется только для чтения (<see cref="string.Trim()"/>, есть только в <see cref="Read(ref Utf8JsonReader, Type, JsonSerializerOptions)"/> методе).</para>
 /// <para>Кратко: Обрезает все входящие строки.</para>
 /// </remarks>
-public class TrimStringConverter : JsonConverter<string?>
+public sealed class TrimStringConverter : JsonConverter<string?>
 {
     public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {

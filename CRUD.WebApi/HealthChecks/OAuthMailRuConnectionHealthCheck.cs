@@ -3,7 +3,7 @@
 /// <summary>
 /// Проверяет подключение к OAuth MailRu серверу.
 /// </summary>
-public class OAuthMailRuConnectionHealthCheck : IHealthCheck
+public sealed class OAuthMailRuConnectionHealthCheck : IHealthCheck
 {
     private readonly IOAuthMailRuProvider _oAuthMailRuProvider;
     private readonly IHttpClientFactory _httpClientFactory;

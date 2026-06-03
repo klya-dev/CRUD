@@ -8,7 +8,7 @@ using static System.Net.Mime.MediaTypeNames;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="ITelegramIntegrationManager"/>
-public class TelegramIntegrationManager : ITelegramIntegrationManager
+public sealed class TelegramIntegrationManager : ITelegramIntegrationManager
 {
     private readonly string URL;
     private readonly string ApiKey;
@@ -139,38 +139,48 @@ public class TelegramIntegrationManager : ITelegramIntegrationManager
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         // Авторизация уже настроена в фабрике IHttpClientFactory
 
-        // Отправляем запрос
-        using var response = await httpClient.SendAsync(request, ct);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            _logger.LogError("Не удалось отправить запрос на проверку подключения к Telegram серверу. Причина: {reasonPhrase}.", response.ReasonPhrase);
-            return false;
-        }
-
-        // Читаем содержимое ответа
-        await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: ct);
-
-        // На данный момент у Telegram нет метода для проверки подключения, значит будем проверять через успешную авторизацию
-        // Ответ с ошибкой
-        var ok = jsonDocument.RootElement.GetProperty("ok").GetBoolean();
-        if (ok == false)
-        {
-            var error = jsonDocument.RootElement.GetProperty("error").GetString();
-            if (error == "UNKNOWN_METHOD") // Неизвестный метод, значит авторизация прошла и подключение удалось
-                return true;
-            else if (error == "ACCESS_TOKEN_INVALID") // Авторизация не прошла
+            // Отправляем запрос
+            using var response = await httpClient.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Не удалось отправить запрос на проверку подключения к Telegram серверу. Ошибка: {error} (не удалось авторизоваться).", error);
+                _logger.LogError("Не удалось отправить запрос на проверку подключения к Telegram серверу. Причина: {reasonPhrase}.", response.ReasonPhrase);
                 return false;
             }
-            else
-            {
-                _logger.LogError("Не удалось отправить запрос на проверку подключения к Telegram серверу. Ошибка: {error}.", error);
-                return false;
-            }
-        }
 
-        return false;
+            // Читаем содержимое ответа
+            await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
+            using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: ct);
+
+            // На данный момент у Telegram нет метода для проверки подключения, значит будем проверять через успешную авторизацию
+            // Ответ с ошибкой
+            var ok = jsonDocument.RootElement.GetProperty("ok").GetBoolean();
+            if (ok == false)
+            {
+                var error = jsonDocument.RootElement.GetProperty("error").GetString();
+                if (error == "UNKNOWN_METHOD") // Неизвестный метод, значит авторизация прошла и подключение удалось
+                    return true;
+                else if (error == "ACCESS_TOKEN_INVALID") // Авторизация не прошла
+                {
+                    _logger.LogError("Не удалось отправить запрос на проверку подключения к Telegram серверу. Ошибка: {error} (не удалось авторизоваться).", error);
+                    return false;
+                }
+                else
+                {
+                    _logger.LogError("Не удалось отправить запрос на проверку подключения к Telegram серверу. Ошибка: {error}.", error);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.HttpRequestError == HttpRequestError.ConnectionError)
+                return false;
+
+            throw;
+        }
     }
 }

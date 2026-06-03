@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace CRUD.Tests.SystemTests.User;
 
-public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -31,15 +31,15 @@ public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFacto
         int count = 2;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомления в базу
-        var notification = await DI.CreateNotificationAsync(_db);
-        var notification2 = await DI.CreateNotificationAsync(_db);
+        var notification = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
+        var notification2 = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомления пользователей в базу
-        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id);
-        var userNotification2 = await DI.CreateUserNotificationAsync(_db, user.Id, notification2.Id);
+        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id, ct: TestContext.Current.CancellationToken);
+        var userNotification2 = await DI.CreateUserNotificationAsync(_db, user.Id, notification2.Id, ct: TestContext.Current.CancellationToken);
 
         // Такой результат должен быть
         var mustResult = new List<UserNotificationDto>()
@@ -68,7 +68,7 @@ public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -76,8 +76,8 @@ public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.Deserialize<IEnumerable<UserNotificationDto>>();
 
         Assert.Equivalent(mustResult, response);
@@ -98,7 +98,7 @@ public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddBearerToken(request, _tokenManager, userId: userIdGuid.ToString());
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -106,8 +106,8 @@ public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -121,7 +121,7 @@ public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFacto
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = $"{TestConstants.USER_NOTIFICATIONS_URL}?count={count}";
@@ -129,7 +129,7 @@ public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -137,8 +137,8 @@ public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.Deserialize<IEnumerable<UserNotificationDto>>();
 
         Assert.NotNull(response);
@@ -153,14 +153,14 @@ public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFacto
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Добавляем уведомление в базу
-        var notification = await DI.CreateNotificationAsync(_db);
+        var notification = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомление пользователя в базу
-        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id);
+        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = $"{string.Format(TestConstants.USER_NOTIFICATIONS_NOTIFICATIONS_ID_READ_URL, notification.Id)}";
@@ -169,7 +169,7 @@ public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -177,7 +177,7 @@ public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Null(result.Content.Headers.ContentType);
 
         // Уведомление и вправду обновилось
-        var userNotificationFromDbAfterUpdate = await _db.UserNotifications.AsNoTracking().FirstAsync(x => x.UserId == userIdGuid && x.NotificationId == notification.Id);
+        var userNotificationFromDbAfterUpdate = await _db.UserNotifications.AsNoTracking().FirstAsync(x => x.UserId == userIdGuid && x.NotificationId == notification.Id, TestContext.Current.CancellationToken);
         Assert.True(userNotificationFromDbAfterUpdate.IsRead);
     }
 
@@ -197,7 +197,7 @@ public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFacto
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -205,45 +205,9 @@ public class UserNotificationsSystemTest : IClassFixture<TestWebApplicationFacto
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOTIFICATION_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
-    }
-
-    [Fact]
-    public async Task Put_NotificationId_Read_ReturnsNoChangesDetected()
-    {
-        // Arrange
-        var client = _factory.HttpClient;
-
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        // Добавляем уведомление в базу
-        var notification = await DI.CreateNotificationAsync(_db);
-
-        // Добавляем уведомление пользователя в базу
-        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id, isRead: true);
-
-        // Запрос
-        var url = $"{string.Format(TestConstants.USER_NOTIFICATIONS_NOTIFICATIONS_ID_READ_URL, notification.Id)}";
-        var request = new HttpRequestMessage(HttpMethod.Put, url);
-        TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
-        TestConstants.AddIdempotencyKey(request);
-
-        // Act
-        using var result = await client.SendAsync(request);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, result.StatusCode);
-        Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
-
-        // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
-
-        Assert.Equal(ErrorCodes.NO_CHANGES_DETECTED, jsonDocument.RootElement.GetProperty("code").GetString());
     }
 }

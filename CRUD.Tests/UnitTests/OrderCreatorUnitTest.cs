@@ -4,20 +4,17 @@ using System.Text.Json;
 
 namespace CRUD.Tests.UnitTests;
 
-public class OrderCreatorUnitTest
+public sealed class OrderCreatorUnitTest
 {
     private readonly OrderCreator _orderCreator;
     private readonly ApplicationDbContext _db;
-    private readonly Mock<IValidator<Order>> _mockOrderValidator;
 
     public OrderCreatorUnitTest()
     {
         var db = DbContextGenerator.GenerateDbContextTestInMemory();
         _db = db;
 
-        _mockOrderValidator = new();
-
-        _orderCreator = new OrderCreator(db, _mockOrderValidator.Object);
+        _orderCreator = new OrderCreator(db);
     }
 
     [Fact]
@@ -27,11 +24,11 @@ public class OrderCreatorUnitTest
         string productName = Products.Premium;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Добавляем продукт в базу
-        var product = await DI.CreateProductAsync(_db, name: productName);
+        var product = await DI.CreateProductAsync(_db, name: productName, ct: TestContext.Current.CancellationToken);
 
         // Модель оплаты
         var paymentResponse = new PaymentResponse()
@@ -48,18 +45,15 @@ public class OrderCreatorUnitTest
             Test = true
         };
 
-        // Валидация проходит
-        _mockOrderValidator.Setup(x => x.ValidateAsync(It.IsAny<Order>(), default)).ReturnsAsync(new FluentValidation.Results.ValidationResult());
-
         // Количество заказов ДО
-        var countOrdersWithThisProductBefore = (await _db.Products.AsNoTracking().Include(x => x.Orders).FirstOrDefaultAsync(x => x.Name == productName)).Orders.Count;
+        var countOrdersWithThisProductBefore = (await _db.Products.AsNoTracking().Include(x => x.Orders).FirstOrDefaultAsync(x => x.Name == productName, TestContext.Current.CancellationToken)).Orders.Count;
 
         // Act
-        await _orderCreator.AddOrderToDbAsync(paymentResponse, userIdGuid, productName);
+        await _orderCreator.AddOrderToDbAsync(paymentResponse, userIdGuid, productName, TestContext.Current.CancellationToken);
 
         // Assert
         // Стало на один заказ больше
-        var countOrdersWithThisProductAfter = (await _db.Products.AsNoTracking().Include(x => x.Orders).FirstOrDefaultAsync(x => x.Name == productName)).Orders.Count;
+        var countOrdersWithThisProductAfter = (await _db.Products.AsNoTracking().Include(x => x.Orders).FirstOrDefaultAsync(x => x.Name == productName, TestContext.Current.CancellationToken)).Orders.Count;
         Assert.Equal(countOrdersWithThisProductBefore + 1, countOrdersWithThisProductAfter);
     }
 
@@ -94,42 +88,6 @@ public class OrderCreatorUnitTest
 
         // Assert
         Assert.Contains(ErrorMessages.EmptyUniqueIdentifier, ex.Message);
-    }
-
-    [Fact]
-    public async Task AddOrderToDbAsync_ShouldThrowsInvalidOperationException_WhenModelIsNotNull()
-    {
-        // Arrange
-        var userIdGuid = Guid.NewGuid();
-        string productName = Products.Premium;
-
-        var paymentResponse = new PaymentResponse()
-        {
-            Id = "1fa85f64-5717-4562-b3fc-2c963f66afa6",
-            Status = PaymentStatuses.Pending,
-            Paid = true,
-            Amount = new Amount() { Value = "100", Currency = "RUB" },
-            CreatedAt = DateTime.UtcNow,
-            Description = "Description",
-            Confirmation = new Confirmation() { Type = "", ConfirmationUrl = "" },
-            Refundable = true,
-            Recipient = new Recipient() { AccountId = "", GatewayId = "" },
-            Test = true
-        };
-
-        // Результат модель невалидна
-        _mockOrderValidator.Setup(x => x.ValidateAsync(It.IsAny<Order>(), default)).ReturnsAsync(new ValidationResult() { Errors = [new ValidationFailure()] });
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _orderCreator.AddOrderToDbAsync(paymentResponse, userIdGuid, productName);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(Order)), ex.Message);
     }
 
 

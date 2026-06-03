@@ -5,7 +5,7 @@ namespace Microservice.EmailSender.Services.RabbitMqConsumer;
 /// <summary>
 /// Сервис для обработки сообщений из RabbitMQ в фоне.
 /// </summary>
-public class RabbitMqConsumerBackgroundService : BackgroundService
+public sealed class RabbitMqConsumerBackgroundService : BackgroundService
 {
     private readonly IRabbitMqConsumerBackgroundCore _rabbitMqConsumerBackgroundCore;
     private readonly ILogger<RabbitMqConsumerBackgroundService> _logger;

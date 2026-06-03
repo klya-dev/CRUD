@@ -1,7 +1,7 @@
 ﻿namespace CRUD.Services.BackgroundServices.RevokeExpiredRefreshTokensBackground;
 
 /// <inheritdoc cref="IRevokeExpiredRefreshTokensBackgroundCore"/>
-public class RevokeExpiredRefreshTokensBackgroundCore : IRevokeExpiredRefreshTokensBackgroundCore
+public sealed class RevokeExpiredRefreshTokensBackgroundCore : IRevokeExpiredRefreshTokensBackgroundCore
 {
     private readonly ApplicationDbContext _db;
 

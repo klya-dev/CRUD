@@ -3,20 +3,18 @@ using Microsoft.Extensions.Options;
 
 namespace CRUD.Services;
 
-public class ChangePasswordRequestManager : IChangePasswordRequestManager
+public sealed class ChangePasswordRequestManager : IChangePasswordRequestManager
 {
     private readonly ApplicationDbContext _db;
     private readonly ITokenManager _tokenManager;
-    private readonly IValidator<ChangePasswordRequest> _changePasswordRequestValidator;
     private readonly ChangePasswordRequestOptions _options;
     private readonly IQueueEmail _queueEmail;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public ChangePasswordRequestManager(ApplicationDbContext db, ITokenManager tokenManager, IValidator<ChangePasswordRequest> changePasswordRequestValidator, IOptions<ChangePasswordRequestOptions> options, IQueueEmail queueEmail, IHttpContextAccessor httpContextAccessor)
+    public ChangePasswordRequestManager(ApplicationDbContext db, ITokenManager tokenManager, IOptions<ChangePasswordRequestOptions> options, IQueueEmail queueEmail, IHttpContextAccessor httpContextAccessor)
     {
         _db = db;
         _tokenManager = tokenManager;
-        _changePasswordRequestValidator = changePasswordRequestValidator;
         _options = options.Value;
         _queueEmail = queueEmail;
         _httpContextAccessor = httpContextAccessor;
@@ -41,7 +39,7 @@ public class ChangePasswordRequestManager : IChangePasswordRequestManager
                 return ServiceResult.Fail(ErrorMessages.LetterAlreadySent, args: timeout.Minutes);
             else // Удаляем прошлый токен
             {
-                _db.ChangePasswordRequests.Remove(changePasswordRequestsFromDb);
+                _db.ChangePasswordRequests.Remove(changePasswordRequestsFromDb); // Использовать ExecuteDeleteAsync нет смысла, мы и уже прогрузили сущность в память
                 await _db.SaveChangesAsync(ct);
             }
         }
@@ -60,11 +58,6 @@ public class ChangePasswordRequestManager : IChangePasswordRequestManager
             CreatedAt = createdAt,
             Expires = createdAt.Add(_options.Expires),
         };
-
-        // Проверка валидности данных перед записью в базу
-        var validationResultChangePasswordRequest = await _changePasswordRequestValidator.ValidateAsync(changePasswordRequest, ct);
-        if (!validationResultChangePasswordRequest.IsValid)
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(ChangePasswordRequest), validationResultChangePasswordRequest.Errors));
 
         // Записываем токен в базу
         await _db.ChangePasswordRequests.AddAsync(changePasswordRequest, ct);

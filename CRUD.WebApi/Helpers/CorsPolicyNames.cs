@@ -3,7 +3,7 @@
 /// <summary>
 /// Имена политик <c>CORS</c>.
 /// </summary>
-public class CorsPolicyNames
+public static class CorsPolicyNames
 {
     /// <summary>
     /// <c>CORS</c> политика для метрик.

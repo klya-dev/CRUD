@@ -3,7 +3,7 @@
 /// <summary>
 /// Тестовая реализация <see cref="DelegatingHandler"/>.
 /// </summary>
-public class FakeHttpDelegatingHandler : DelegatingHandler
+public sealed class FakeHttpDelegatingHandler : DelegatingHandler
 {
     private readonly Func<int, CancellationToken, Task<HttpResponseMessage>> _responseFactory;
     public int Attempts { get; private set; }

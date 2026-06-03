@@ -18,26 +18,15 @@ public static class ClientApiEndpoints
             .WithTags(EndpointTags.ClientApi, EndpointTags.AllEndpointsForClient);
         clientApiMap.MapPost("/publications", async Task<Results<ProblemHttpResult, CreatedAtRoute<PublicationDto>>> ([FromBody] ClientApiCreatePublicationDto clientApiCreatePublication, HttpContext httpContext, IClientApiManager clientApiManager, IResourceLocalizer localizer, CancellationToken ct) =>
         {
-            try
-            {
-                // Вызов сервиса
-                var result = await clientApiManager.CreatePublicationAsync(clientApiCreatePublication, ct);
+            // Вызов сервиса
+            var result = await clientApiManager.CreatePublicationAsync(clientApiCreatePublication, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.CreatedAtRoute(result.Value, routeName: EndpointNames.PublicationsGetById, routeValues: new { publicationId = result.Value!.Id });
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.CreatedAtRoute(result.Value, routeName: EndpointNames.PublicationsGetById, routeValues: new { publicationId = result.Value!.Id });
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый создал - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithValidation<ClientApiCreatePublicationDto>()
             .AllowAnonymous()

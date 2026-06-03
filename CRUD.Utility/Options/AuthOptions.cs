@@ -6,8 +6,16 @@ namespace CRUD.Utility.Options;
 /// <summary>
 /// Основные параметры аутентификации/авторизации.
 /// </summary>
-public class AuthOptions
+public sealed class AuthOptions
 {
+    // При изменении конфигурации, IOptionsMonitor<AuthOptions> будет пересоздаваться, поэтому init в сеттере никак не мешает
+    // Наоборот - не будет случайных переопределений в коде
+
+    // При изменении конфигурации, IOptions не будет пересоздаваться, он не изменяемый, пока не перезапустить приложение
+    // Поэтому init также хорошая идея, не будет случайных переопределений в коде
+
+    // А record тут особо не в тему, зачем мне его плюшки типо: сравнение по значению, красивый вывод через .ToString()
+
     /// <summary>
     /// Название секции.
     /// </summary>
@@ -19,7 +27,7 @@ public class AuthOptions
     /// <remarks>
     /// Обычно это сервер авторизации.
     /// </remarks>
-    public required string Issuer { get; set; }
+    public required string Issuer { get; init; }
 
     /// <summary>
     /// Идентификатор ключа (kid).
@@ -29,17 +37,17 @@ public class AuthOptions
     /// <para>Нужно, чтобы микросервис понял через какой публичный ключ проверять токен.</para>
     /// <para>Также, через kid проверяется актуальность публичного ключа в микросервисе (если нет совпадений, то обновляем сведения публичных ключей).</para>
     /// </remarks>
-    public required string KeyId { get; set; }
+    public required string KeyId { get; init; }
 
     /// <summary>
     /// Путь до приватного ключа RSA.
     /// </summary>
-    public required string PrivateKeyPath { get; set; }
+    public required string PrivateKeyPath { get; init; }
 
     /// <summary>
     /// Путь до публичного ключа RSA.
     /// </summary>
-    public required string PublicKeyPath { get; set; }
+    public required string PublicKeyPath { get; init; }
 
     // Кэширование работает идеально, т.к я использую IOptionsMonitor при изменении файла appsettings.json этот класс пересоздаётся, а значит и кэш обновится
 

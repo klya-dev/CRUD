@@ -3,14 +3,13 @@ using FluentValidation;
 
 namespace CRUD.Tests.UnitTests;
 
-public class ClientApiManagerUnitTest
+public sealed class ClientApiManagerUnitTest
 {
     private readonly ClientApiManager _clientApiManager;
     private readonly ApplicationDbContext _db;
     private readonly Mock<IPublicationManager> _mockPublicationManager;
     private readonly Mock<IUserApiKeyManager> _mockUserApiKeyManager;
     private readonly Mock<IValidator<ClientApiCreatePublicationDto>> _mockClientApiCreatePublicationDtoValidator;
-    private readonly Mock<IValidator<User>> _mockUserValidator;
 
     public ClientApiManagerUnitTest()
     {
@@ -20,9 +19,8 @@ public class ClientApiManagerUnitTest
         _mockPublicationManager = new();
         _mockUserApiKeyManager = new();
         _mockClientApiCreatePublicationDtoValidator = new();
-        _mockUserValidator = new();
 
-        _clientApiManager = new ClientApiManager(db, _mockPublicationManager.Object, _mockUserApiKeyManager.Object, _mockClientApiCreatePublicationDtoValidator.Object, _mockUserValidator.Object);
+        _clientApiManager = new ClientApiManager(db, _mockPublicationManager.Object, _mockUserApiKeyManager.Object, _mockClientApiCreatePublicationDtoValidator.Object);
     }
 
     [Fact]
@@ -34,7 +32,7 @@ public class ClientApiManagerUnitTest
         string apiKey = TestConstants.UserApiKey;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: true, isEmailConfirm: true, isPhoneNumberConfirm: true, apiKey: apiKey);
+        var user = await DI.CreateUserAsync(_db, isPremium: true, isEmailConfirm: true, isPhoneNumberConfirm: true, apiKey: apiKey, ct: TestContext.Current.CancellationToken);
 
         // Модель создания публикации по ключу
         var clientApiCreatePublicationDto = new ClientApiCreatePublicationDto()
@@ -51,11 +49,8 @@ public class ClientApiManagerUnitTest
         var publicationDto = new PublicationDto() { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow, EditedAt = null, Title = title, Content = content, AuthorId = user.Id, AuthorFirstname = user.Firstname }; // В целом, без разницы, это нужно чисто для ответа API
         _mockPublicationManager.Setup(x => x.CreatePublicationAsync(It.IsAny<Guid>(), It.IsAny<CreatePublicationDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult<PublicationDto>.Success(publicationDto));
 
-        // Валидация проходит
-        _mockUserValidator.Setup(x => x.ValidateAsync(It.IsAny<User>(), default)).ReturnsAsync(new ValidationResult());
-
         // Act
-        var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto);
+        var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -94,50 +89,6 @@ public class ClientApiManagerUnitTest
         Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(ClientApiCreatePublicationDto), validationResult.Errors), ex.Message);
     }
 
-    [Fact] // Перед записью в базу выбросится исключение, о том, что User невалидный
-    public async Task CreatePublicationAsync_ThrowsInvalidOperationException_NotValidBeforeUpdate()
-    {
-        // Arrange
-        string title = "Title";
-        string content = TestConstants.PublicationContent;
-        string apiKey = "ApiKey";
-
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: true, isEmailConfirm: true, isPhoneNumberConfirm: true, apiKey: apiKey);
-
-        // Модель создания публикации по ключу
-        var clientApiCreatePublicationDto = new ClientApiCreatePublicationDto()
-        {
-            Title = title,
-            Content = content,
-            ApiKey = apiKey
-        };
-
-        // Валидация проходит
-        _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), default)).ReturnsAsync(new ValidationResult());
-
-        // Успешное создание публикации
-        var publicationDto = new PublicationDto() { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow, EditedAt = null, Title = title, Content = content, AuthorId = user.Id, AuthorFirstname = user.Firstname }; // В целом, без разницы, это нужно чисто для ответа API
-        _mockPublicationManager.Setup(x => x.CreatePublicationAsync(It.IsAny<Guid>(), It.IsAny<CreatePublicationDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult<PublicationDto>.Success(publicationDto));
-
-        // Валидация не проходит
-        var validationResult = new ValidationResult() { Errors = [new ValidationFailure()] };
-        _mockUserValidator.Setup(x => x.ValidateAsync(It.IsAny<User>(), default)).ReturnsAsync(validationResult);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(User), validationResult.Errors), ex.Message);
-
-        // А это значит, что публикация создалась, а вот одноразовый API-ключ (если он был предоставлен) нет
-    }
-
     [Fact]
     public async Task CreatePublicationAsync_WhenInvalidApiKey_ReturnsErrorMessage_InvalidApiKey()
     {
@@ -158,7 +109,7 @@ public class ClientApiManagerUnitTest
         _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), default)).ReturnsAsync(new ValidationResult());
 
         // Act
-        var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto);
+        var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -174,7 +125,7 @@ public class ClientApiManagerUnitTest
         string apiKey = "ApiKey";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: false, isEmailConfirm: true, isPhoneNumberConfirm: true, apiKey: apiKey);
+        var user = await DI.CreateUserAsync(_db, isPremium: false, isEmailConfirm: true, isPhoneNumberConfirm: true, apiKey: apiKey, ct: TestContext.Current.CancellationToken);
 
         // Модель создания публикации по ключу
         var clientApiCreatePublicationDto = new ClientApiCreatePublicationDto()
@@ -188,7 +139,7 @@ public class ClientApiManagerUnitTest
         _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), default)).ReturnsAsync(new ValidationResult());
 
         // Act
-        var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto);
+        var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -204,7 +155,7 @@ public class ClientApiManagerUnitTest
         string apiKey = "ApiKey";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: true, isEmailConfirm: false, isPhoneNumberConfirm: true, apiKey: apiKey);
+        var user = await DI.CreateUserAsync(_db, isPremium: true, isEmailConfirm: false, isPhoneNumberConfirm: true, apiKey: apiKey, ct: TestContext.Current.CancellationToken);
 
         // Модель создания публикации по ключу
         var clientApiCreatePublicationDto = new ClientApiCreatePublicationDto()
@@ -218,7 +169,7 @@ public class ClientApiManagerUnitTest
         _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), default)).ReturnsAsync(new ValidationResult());
 
         // Act
-        var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto);
+        var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -234,7 +185,7 @@ public class ClientApiManagerUnitTest
         string apiKey = "ApiKey";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, isPremium: true, isEmailConfirm: true, isPhoneNumberConfirm: false, apiKey: apiKey);
+        var user = await DI.CreateUserAsync(_db, isPremium: true, isEmailConfirm: true, isPhoneNumberConfirm: false, apiKey: apiKey, ct: TestContext.Current.CancellationToken);
 
         // Модель создания публикации по ключу
         var clientApiCreatePublicationDto = new ClientApiCreatePublicationDto()
@@ -248,7 +199,7 @@ public class ClientApiManagerUnitTest
         _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), default)).ReturnsAsync(new ValidationResult());
 
         // Act
-        var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto);
+        var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);

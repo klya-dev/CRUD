@@ -3,7 +3,7 @@
 /// <summary>
 /// Имена для создания gRPC клиентов.
 /// </summary>
-public class GrpcClientNames
+public static class GrpcClientNames
 {
     /// <summary>
     /// Сервис для отправки электронных писем.

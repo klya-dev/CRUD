@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции S3Initializer'а.
 /// </summary>
-public class S3InitializerOptions
+public sealed class S3InitializerOptions
 {
     /// <summary>
     /// Название секции.
@@ -16,5 +16,5 @@ public class S3InitializerOptions
     /// <remarks>
     /// Из архива копируются все необходимые файлы для инициализации приложения.
     /// </remarks>
-    public required string ArchiveInS3Directory { get; set; }
+    public required string ArchiveInS3Directory { get; init; }
 }

@@ -91,4 +91,4 @@ app.MapShortCircuit(404, "robots.txt", "favicon.ico"); // Т.к у меня нет этих фа
 
 app.Logger.LogInformation("Приложение запущено.");
 
-app.Run();
+await app.RunAsync();

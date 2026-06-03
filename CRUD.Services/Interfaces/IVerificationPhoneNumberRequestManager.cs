@@ -9,7 +9,6 @@ public interface IVerificationPhoneNumberRequestManager
     /// Добавляет сгенерированный код в базу данных и отправляет СМС.
     /// </summary>
     /// <remarks>
-    /// <para>Для валидации используется <see cref="IValidator{VerificationPhoneNumberRequest}"/>.</para>
     /// 
     /// Возможные исключения:
     /// <list type="bullet">
@@ -19,10 +18,6 @@ public interface IVerificationPhoneNumberRequestManager
     /// </item>
     /// <item>
     /// <term>Если <paramref name="userId"/> является <see cref="Guid.Empty"/></term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="VerificationPhoneNumberRequest"/>, сущность окажется невалидна, изменения не последуют</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
     /// <item>
@@ -46,7 +41,7 @@ public interface IVerificationPhoneNumberRequestManager
     /// <param name="isTelegram">Отправить ли код через Телеграм.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="phoneNumber"/> или <paramref name="languageCode"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если после изменений данных сущности <see cref="VerificationPhoneNumberRequest"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
     /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>

@@ -5,7 +5,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Admin;
 
-public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -29,7 +29,7 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var expectedDto = new UserFullDto
         {
             Id = user.Id,
@@ -53,7 +53,7 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -61,8 +61,8 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.RootElement.Deserialize<UserFullDto>();
 
         Assert.NotNull(response);
@@ -81,7 +81,7 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -89,8 +89,8 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -105,7 +105,7 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Данные
         var data = new UpdateUserDto()
@@ -124,7 +124,7 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -132,7 +132,7 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Null(result.Content.Headers.ContentType);
 
         // Пользователь и вправду обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
         Assert.Equal(newFirstname, userFromDbAfterUpdate.Firstname);
         Assert.Equal(newUsername, userFromDbAfterUpdate.Username);
         Assert.Equal(newLanguageCode, userFromDbAfterUpdate.LanguageCode);
@@ -164,7 +164,7 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -172,8 +172,8 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -196,7 +196,7 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         };
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, firstname: firstname, username: username, languageCode: languageCode);
+        var user = await DI.CreateUserAsync(_db, firstname: firstname, username: username, languageCode: languageCode, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_USERS_USER_ID_URL, user.Id);
@@ -207,7 +207,7 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -215,8 +215,8 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.NO_CHANGES_DETECTED, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -239,10 +239,10 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         };
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, username: "username");
+        var user = await DI.CreateUserAsync(_db, username: "username", ct: TestContext.Current.CancellationToken);
 
         // Добавляем пользователя в базу
-        var user2 = await DI.CreateUserAsync(_db, username: username, email: "test", phoneNumber: "1234567");
+        var user2 = await DI.CreateUserAsync(_db, username: username, email: "test", phoneNumber: "1234567", ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_USERS_USER_ID_URL, user.Id);
@@ -253,7 +253,7 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -261,8 +261,8 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USERNAME_ALREADY_TAKEN, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -275,7 +275,7 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_USERS_USER_ID_URL, user.Id);
@@ -284,14 +284,14 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Equal(System.Net.HttpStatusCode.NoContent, result.StatusCode);
         Assert.Null(result.Content.Headers.ContentType);
 
-        var userFromDbAfterDelete = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id);
+        var userFromDbAfterDelete = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
         Assert.Null(userFromDbAfterDelete);
     }
 
@@ -308,7 +308,7 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -316,8 +316,8 @@ public class AdminUsersSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }

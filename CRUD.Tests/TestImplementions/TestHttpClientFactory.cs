@@ -3,7 +3,7 @@
 /// <summary>
 /// Тестовая реализация <see cref="IHttpClientFactory"/>.
 /// </summary>
-public class TestHttpClientFactory : IHttpClientFactory
+public sealed class TestHttpClientFactory : IHttpClientFactory
 {
     public HttpClient CreateClient(string name)
     {

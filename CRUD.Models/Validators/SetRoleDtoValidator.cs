@@ -6,9 +6,9 @@
 /// <remarks>
 /// Валидация реализована через Fluent Validation.
 /// </remarks>
-public class SetRoleDtoValidator : AbstractValidator<SetRoleDto>
+public sealed class SetRoleDtoValidator : AbstractValidator<SetRoleDto>
 {
-    public SetRoleDtoValidator(IValidatorsLocalizer localizer)
+    public SetRoleDtoValidator(IValidatorLocalizer localizer)
     {
         RuleFor(x => x.Role).Role(localizer);
     }

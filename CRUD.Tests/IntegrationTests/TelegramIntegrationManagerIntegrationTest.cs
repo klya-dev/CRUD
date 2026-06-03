@@ -2,7 +2,7 @@
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class TelegramIntegrationManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class TelegramIntegrationManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly ITelegramIntegrationManager _telegramIntegrationManager;
@@ -23,7 +23,7 @@ public class TelegramIntegrationManagerIntegrationTest : IClassFixture<TestWebAp
         // Arrange
 
         // Act
-        var result = await _telegramIntegrationManager.CheckConnectionAsync();
+        var result = await _telegramIntegrationManager.CheckConnectionAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(result);

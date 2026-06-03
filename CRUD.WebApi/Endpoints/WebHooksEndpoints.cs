@@ -15,26 +15,15 @@ public static class WebHooksEndpoints
         // По документации нужно отправить Ok (200 статус), NoContent тут не подойдёт
         webHooksMap.MapPost("/payment", async Task<Results<ProblemHttpResult, Ok>> ([FromBody] PaymentWebHook paymentWebHook, IOrderUpdater orderUpdater, IResourceLocalizer localizer, CancellationToken ct) =>
         {
-            try
-            {
-                // Вызов сервиса
-                var result = await orderUpdater.UpdateOrderInfoAsync(paymentWebHook, ct);
+            // Вызов сервиса
+            var result = await orderUpdater.UpdateOrderInfoAsync(paymentWebHook, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.Ok();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.Ok();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый обновил заказ - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .AllowAnonymous()
             .AddEndpointFilter<PaymentWebHookIpCheckEndpointFilter>()

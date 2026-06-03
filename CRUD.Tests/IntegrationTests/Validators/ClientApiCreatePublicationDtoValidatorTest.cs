@@ -1,21 +1,18 @@
-﻿#nullable disable
-using CRUD;
+﻿using CRUD;
 using CRUD.Models.Validators;
-using CRUD.Models.Validators.ValidatorsLocalizer;
+using CRUD.Models.Validators.Localization;
 using CRUD.Tests.Helpers;
 
 namespace CRUD.Tests.IntegrationTests.Validators;
 
-public class ClientApiCreatePublicationDtoValidatorTest
+public sealed class ClientApiCreatePublicationDtoValidatorTest
 {
-    // #nullable disable
-
-    private readonly ValidatorsLocalizer _validatorsLocalizer;
+    private readonly ValidatorLocalizer _validatorsLocalizer;
     private readonly ClientApiCreatePublicationDtoValidator _validator;
 
     public ClientApiCreatePublicationDtoValidatorTest()
     {
-        _validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
+        _validatorsLocalizer = new ValidatorLocalizer();
         _validator = new ClientApiCreatePublicationDtoValidator(_validatorsLocalizer);
     }
 
@@ -32,7 +29,7 @@ public class ClientApiCreatePublicationDtoValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(clientApiCreatePublicationDto);
+        var result = await _validator.ValidateAsync(clientApiCreatePublicationDto, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -73,7 +70,7 @@ public class ClientApiCreatePublicationDtoValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(clientApiCreatePublicationDto);
+        var result = await _validator.ValidateAsync(clientApiCreatePublicationDto, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -91,7 +88,7 @@ public class ClientApiCreatePublicationDtoValidatorTest
         // Act
         Func<Task> a = async () =>
         {
-            await _validator.ValidateAsync(clientApiCreatePublicationDto);
+            await _validator.ValidateAsync(clientApiCreatePublicationDto, TestContext.Current.CancellationToken);
         };
 
         // Assert

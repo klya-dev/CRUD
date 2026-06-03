@@ -3,7 +3,7 @@
 namespace Microservice.EmailSender.Services.EmailSenderBackground;
 
 /// <inheritdoc cref="IEmailSenderBackgroundCore"/>
-public class EmailSenderBackgroundCore : IEmailSenderBackgroundCore
+public sealed class EmailSenderBackgroundCore : IEmailSenderBackgroundCore
 {
     private readonly IEmailSender _emailSender;
     private readonly EmailSenderBackgroundServiceOptions _options;

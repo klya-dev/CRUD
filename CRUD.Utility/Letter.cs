@@ -3,7 +3,7 @@
 /// <summary>
 /// Письмо для электронной почты.
 /// </summary>
-public class Letter
+public sealed record Letter
 {
     /// <summary>
     /// Конструктор для создания полноценного письма.
@@ -15,7 +15,7 @@ public class Letter
     /// <exception cref="ArgumentException">Если <paramref name="email"/> является whitespace'ом.</exception>
     public Letter(string email, string subject, string body)
     {
-        ArgumentNullException.ThrowIfNullOrWhiteSpace(email);
+        ArgumentException.ThrowIfNullOrWhiteSpace(email);
         ArgumentNullException.ThrowIfNull(subject);
         ArgumentNullException.ThrowIfNull(body);
 

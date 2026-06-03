@@ -2,7 +2,7 @@
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class PayManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class PayManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IPayManager _payManager;
@@ -22,7 +22,7 @@ public class PayManagerIntegrationTest : IClassFixture<TestWebApplicationFactory
         // Arrange
 
         // Act
-        var result = await _payManager.CheckConnectionAsync();
+        var result = await _payManager.CheckConnectionAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(result);

@@ -4,7 +4,7 @@ using MimeKit;
 namespace Microservice.EmailSender.Services;
 
 /// <inheritdoc cref="IEmailSender"/>
-public class EmailSender : IEmailSender
+public sealed class EmailSender : IEmailSender
 {
     private readonly ILogger<EmailSender> _logger;
     private readonly SmtpServerOptions _options;

@@ -7,7 +7,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 
-public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     // В этом тесте я тестирую разные эндпоинты на возможные возникновения null и других некорректных данных. Я молодец и этого не допускаю
     // FromBody LoginDataDto
@@ -63,7 +63,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Content = json;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -71,8 +71,8 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Отправленный запрос некорректен, проверьте сигнатуру эндпоинта.", jsonDocument.RootElement.GetProperty("detail").GetString());
     }
@@ -88,7 +88,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Content = null;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -96,8 +96,8 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Отправленный запрос некорректен, проверьте сигнатуру эндпоинта.", jsonDocument.RootElement.GetProperty("detail").GetString());
     }
@@ -116,7 +116,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Content = json;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -139,7 +139,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -159,7 +159,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Headers.Add("Accept-Language", "ru");
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -178,7 +178,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Headers.Add("Accept-Language", "ru");
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -196,7 +196,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -205,8 +205,8 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Contains("Предоставленный токен недействителен", jsonDocument.RootElement.GetProperty("detail").GetString());
     }
@@ -227,7 +227,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Headers.Add("Accept-Language", "ru");
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -248,7 +248,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Headers.Add("Accept-Language", "ru");
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -256,8 +256,8 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Отправленный запрос некорректен, проверьте сигнатуру эндпоинта.", jsonDocument.RootElement.GetProperty("detail").GetString());
         Assert.Equal(ErrorCodes.INCORRECT_REQUEST, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -276,7 +276,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Headers.Add("Accept-Language", "ru");
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -292,7 +292,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         var request = new HttpRequestMessage(HttpMethod.Get, url);
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -300,8 +300,8 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.EMPTY_UNIQUE_IDENTIFIER, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -320,7 +320,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         TestConstants.AddBearerToken(request, _tokenManager);
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -328,8 +328,8 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Отправленный запрос некорректен, проверьте сигнатуру эндпоинта.", jsonDocument.RootElement.GetProperty("detail").GetString());
     }
@@ -346,7 +346,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         TestConstants.AddBearerToken(request, _tokenManager);
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -354,8 +354,8 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Отправленный запрос некорректен, проверьте сигнатуру эндпоинта.", jsonDocument.RootElement.GetProperty("detail").GetString());
     }
@@ -377,7 +377,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Content = content;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -385,8 +385,8 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Отправленный запрос некорректен, проверьте сигнатуру эндпоинта.", jsonDocument.RootElement.GetProperty("detail").GetString());
     }
@@ -409,7 +409,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Content = content;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -417,8 +417,8 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Вы отправили пустой файл, пожалуйста выберите не пустой файл и повторите попытку.", jsonDocument.RootElement.GetProperty("detail").GetString());
         Assert.Equal(ErrorCodes.FILE_IS_EMPTY, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -441,7 +441,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Content = content;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -449,8 +449,8 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Вы отправили пустой файл, пожалуйста выберите не пустой файл и повторите попытку.", jsonDocument.RootElement.GetProperty("detail").GetString());
         Assert.Equal(ErrorCodes.FILE_IS_EMPTY, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -474,7 +474,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Content = content;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -482,8 +482,8 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Вы отправили пустой файл, пожалуйста выберите не пустой файл и повторите попытку.", jsonDocument.RootElement.GetProperty("detail").GetString());
         Assert.Equal(ErrorCodes.FILE_IS_EMPTY, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -507,7 +507,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Content = content;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -515,8 +515,8 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Файл имеет неверный формат. Пожалуйста, проверьте, что загружаемый файл соответствует необходимым требованиям и форматам.", jsonDocument.RootElement.GetProperty("detail").GetString());
         Assert.Equal(ErrorCodes.DOES_NOT_MATCH_SIGNATURE, jsonDocument.RootElement.GetProperty("code").GetString());
@@ -535,7 +535,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Content = new StringContent("content");
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -563,7 +563,7 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         request.Content = null;
 
         // Act
-        using var result = await _client.SendAsync(request);
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -571,8 +571,8 @@ public class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationF
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Отправленный запрос некорректен, проверьте сигнатуру эндпоинта.", jsonDocument.RootElement.GetProperty("detail").GetString());
     }

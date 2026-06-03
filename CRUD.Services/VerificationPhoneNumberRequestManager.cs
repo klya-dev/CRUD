@@ -4,21 +4,19 @@ using Microsoft.Extensions.Options;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IVerificationPhoneNumberRequestManager"/>
-public class VerificationPhoneNumberRequestManager : IVerificationPhoneNumberRequestManager
+public sealed class VerificationPhoneNumberRequestManager : IVerificationPhoneNumberRequestManager
 {
     private readonly ApplicationDbContext _db;
     private readonly ITokenManager _tokenManager;
-    private readonly IValidator<VerificationPhoneNumberRequest> _verificationPhoneNumberRequestValidator;
     private readonly VerificationPhoneNumberRequestOptions _options;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ITelegramIntegrationManager _telegramIntegrationManager;
     private readonly ISmsSender _smsSender;
 
-    public VerificationPhoneNumberRequestManager(ApplicationDbContext db, ITokenManager tokenManager, IValidator<VerificationPhoneNumberRequest> verificationPhoneNumberRequestValidator, IOptions<VerificationPhoneNumberRequestOptions> options, IHttpContextAccessor httpContextAccessor, ITelegramIntegrationManager telegramIntegrationManager, ISmsSender smsSender)
+    public VerificationPhoneNumberRequestManager(ApplicationDbContext db, ITokenManager tokenManager, IOptions<VerificationPhoneNumberRequestOptions> options, IHttpContextAccessor httpContextAccessor, ITelegramIntegrationManager telegramIntegrationManager, ISmsSender smsSender)
     {
         _db = db;
         _tokenManager = tokenManager;
-        _verificationPhoneNumberRequestValidator = verificationPhoneNumberRequestValidator;
         _options = options.Value;
         _httpContextAccessor = httpContextAccessor;
         _telegramIntegrationManager = telegramIntegrationManager;
@@ -61,11 +59,6 @@ public class VerificationPhoneNumberRequestManager : IVerificationPhoneNumberReq
             CreatedAt = createdAt,
             Expires = createdAt.Add(_options.Expires),
         };
-
-        // Проверка валидности данных перед записью в базу
-        var validationResult = await _verificationPhoneNumberRequestValidator.ValidateAsync(verificationPhoneNumberRequest, ct);
-        if (!validationResult.IsValid)
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(VerificationPhoneNumberRequest), validationResult.Errors));
 
         // Записываем токен в базу
         await _db.VerificationPhoneNumberRequests.AddAsync(verificationPhoneNumberRequest, ct);

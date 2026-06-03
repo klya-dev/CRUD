@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class S3InitializerIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class S3InitializerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IS3Initializer _s3Initializer;
@@ -26,13 +26,13 @@ public class S3InitializerIntegrationTest : IClassFixture<TestWebApplicationFact
     //public async Task InitializeAsync_CorrectData_ReturnsTask()
     //{
     //    // Arrange
-    //    var existsFolderBefore = await _s3Manager.IsObjectExistsAsync("avatars_test");
+    //    var existsFolderBefore = await _s3Manager.IsObjectExistsAsync("avatars_test/");
 
     //    // Act
     //    await _s3Initializer.InitializeAsync();
 
     //    // Assert
-    //    var existsFolderAfter = await _s3Manager.IsObjectExistsAsync("avatars_test");
+    //    var existsFolderAfter = await _s3Manager.IsObjectExistsAsync("avatars_test/");
     //    Assert.False(existsFolderBefore);
     //    Assert.True(existsFolderAfter);
 

@@ -9,7 +9,6 @@ public interface IConfirmEmailRequestManager
     /// Добавляет сгенерированный токен в базу данных и отправляет письмо с подтверждением.
     /// </summary>
     /// <remarks>
-    /// <para>Для валидации используется <see cref="IValidator{ConfirmEmailRequest}"/>.</para>
     /// 
     /// Возможные исключения:
     /// <list type="bullet">
@@ -19,10 +18,6 @@ public interface IConfirmEmailRequestManager
     /// </item>
     /// <item>
     /// <term>Если <paramref name="userId"/> является <see cref="Guid.Empty"/></term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="ConfirmEmailRequest"/>, сущность окажется невалидна, изменения не последуют</term>
     /// <description>исключение <see cref="InvalidOperationException"/>.</description>
     /// </item>
     /// <item>
@@ -45,7 +40,7 @@ public interface IConfirmEmailRequestManager
     /// <param name="languageCode">Код языка пользователя.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="email"/> или <paramref name="languageCode"/> <see langword="null"/>.</exception>
-    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/> или если после изменений данных сущности <see cref="ConfirmEmailRequest"/>, сущность окажется невалидна.</exception>
+    /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
     /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>

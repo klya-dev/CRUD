@@ -9,7 +9,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Admin;
 
-public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
@@ -34,15 +34,15 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         int count = 2;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомления в базу
-        var notification = await DI.CreateNotificationAsync(_db);
-        var notification2 = await DI.CreateNotificationAsync(_db);
+        var notification = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
+        var notification2 = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомления пользователей в базу
-        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id);
-        var userNotification2 = await DI.CreateUserNotificationAsync(_db, user.Id, notification2.Id);
+        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id, ct: TestContext.Current.CancellationToken);
+        var userNotification2 = await DI.CreateUserNotificationAsync(_db, user.Id, notification2.Id, ct: TestContext.Current.CancellationToken);
 
         // Такой результат должен быть
         var mustResult = new List<UserNotificationDto>()
@@ -71,7 +71,7 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -79,8 +79,8 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.Deserialize<IEnumerable<UserNotificationDto>>();
 
         Assert.Equivalent(mustResult, response);
@@ -101,7 +101,7 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -109,8 +109,8 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
@@ -124,7 +124,7 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = $"{string.Format(TestConstants.ADMIN_NOTIFICATIONS_USERS_USER_ID_URL, user.Id)}?count={count}";
@@ -132,7 +132,7 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -140,8 +140,8 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.Deserialize<IEnumerable<UserNotificationDto>>();
 
         Assert.NotNull(response);
@@ -160,7 +160,7 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         string content = "content";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         var createNotificationDto = new CreateNotificationDto()
@@ -192,10 +192,10 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         {
             notificationFromClient = notification;
         });
-        await hubConnection.StartAsync();
+        await hubConnection.StartAsync(TestContext.Current.CancellationToken);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -203,19 +203,19 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.Deserialize<NotificationDto>();
 
         Assert.NotNull(response);
 
         // Уведомление и вправду создалось
-        var notificationFromDbAfterCreate = await _db.Notifications.AsNoTracking().FirstAsync(x => x.Id == response.Id);
+        var notificationFromDbAfterCreate = await _db.Notifications.AsNoTracking().FirstAsync(x => x.Id == response.Id, TestContext.Current.CancellationToken);
         Assert.Equal(createNotificationDto.Title, notificationFromDbAfterCreate.Title);
         Assert.Equal(createNotificationDto.Content, notificationFromDbAfterCreate.Content);
 
         // Уведомление пользователя и вправду создалось
-        var userNotificationFromDbAfterCreate = await _db.UserNotifications.AsNoTracking().FirstAsync(x => x.NotificationId == notificationFromDbAfterCreate.Id);
+        var userNotificationFromDbAfterCreate = await _db.UserNotifications.AsNoTracking().FirstAsync(x => x.NotificationId == notificationFromDbAfterCreate.Id, TestContext.Current.CancellationToken);
         Assert.Equal(userNotificationFromDbAfterCreate.UserId, userIdGuid);
 
         // Проверяем то, что пришло клиенту с хаба
@@ -234,9 +234,9 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         string content = "content";
 
         // Добавляем пользователей в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
-        var user2 = await DI.CreateUserAsync(_db, username: "test", email: "test@test.ru", phoneNumber: "123456789");
+        var user2 = await DI.CreateUserAsync(_db, username: "test", email: "test@test.ru", phoneNumber: "123456789", ct: TestContext.Current.CancellationToken);
 
         var createNotificationSelectedUsersDto = new CreateNotificationSelectedUsersDto()
         {
@@ -261,8 +261,10 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
             new Claim(ClaimTypes.NameIdentifier, userIdGuid.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
             new Claim(ClaimTypes.Role, user.Role),
-            new Claim("language_code", user.LanguageCode),
-            new Claim("premium", user.IsPremium.ToString())
+            new Claim(UserClaimTypes.LanguageCode, user.LanguageCode),
+            new Claim(UserClaimTypes.IsEmailConfirm, user.IsEmailConfirm.ToString()),
+            new Claim(UserClaimTypes.IsPhoneNumberConfirm, user.IsPhoneNumberConfirm.ToString()),
+            new Claim(UserClaimTypes.IsPremium, user.IsPremium.ToString())
         ];
         var token = _tokenManager.GenerateAuthResponse(claims, user.Username).AccessToken;
 
@@ -282,10 +284,10 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         {
             notificationFromClient = notification;
         });
-        await hubConnection.StartAsync();
+        await hubConnection.StartAsync(TestContext.Current.CancellationToken);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -293,23 +295,23 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         Assert.Equal("application/json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
         var response = jsonDocument.Deserialize<NotificationDto>();
 
         Assert.NotNull(response);
 
         // Уведомление и вправду создалось | нахожу по DTO
-        var notificationFromDbAfterCreate = await _db.Notifications.AsNoTracking().FirstAsync(x => x.Id == response.Id);
+        var notificationFromDbAfterCreate = await _db.Notifications.AsNoTracking().FirstAsync(x => x.Id == response.Id, TestContext.Current.CancellationToken);
         Assert.Equal(createNotificationSelectedUsersDto.Notification.Title, notificationFromDbAfterCreate.Title);
         Assert.Equal(createNotificationSelectedUsersDto.Notification.Content, notificationFromDbAfterCreate.Content);
 
         // Уведомление для первого пользователя и вправду создалось
-        var userNotificationFromDbAfterCreate = await _db.UserNotifications.AsNoTracking().FirstAsync(x => x.NotificationId == notificationFromDbAfterCreate.Id);
+        var userNotificationFromDbAfterCreate = await _db.UserNotifications.AsNoTracking().FirstAsync(x => x.NotificationId == notificationFromDbAfterCreate.Id, TestContext.Current.CancellationToken);
         Assert.Equal(userNotificationFromDbAfterCreate.UserId, userIdGuid);
 
         // Уведомление для второго пользователя и вправду не создалось (т.к его нет в списке)
-        var user2NotificationFromDbAfterCreate = await _db.UserNotifications.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == user2.Id);
+        var user2NotificationFromDbAfterCreate = await _db.UserNotifications.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == user2.Id, TestContext.Current.CancellationToken);
         Assert.Null(user2NotificationFromDbAfterCreate);
 
         // Проверяем то, что пришло клиенту с хаба
@@ -324,13 +326,13 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         var client = _factory.HttpClient;
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомление в базу
-        var notification = await DI.CreateNotificationAsync(_db);
+        var notification = await DI.CreateNotificationAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем уведомление пользователя в базу
-        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id);
+        var userNotification = await DI.CreateUserNotificationAsync(_db, user.Id, notification.Id, ct: TestContext.Current.CancellationToken);
 
         // Запрос
         var url = $"{string.Format(TestConstants.ADMIN_NOTIFICATIONS_NOTIFICATIONS_ID_URL, notification.Id)}";
@@ -339,7 +341,7 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -347,7 +349,7 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         Assert.Null(result.Content.Headers.ContentType);
 
         // Уведомление и вправду удалилась
-        var notificationFromDbAfterDelete = await _db.Notifications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == notification.Id);
+        var notificationFromDbAfterDelete = await _db.Notifications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == notification.Id, TestContext.Current.CancellationToken);
         Assert.Null(notificationFromDbAfterDelete);
     }
 
@@ -366,7 +368,7 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         TestConstants.AddIdempotencyKey(request);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -374,8 +376,8 @@ public class AdminNotificationsSystemTest : IClassFixture<TestWebApplicationFact
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
-        await using var contentStream = await result.Content.ReadAsStreamAsync();
-        using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorCodes.NOTIFICATION_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }

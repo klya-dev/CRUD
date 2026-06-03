@@ -3,7 +3,7 @@
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IUserApiKeyManager"/>
-public class UserApiKeyManager : IUserApiKeyManager
+public sealed class UserApiKeyManager : IUserApiKeyManager
 {
     /// <summary>
     /// Количество генерируемых безопасных байтов.

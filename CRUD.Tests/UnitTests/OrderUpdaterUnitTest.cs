@@ -5,11 +5,10 @@ using FluentValidation;
 
 namespace CRUD.Tests.UnitTests;
 
-public class OrderUpdaterUnitTest
+public sealed class OrderUpdaterUnitTest
 {
     private readonly OrderUpdater _orderUpdater;
     private readonly ApplicationDbContext _db;
-    private readonly Mock<IValidator<Order>> _mockOrderValidator;
     private readonly Mock<IOrderIssuer> _mockOrderIssuer;
 
     public OrderUpdaterUnitTest()
@@ -17,10 +16,9 @@ public class OrderUpdaterUnitTest
         var db = DbContextGenerator.GenerateDbContextTestInMemory();
         _db = db;
 
-        _mockOrderValidator = new();
         _mockOrderIssuer = new();
 
-        _orderUpdater = new OrderUpdater(_db, _mockOrderValidator.Object, _mockOrderIssuer.Object);
+        _orderUpdater = new OrderUpdater(_db, _mockOrderIssuer.Object);
     }
 
     [Fact]
@@ -28,13 +26,13 @@ public class OrderUpdaterUnitTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем продукт в базу
-        await DI.CreateProductAsync(_db);
+        await DI.CreateProductAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем заказ в базу
-        var order = await DI.CreateOrderAsync(_db, user.Id, status: OrderStatuses.Accept, paymentStatus: PaymentStatuses.Pending);
+        var order = await DI.CreateOrderAsync(_db, user.Id, status: OrderStatuses.Accept, paymentStatus: PaymentStatuses.Pending, ct: TestContext.Current.CancellationToken);
 
         var orderIdGuid = order.Id;
 
@@ -45,14 +43,11 @@ public class OrderUpdaterUnitTest
             Object = new { id = orderIdGuid, status = PaymentStatuses.Succeeded, paid = true }
         };
 
-        // Валидация проходит
-        _mockOrderValidator.Setup(x => x.ValidateAsync(It.IsAny<Order>(), default)).ReturnsAsync(new ValidationResult());
-
         // Успешная выдача заказа
         _mockOrderIssuer.Setup(x => x.IssueAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult.Success());
 
         // Act
-        var result = await _orderUpdater.UpdateOrderInfoAsync(paymentWebHook);
+        var result = await _orderUpdater.UpdateOrderInfoAsync(paymentWebHook, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -72,7 +67,7 @@ public class OrderUpdaterUnitTest
         };
 
         // Act
-        var result = await _orderUpdater.UpdateOrderInfoAsync(paymentWebHook);
+        var result = await _orderUpdater.UpdateOrderInfoAsync(paymentWebHook, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);

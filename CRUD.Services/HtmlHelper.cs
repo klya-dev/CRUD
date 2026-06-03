@@ -5,7 +5,7 @@ using Ganss.Xss;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IHtmlHelper"/>
-public class HtmlHelper : IHtmlHelper
+public sealed class HtmlHelper : IHtmlHelper
 {
     private readonly HtmlSanitizer _htmlSanitizer;
 

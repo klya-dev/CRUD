@@ -36,7 +36,7 @@ public static class ForwardedHeadersHelper
 
                 // Добавляем KnownNetworks
                 if (IPAddress.TryParse(ipPart, out var networkIp) && int.TryParse(prefixPart, out var prefix))
-                    options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(networkIp, prefix));
+                    options.KnownIPNetworks.Add(new IPNetwork(networkIp, prefix));
                 else
                     throw new InvalidOperationException($"Не удалось добавить \"{entry}\"");
             }
@@ -44,7 +44,7 @@ public static class ForwardedHeadersHelper
             {
                 // Одиночный IP
                 if (IPAddress.TryParse(entry, out var singleIp))
-                    options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(singleIp, 0));
+                    options.KnownIPNetworks.Add(new IPNetwork(singleIp, 0));
                 else
                     throw new InvalidOperationException($"Не удалось добавить \"{entry}\"");
             }

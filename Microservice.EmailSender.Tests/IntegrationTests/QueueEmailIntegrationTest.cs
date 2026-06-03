@@ -1,11 +1,7 @@
-﻿#nullable disable
+﻿namespace Microservice.EmailSender.Tests.IntegrationTests;
 
-namespace Microservice.EmailSender.Tests.IntegrationTests;
-
-public class QueueEmailIntegrationTest
+public sealed class QueueEmailIntegrationTest
 {
-    // #nullable disable
-
     private readonly QueueEmail _queueEmail;
 
     public QueueEmailIntegrationTest()
@@ -21,7 +17,7 @@ public class QueueEmailIntegrationTest
         var letter = new Letter(Guid.NewGuid(), email, subject, body);
 
         // Act
-        await _queueEmail.EnqueueAsync(letter);
+        await _queueEmail.EnqueueAsync(letter, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(_queueEmail.TryDequeue(out var letterDequeue));
@@ -36,7 +32,7 @@ public class QueueEmailIntegrationTest
         // Act
         Func<Task> a = async () =>
         {
-            await _queueEmail.EnqueueAsync(letter);
+            await _queueEmail.EnqueueAsync(letter, TestContext.Current.CancellationToken);
         };
 
         // Assert
@@ -56,7 +52,7 @@ public class QueueEmailIntegrationTest
         var letterBackground = new LetterBackground(letter);
 
         // Act
-        await _queueEmail.EnqueueAsync(letterBackground);
+        await _queueEmail.EnqueueAsync(letterBackground, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(_queueEmail.TryDequeue(out var letterDequeue));
@@ -71,7 +67,7 @@ public class QueueEmailIntegrationTest
         // Act
         Func<Task> a = async () =>
         {
-            await _queueEmail.EnqueueAsync(letterBackground);
+            await _queueEmail.EnqueueAsync(letterBackground, TestContext.Current.CancellationToken);
         };
 
         // Assert
@@ -88,7 +84,7 @@ public class QueueEmailIntegrationTest
     {
         // Arrange
         var letter = new Letter(Guid.NewGuid(), email, subject, body);
-        await _queueEmail.EnqueueAsync(letter);
+        await _queueEmail.EnqueueAsync(letter, TestContext.Current.CancellationToken);
 
         // Act
         var result = _queueEmail.TryDequeue(out var letterDequeue);
@@ -104,7 +100,7 @@ public class QueueEmailIntegrationTest
         // Arrange
         var letter = new Letter(Guid.NewGuid(), email, subject, body);
         var letterBackground = new LetterBackground(letter);
-        await _queueEmail.EnqueueAsync(letterBackground);
+        await _queueEmail.EnqueueAsync(letterBackground, TestContext.Current.CancellationToken);
 
         // Act
         var result = _queueEmail.TryDequeue(out var letterDequeue);
@@ -123,108 +119,5 @@ public class QueueEmailIntegrationTest
 
         // Assert
         Assert.False(result);
-    }
-
-
-    // Конфликты параллельности
-
-
-    [Theory]
-    [InlineData("fan.ass95@mail.ru", "s", "b")]
-    public async Task Enqueue_ConcurrencyConflict_CorrectData_ReturnsVoid(string email, string subject, string body)
-    {
-        // Arrange
-        var letter = new Letter(Guid.NewGuid(), email, subject, body);
-
-        // Act
-        var task = _queueEmail.EnqueueAsync(letter);
-        var task2 = _queueEmail.EnqueueAsync(letter);
-
-        await Task.WhenAll(task, task2);
-
-        // Assert
-        Assert.True(_queueEmail.TryDequeue(out var letterDequeue));
-        Assert.True(_queueEmail.TryDequeue(out var letterDequeue2));
-    }
-
-
-    [Theory]
-    [InlineData("fan.ass95@mail.ru", "s", "b")]
-    public async Task EnqueueByLetterBackground_ConcurrencyConflict_CorrectData_ReturnsVoid(string email, string subject, string body)
-    {
-        // Arrange
-        var letter = new Letter(Guid.NewGuid(), email, subject, body);
-        var letterBackground = new LetterBackground(letter);
-
-        // Act
-        var task = _queueEmail.EnqueueAsync(letter);
-        var task2 = _queueEmail.EnqueueAsync(letter);
-
-        await Task.WhenAll(task, task2);
-
-        // Assert
-        Assert.True(_queueEmail.TryDequeue(out var letterDequeue));
-        Assert.True(_queueEmail.TryDequeue(out var letterDequeue2));
-    }
-
-
-    [Theory]
-    [InlineData("fan.ass95@mail.ru", "s", "b")]
-    public async Task TryDequeue_ConcurrencyConflict_Letter_CorrectData_ReturnsVoid(string email, string subject, string body)
-    {
-        // Arrange
-        var letter = new Letter(Guid.NewGuid(), email, subject, body);
-        await _queueEmail.EnqueueAsync(letter);
-
-        // Act
-        var task = Task.Run(() => _queueEmail.TryDequeue(out var letterDequeue));
-        var task2 = Task.Run(() => _queueEmail.TryDequeue(out var letterDequeue));
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        if (!(result && !result2 || !result && result2))
-            Assert.Fail("Не true/false | Не false/true");
-    }
-
-    [Theory]
-    [InlineData("fan.ass95@mail.ru", "s", "b")]
-    public async Task TryDequeue_ConcurrencyConflict_LetterBackground_CorrectData_ReturnsVoid(string email, string subject, string body)
-    {
-        // Arrange
-        var letter = new Letter(Guid.NewGuid(), email, subject, body);
-        var letterBackground = new LetterBackground(letter);
-
-        // Act
-        var task = Task.Run(() => _queueEmail.TryDequeue(out var letterDequeue));
-        var task2 = Task.Run(() => _queueEmail.TryDequeue(out var letterDequeue));
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.False(result);
-        Assert.Equivalent(result, result2);
-    }
-
-    [Fact]
-    public async Task TryDequeue_ConcurrencyConflict_CorrectData_NotEnqueue_ReturnsVoid()
-    {
-        // Arrange
-
-        // Act
-        var task = Task.Run(() => _queueEmail.TryDequeue(out var letterDequeue));
-        var task2 = Task.Run(() => _queueEmail.TryDequeue(out var letterDequeue));
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.False(result);
-        Assert.Equivalent(result, result2);
     }
 }

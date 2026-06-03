@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции S3.
 /// </summary>
-public class S3Options
+public sealed class S3Options
 {
     /// <summary>
     /// Название секции.
@@ -13,30 +13,30 @@ public class S3Options
     /// <summary>
     /// Ключ доступа.
     /// </summary>
-    public required string AccessKey { get; set; }
+    public required string AccessKey { get; init; }
 
     /// <summary>
     /// Секретный ключ.
     /// </summary>
-    public required string SecretKey { get; set; }
+    public required string SecretKey { get; init; }
 
     /// <summary>
     /// Имя бакета.
     /// </summary>
-    public required string BucketName { get; set; }
+    public required string BucketName { get; init; }
 
     /// <summary>
     /// URL сервиса.
     /// </summary>
-    public required string ServiceURL { get; set; }
+    public required string ServiceURL { get; init; }
 
     /// <summary>
     /// Директория для логов относительно <see cref="Microsoft.AspNetCore.Hosting.IWebHostEnvironment.WebRootPath"/>.
     /// </summary>
-    public required string LogsDirectory { get; set; }
+    public required string LogsDirectory { get; init; }
 
     /// <summary>
     /// Директория для логов в S3.
     /// </summary>
-    public required string LogsInS3Directory { get; set; }
+    public required string LogsInS3Directory { get; init; }
 }

@@ -2,7 +2,7 @@
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class GrpcTokenManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class GrpcTokenManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IGrpcTokenManager _grpctokenManager;

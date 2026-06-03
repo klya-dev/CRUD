@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace CRUD.Tests.UnitTests;
 
-public class TelegramIntegrationManagerUnitTest
+public sealed class TelegramIntegrationManagerUnitTest
 {
     private readonly TelegramIntegrationManager _telegramIntegrationManager;
     private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
@@ -74,7 +74,7 @@ public class TelegramIntegrationManagerUnitTest
             .ReturnsAsync(queueStuff.Dequeue);
 
         // Act
-        var result = await _telegramIntegrationManager.SendVerificationCodeTelegramAsync(phoneNumber, code);
+        var result = await _telegramIntegrationManager.SendVerificationCodeTelegramAsync(phoneNumber, code, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(result);
@@ -106,7 +106,7 @@ public class TelegramIntegrationManagerUnitTest
             .ReturnsAsync(responseMessage);
 
         // Act
-        var result = await _telegramIntegrationManager.SendVerificationCodeTelegramAsync(phoneNumber, code);
+        var result = await _telegramIntegrationManager.SendVerificationCodeTelegramAsync(phoneNumber, code, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(result);
@@ -138,7 +138,7 @@ public class TelegramIntegrationManagerUnitTest
             .ReturnsAsync(responseMessage);
 
         // Act
-        var result = await _telegramIntegrationManager.CheckConnectionAsync();
+        var result = await _telegramIntegrationManager.CheckConnectionAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(result);
@@ -170,7 +170,7 @@ public class TelegramIntegrationManagerUnitTest
             .ReturnsAsync(responseMessage);
 
         // Act
-        var result = await _telegramIntegrationManager.CheckConnectionAsync();
+        var result = await _telegramIntegrationManager.CheckConnectionAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(result);
@@ -202,14 +202,14 @@ public class TelegramIntegrationManagerUnitTest
             .ReturnsAsync(responseMessage);
 
         // Act
-        var result = await _telegramIntegrationManager.CheckConnectionAsync();
+        var result = await _telegramIntegrationManager.CheckConnectionAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(result);
     }
 
     [Fact]
-    public async Task CheckConnectionAsync_WhenOkIsTrue_ReturnFalse()
+    public async Task CheckConnectionAsync_WhenOkIsTrue_ReturnTrue()
     {
         // Arrange
         var responseContent = new
@@ -233,9 +233,9 @@ public class TelegramIntegrationManagerUnitTest
             .ReturnsAsync(responseMessage);
 
         // Act
-        var result = await _telegramIntegrationManager.CheckConnectionAsync();
+        var result = await _telegramIntegrationManager.CheckConnectionAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.False(result);
+        Assert.True(result);
     }
 }

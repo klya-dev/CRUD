@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции метрик.
 /// </summary>
-public class MetricsOptions
+public sealed class MetricsOptions
 {
     /// <summary>
     /// Название секции.
@@ -13,5 +13,5 @@ public class MetricsOptions
     /// <summary>
     /// URL Prometheus'а с портом.
     /// </summary>
-    public required string PrometheusURL { get; set; }
+    public required string PrometheusURL { get; init; }
 }

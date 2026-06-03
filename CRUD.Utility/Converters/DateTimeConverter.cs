@@ -7,7 +7,7 @@ namespace CRUD.Utility.Converters;
 /// <summary>
 /// <see cref="DateTime"/> конвертер, который меняет формат записи даты на <see cref="DateTimeFormats.Default"/> или указанный.
 /// </summary>
-public class DateTimeConverter : JsonConverter<DateTime>
+public sealed class DateTimeConverter : JsonConverter<DateTime>
 {
     private readonly string _format;
     private readonly bool _useUniversalTime;

@@ -10,18 +10,6 @@ public interface IOrderIssuer
     /// </summary>
     /// <remarks>
     /// 
-    /// Возможные исключения:
-    /// <list type="bullet">
-    /// <item>
-    /// <term>Если после изменений данных сущности <see cref="Order"/>, сущность окажется невалидна, изменения не последуют</term>
-    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
-    /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
-    /// </item>
-    /// </list>
-    /// 
     /// Возможные ошибки сервиса:
     /// <list type="bullet">
     /// <item>
@@ -45,10 +33,7 @@ public interface IOrderIssuer
     /// </remarks>
     /// <param name="orderId">Id заказа.</param>
     /// <param name="ct">Токен отмены.</param>
-    /// <exception cref="InvalidOperationException">Если после изменений данных сущности <see cref="Order"/>, сущность окажется невалидна.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/> результат сервиса.</returns>
     Task<ServiceResult> IssueAsync(Guid orderId, CancellationToken ct = default);
 }

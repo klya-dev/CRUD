@@ -5,16 +5,14 @@ using System.Text.Json;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IOrderUpdater"/>
-public class OrderUpdater : IOrderUpdater
+public sealed class OrderUpdater : IOrderUpdater
 {
     private readonly ApplicationDbContext _db;
-    private readonly IValidator<Order> _orderValidator;
     private readonly IOrderIssuer _orderIssuer;
 
-    public OrderUpdater(ApplicationDbContext db, IValidator<Order> orderValidator, IOrderIssuer orderIssuer)
+    public OrderUpdater(ApplicationDbContext db, IOrderIssuer orderIssuer)
     {
         _db = db;
-        _orderValidator = orderValidator;
         _orderIssuer = orderIssuer;
     }
 
@@ -26,25 +24,18 @@ public class OrderUpdater : IOrderUpdater
         using var jsonDocument = JsonDocument.Parse(JsonSerializer.Serialize(paymentWebHook.Object));
 
         var orderId = jsonDocument.RootElement.GetProperty("id").GetGuid();
-        var status = jsonDocument.RootElement.GetProperty("status").GetString() ?? string.Empty; // Валидатор перехватит невалидный статус в любом случае
+        var status = jsonDocument.RootElement.GetProperty("status").GetString() ?? throw new NullReferenceException("The status must not be null.");
         var paid = jsonDocument.RootElement.GetProperty("paid").GetBoolean();
 
-        // Заказ не найден
-        var orderFromDb = await _db.Orders.FirstOrDefaultAsync(x => x.Id == orderId, ct);
-        if (orderFromDb == null)
-            return ServiceResult.Fail(ErrorMessages.OrderNotFound);
-
         // Обновляем данные заказа
-        orderFromDb.PaymentStatus = status;
-        orderFromDb.Paid = paid;
+        var updatedRows = await _db.Orders.Where(x => x.Id == orderId)
+            .ExecuteUpdateAsync(x => 
+                x.SetProperty(p => p.PaymentStatus, status)
+                .SetProperty(p => p.Paid, paid), ct);
 
-        // Проверка валидности данных перед записью в базу
-        var validationResult = await _orderValidator.ValidateAsync(orderFromDb, ct);
-        if (!validationResult.IsValid)
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(Order), validationResult.Errors));
-
-        _db.Orders.Update(orderFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Заказ не найден
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.OrderNotFound);
 
         // Выдача заказа
         var result = await _orderIssuer.IssueAsync(orderId, CancellationToken.None); // Обязательно выдаём заказ, т.к уже приняли новый статус оплаты

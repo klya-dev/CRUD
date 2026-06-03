@@ -8,7 +8,7 @@
 /// <para>Значения берутся из <see cref="IOptionsMonitor{TOptions}"/>, где <see cref="TOptions"/> - <see cref="AuthOptions"/> и <see cref="AuthWebApiOptions"/>.</para>
 /// <para>При изменении конфигурации срабатывает <see cref="IOptionsMonitor{TOptions}.OnChange(Action{TOptions, string?})"/>, указанные значения обновляются.</para>
 /// </remarks>
-public class PostConfigureJwtBearerOptions : IPostConfigureOptions<JwtBearerOptions>
+public sealed class PostConfigureJwtBearerOptions : IPostConfigureOptions<JwtBearerOptions>
 {
     // Т.е при изменении конфигурации Auth/AuthWebApi всё грамотно меняется в делегате (JwtBearerOptions, который в Program.cs)
 

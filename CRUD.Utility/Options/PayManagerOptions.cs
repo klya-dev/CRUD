@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции PayManager'а.
 /// </summary>
-public class PayManagerOptions
+public sealed class PayManagerOptions
 {
     /// <summary>
     /// Название секции.
@@ -13,17 +13,17 @@ public class PayManagerOptions
     /// <summary>
     /// URL сервиса (провайдера).
     /// </summary>
-    public required string ServiceURL { get; set; }
+    public required string ServiceURL { get; init; }
 
     /// <summary>
     /// Id магазина.
     /// </summary>
-    public required string ShopId { get; set; }
+    public required string ShopId { get; init; }
 
     /// <summary>
     /// API-ключ.
     /// </summary>
-    public required string ApiKey { get; set; }
+    public required string ApiKey { get; init; }
 
     /// <summary>
     /// Список безопасных (разрешённых) IP-адресов через ';'.
@@ -31,5 +31,5 @@ public class PayManagerOptions
     /// <remarks>
     /// Список отсюда <see href="https://yookassa.ru/developers/using-api/webhooks#ip"/>.
     /// </remarks>
-    public required string SafeListIp { get; set; }
+    public required string SafeListIp { get; init; }
 }

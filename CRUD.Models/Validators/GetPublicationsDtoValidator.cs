@@ -6,9 +6,9 @@
 /// <remarks>
 /// Валидация реализована через Fluent Validation.
 /// </remarks>
-public class GetPublicationsDtoValidator : AbstractValidator<GetPublicationsDto>
+public sealed class GetPublicationsDtoValidator : AbstractValidator<GetPublicationsDto>
 {
-    public GetPublicationsDtoValidator(IValidatorsLocalizer localizer)
+    public GetPublicationsDtoValidator(IValidatorLocalizer localizer)
     {
         RuleFor(x => x.Count).Count(1, 100, localizer);
     }

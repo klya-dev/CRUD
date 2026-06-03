@@ -2,7 +2,7 @@
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 
-public class StaticFilesSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class StaticFilesSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
 
@@ -20,7 +20,7 @@ public class StaticFilesSystemTest : IClassFixture<TestWebApplicationFactory>
         var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.PUBLIC_URL);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -37,7 +37,7 @@ public class StaticFilesSystemTest : IClassFixture<TestWebApplicationFactory>
         var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.PUBLIC_README_URL);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -48,18 +48,18 @@ public class StaticFilesSystemTest : IClassFixture<TestWebApplicationFactory>
         Assert.True(result.Headers.CacheControl?.Public); // Неделя
     }
 
-    [Fact] // default.png вернёт NotFound т.к его нельзя получить клиенту
-    public async Task Get_Default_Png_ReturnsNotFound()
+    [Fact] // private.txt вернёт NotFound т.к его нельзя получить клиенту
+    public async Task Get_Private_Txt_ReturnsNotFound()
     {
         var client = _factory.HttpClient;
 
         // Arrange
-        var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.PUBLIC_URL + "default.png");
-        var request2 = new HttpRequestMessage(HttpMethod.Get, "default.png");
+        var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.PUBLIC_URL + "private.txt");
+        var request2 = new HttpRequestMessage(HttpMethod.Get, "private.txt");
 
         // Act
-        using var result = await client.SendAsync(request);
-        using var result2 = await client.SendAsync(request2);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        using var result2 = await client.SendAsync(request2, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);

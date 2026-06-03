@@ -5,11 +5,11 @@ namespace CRUD.Models.Dtos.OAuth;
 /// <summary>
 /// DTO-модель завершения регистрации через OAuth.
 /// </summary>
-public class OAuthCompleteRegistrationDto
+public sealed record OAuthCompleteRegistrationDto
 {
     /// <summary>
     /// Телефонный номер.
     /// </summary>
     [JsonPropertyName("phoneNumber")]
-    public required string PhoneNumber { get; set; }
+    public required string PhoneNumber { get; init; }
 }

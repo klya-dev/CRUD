@@ -5,7 +5,7 @@ namespace CRUD.WebApi.HealthChecks;
 /// <summary>
 /// Проверяет подключение к платёжному серверу.
 /// </summary>
-public class PaymentConnectionHealthCheck : IHealthCheck
+public sealed class PaymentConnectionHealthCheck : IHealthCheck
 {
     private readonly IPayManager _payManager;
 

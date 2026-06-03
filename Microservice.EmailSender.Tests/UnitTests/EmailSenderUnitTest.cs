@@ -7,7 +7,7 @@ using Moq;
 
 namespace Microservice.EmailSender.Tests.UnitTests;
 
-public class EmailSenderUnitTest
+public sealed class EmailSenderUnitTest
 {
     private readonly Services.EmailSender _emailSender;
     private readonly Mock<IOptions<SmtpServerOptions>> _options;
@@ -79,7 +79,7 @@ public class EmailSenderUnitTest
         Assert.Contains(nameof(letter), ex.ParamName);
 
         // Отключаемся
-        await _emailSender.DisconnectAsync(smtpClient);
+        await _emailSender.DisconnectAsync(smtpClient, TestContext.Current.CancellationToken);
     }
 
     [Fact]

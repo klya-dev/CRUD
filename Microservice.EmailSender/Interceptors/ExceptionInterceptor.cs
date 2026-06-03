@@ -12,7 +12,7 @@ namespace Microservice.EmailSender.Interceptors;
 /// <para><c>CorrelationId</c> добавляется в <see cref="RpcException.Trailers"/> только, если поймалось исключение.</para>
 /// <see href="https://learn.microsoft.com/ru-ru/aspnet/core/grpc/interceptors?view=aspnetcore-10.0"/>.
 /// </remarks>
-public class ExceptionInterceptor : Interceptor
+public sealed class ExceptionInterceptor : Interceptor
 {
     private readonly ILogger<ExceptionInterceptor> _logger;
     private readonly Guid _correlationId;

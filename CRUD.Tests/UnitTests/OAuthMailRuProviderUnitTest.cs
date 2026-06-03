@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace CRUD.Tests.UnitTests;
 
-public class OAuthMailRuProviderUnitTest
+public sealed class OAuthMailRuProviderUnitTest
 {
     private readonly OAuthMailRuProvider _oAuthMailRuProvider;
     private readonly Mock<IOptions<OAuthMailRuOptions>> _mockOptions;
@@ -83,7 +83,7 @@ public class OAuthMailRuProviderUnitTest
         _mockMemoryCache.Setup(x => x.CreateEntry(It.IsAny<object>())).Returns(cacheEntry);
 
         // Act
-        var result = await _oAuthMailRuProvider.GetAuthorizationLinkAsync();
+        var result = await _oAuthMailRuProvider.GetAuthorizationLinkAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -159,7 +159,7 @@ public class OAuthMailRuProviderUnitTest
             .ReturnsAsync(queueStuff.Dequeue);
 
         // Act
-        var result = await _oAuthMailRuProvider.GetAccessTokenAsync(code, state);
+        var result = await _oAuthMailRuProvider.GetAccessTokenAsync(code, state, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -228,7 +228,7 @@ public class OAuthMailRuProviderUnitTest
             .ReturnsAsync(queueStuff.Dequeue);
 
         // Act
-        var result = await _oAuthMailRuProvider.GetUserInfoAsync(accessToken);
+        var result = await _oAuthMailRuProvider.GetUserInfoAsync(accessToken, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);

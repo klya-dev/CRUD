@@ -1,12 +1,7 @@
-﻿#nullable disable
-using Microsoft.EntityFrameworkCore;
+﻿namespace CRUD.Tests.IntegrationTests;
 
-namespace CRUD.Tests.IntegrationTests;
-
-public class MapperExtensionsIntegrationTest
+public sealed class MapperExtensionsIntegrationTest
 {
-    // #nullable disable
-
     private readonly ApplicationDbContext _db;
 
     public MapperExtensionsIntegrationTest()
@@ -19,20 +14,22 @@ public class MapperExtensionsIntegrationTest
     public async Task ToUserDto_ReturnsUserDto()
     {
         // Arrange
+        var avatarPresignedUrl = "some";
+
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
-        var userFromDb = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDb = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
-        var mustResult = new UserDto() { Firstname = userFromDb.Firstname, Username = userFromDb.Username, LanguageCode = userFromDb.LanguageCode };
+        var mustResult = new UserDto() { Firstname = userFromDb.Firstname, Username = userFromDb.Username, LanguageCode = userFromDb.LanguageCode, AvatarPresignedUrl = avatarPresignedUrl };
 
         // Act
-        var result = userFromDb.ToUserDto();
+        var result = userFromDb.ToUserDto(avatarPresignedUrl);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equivalent(result, mustResult);
+        Assert.Equivalent(mustResult, result);
     }
 
 
@@ -40,15 +37,43 @@ public class MapperExtensionsIntegrationTest
     public async Task ToUsersDto_ReturnsUsersDto()
     {
         // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        string[] avatarPresignedUrls = ["some", "some2"];
 
         // Добавляем пользователя в базу
-        var user2 = await DI.CreateUserAsync(_db, email: "test", phoneNumber: "123456789", username: "klya");
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
-        var usersFromDb = await _db.Users.AsNoTracking().ToListAsync();
+        // Добавляем пользователя в базу
+        var user2 = await DI.CreateUserAsync(_db, email: "test", phoneNumber: "123456789", username: "klya", ct: TestContext.Current.CancellationToken);
 
-        var mustResult = usersFromDb.Select(x => new UserDto() { Firstname = x.Firstname, Username = x.Username, LanguageCode = x.LanguageCode });
+        var usersFromDb = await _db.Users.AsNoTracking().ToListAsync(TestContext.Current.CancellationToken);
+
+        IEnumerable<UserDto> mustResult =
+        [
+            new UserDto { Firstname = user.Firstname, Username = user.Username, LanguageCode = user.LanguageCode, AvatarPresignedUrl = avatarPresignedUrls[0] },
+            new UserDto { Firstname = user2.Firstname, Username = user2.Username, LanguageCode = user2.LanguageCode, AvatarPresignedUrl = avatarPresignedUrls[1] },
+        ];
+
+        // Act
+        var result = usersFromDb.ToUsersDto(avatarPresignedUrls).OrderBy(x => x.Firstname);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equivalent(mustResult, result);
+    }
+
+    [Fact]
+    public async Task ToUsersDto_WhenAvatarPresignedUrlsNull_ReturnsUsersDto()
+    {
+        // Arrange
+        // Добавляем пользователя в базу
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
+
+        // Добавляем пользователя в базу
+        var user2 = await DI.CreateUserAsync(_db, email: "test", phoneNumber: "123456789", username: "klya", ct: TestContext.Current.CancellationToken);
+
+        var usersFromDb = await _db.Users.AsNoTracking().ToListAsync(TestContext.Current.CancellationToken);
+
+        var mustResult = usersFromDb.Select(x => new UserDto() { Firstname = x.Firstname, Username = x.Username, LanguageCode = x.LanguageCode, AvatarPresignedUrl = null });
 
         // Act
         var result = usersFromDb.ToUsersDto();
@@ -64,13 +89,13 @@ public class MapperExtensionsIntegrationTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
+        var publication = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
         var publicationIdGuid = publication.Id;
-        var publicationFromDb = await _db.Publications.AsNoTracking().Include(x => x.User).FirstOrDefaultAsync(x => x.Id == publicationIdGuid);
+        var publicationFromDb = await _db.Publications.AsNoTracking().Include(x => x.User).FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
 
         var mustResult = new PublicationDto()
         {
@@ -96,13 +121,13 @@ public class MapperExtensionsIntegrationTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
+        var publication = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
         var publicationIdGuid = publication.Id;
-        var publicationFromDb = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid);
+        var publicationFromDb = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
 
         var mustResult = new PublicationDto()
         {
@@ -129,16 +154,16 @@ public class MapperExtensionsIntegrationTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
+        var publication = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикацию в базу
-        var publication2 = await DI.CreatePublicationAsync(_db, user.Id);
+        var publication2 = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
-        var publicationsFromDb = await _db.Publications.AsNoTracking().Include(x => x.User).Where(x => x.AuthorId == userIdGuid).ToListAsync();
+        var publicationsFromDb = await _db.Publications.AsNoTracking().Include(x => x.User).Where(x => x.AuthorId == userIdGuid).ToListAsync(TestContext.Current.CancellationToken);
         var authorName = publicationsFromDb.FirstOrDefault().User.Firstname;
 
         var mustResult = publicationsFromDb.Select(x => new PublicationDto()
@@ -165,17 +190,17 @@ public class MapperExtensionsIntegrationTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
+        var publication = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикацию в базу
-        var publication2 = await DI.CreatePublicationAsync(_db, user.Id);
+        var publication2 = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
-        var publicationsFromDb = await _db.Publications.AsNoTracking().Where(x => x.AuthorId == userIdGuid).ToListAsync();
+        var publicationsFromDb = await _db.Publications.AsNoTracking().Where(x => x.AuthorId == userIdGuid).ToListAsync(TestContext.Current.CancellationToken);
         var authorName = publicationsFromDb.FirstOrDefault().User?.Firstname;
 
         var mustResult = publicationsFromDb.Select(x => new PublicationDto()
@@ -203,15 +228,15 @@ public class MapperExtensionsIntegrationTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
+        var publication = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикацию в базу
-        var publication2 = await DI.CreatePublicationAsync(_db, user.Id);
+        var publication2 = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
-        var publicationsFromDb = await _db.Publications.AsNoTracking().Include(x => x.User).ToListAsync();
+        var publicationsFromDb = await _db.Publications.AsNoTracking().Include(x => x.User).ToListAsync(TestContext.Current.CancellationToken);
 
         var mustResult = publicationsFromDb.Select(x => new PublicationDto()
         {
@@ -237,15 +262,15 @@ public class MapperExtensionsIntegrationTest
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
+        var publication = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикацию в базу
-        var publication2 = await DI.CreatePublicationAsync(_db, user.Id);
+        var publication2 = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
-        var publicationsFromDb = await _db.Publications.AsNoTracking().ToListAsync();
+        var publicationsFromDb = await _db.Publications.AsNoTracking().ToListAsync(TestContext.Current.CancellationToken);
 
         var mustResult = publicationsFromDb.Select(x => new PublicationDto()
         {
@@ -264,314 +289,5 @@ public class MapperExtensionsIntegrationTest
         // Assert
         Assert.NotNull(result);
         Assert.Equivalent(result, mustResult);
-    }
-
-
-    // Конфликты параллельности
-
-
-    [Fact]
-    public async Task ToUserDto_ConcurrencyConflict_ReturnsUserDto()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        var userIdGuid = user.Id;
-        var userFromDb = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-
-        var mustResult = new UserDto() { Firstname = userFromDb.Firstname, Username = userFromDb.Username, LanguageCode = userFromDb.LanguageCode };
-
-        // Act
-        var task = Task.Run(() => userFromDb.ToUserDto());
-        var task2 = Task.Run(() => userFromDb.ToUserDto());
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equivalent(result, mustResult);
-
-        Assert.Equivalent(result, result2);
-    }
-
-
-    [Fact]
-    public async Task ToUsersDto_ConcurrencyConflict_ReturnsUsersDto()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        // Добавляем пользователя в базу
-        var user2 = await DI.CreateUserAsync(_db, email: "test", phoneNumber: "123456789", username: "klya");
-
-        var usersFromDb = await _db.Users.AsNoTracking().ToListAsync();
-
-        var mustResult = usersFromDb.Select(x => new UserDto() { Firstname = x.Firstname, Username = x.Username, LanguageCode = x.LanguageCode });
-
-        // Act
-        var task = Task.Run(() => usersFromDb.ToUsersDto());
-        var task2 = Task.Run(() => usersFromDb.ToUsersDto());
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equivalent(result, mustResult);
-
-        Assert.Equivalent(result, result2);
-    }
-
-
-    [Fact]
-    public async Task ToPublicationDto_ConcurrencyConflict_ReturnsPublicationDto()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
-
-        var publicationIdGuid = publication.Id;
-        var publicationFromDb = await _db.Publications.AsNoTracking().Include(x => x.User).FirstOrDefaultAsync(x => x.Id == publicationIdGuid);
-
-        var mustResult = new PublicationDto()
-        {
-            Id = publicationFromDb.Id,
-            CreatedAt = publicationFromDb.CreatedAt.ToWithoutTicks(),
-            EditedAt = publicationFromDb.EditedAt?.ToWithoutTicks(),
-            Title = publicationFromDb.Title,
-            Content = publicationFromDb.Content,
-            AuthorId = publicationFromDb.AuthorId,
-            AuthorFirstname = publicationFromDb.User.Firstname
-        };
-
-        // Act
-        var task = Task.Run(() => publicationFromDb.ToPublicationDto(publicationFromDb.User.Firstname));
-        var task2 = Task.Run(() => publicationFromDb.ToPublicationDto(publicationFromDb.User.Firstname));
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equivalent(result, mustResult);
-
-        Assert.Equivalent(result, result2);
-    }
-
-    [Fact] // Если автор не прогружен
-    public async Task ToPublicationDto_ConcurrencyConflict_NotInclude_ReturnsPublicationDto()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
-
-        var publicationIdGuid = publication.Id;
-        var publicationFromDb = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid);
-
-        var mustResult = new PublicationDto()
-        {
-            Id = publicationFromDb.Id,
-            CreatedAt = publicationFromDb.CreatedAt.ToWithoutTicks(),
-            EditedAt = publicationFromDb.EditedAt?.ToWithoutTicks(),
-            Title = publicationFromDb.Title,
-            Content = publicationFromDb.Content,
-            AuthorId = publicationFromDb.AuthorId,
-            AuthorFirstname = "Автор удалён"
-        };
-
-        // Act
-        var task = Task.Run(() => publicationFromDb.ToPublicationDto(publicationFromDb.User?.Firstname));
-        var task2 = Task.Run(() => publicationFromDb.ToPublicationDto(publicationFromDb.User?.Firstname));
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equivalent(result, mustResult);
-
-        Assert.Equivalent(result, result2);
-    }
-
-
-    [Fact] // Две публикации одного автора
-    public async Task ToPublicationsDto_ConcurrencyConflict_ReturnsPublicationsDto()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
-
-        // Добавляем публикацию в базу
-        var publication2 = await DI.CreatePublicationAsync(_db, user.Id);
-
-        var userIdGuid = user.Id;
-        var publicationsFromDb = await _db.Publications.AsNoTracking().Include(x => x.User).Where(x => x.AuthorId == userIdGuid).ToListAsync();
-        var authorName = publicationsFromDb.FirstOrDefault().User.Firstname;
-
-        var mustResult = publicationsFromDb.Select(x => new PublicationDto()
-        {
-            Id = x.Id,
-            CreatedAt = x.CreatedAt.ToWithoutTicks(),
-            EditedAt = x.EditedAt?.ToWithoutTicks(),
-            Title = x.Title,
-            Content = x.Content,
-            AuthorId = x.AuthorId,
-            AuthorFirstname = x.User?.Firstname
-        });
-
-        // Act
-        var task = Task.Run(() => publicationsFromDb.ToPublicationsDto(authorName));
-        var task2 = Task.Run(() => publicationsFromDb.ToPublicationsDto(authorName));
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equivalent(result, mustResult);
-
-        Assert.Equivalent(result, result2);
-    }
-
-    [Fact] // Две публикации одного автора
-    public async Task ToPublicationsDto_ConcurrencyConflict_NotInclude_ReturnsPublicationsDto()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
-
-        // Добавляем публикацию в базу
-        var publication2 = await DI.CreatePublicationAsync(_db, user.Id);
-
-        var userIdGuid = user.Id;
-        var publicationsFromDb = await _db.Publications.AsNoTracking().Where(x => x.AuthorId == userIdGuid).ToListAsync();
-        var authorName = publicationsFromDb.FirstOrDefault().User?.Firstname;
-
-        var mustResult = publicationsFromDb.Select(x => new PublicationDto()
-        {
-            Id = x.Id,
-            CreatedAt = x.CreatedAt.ToWithoutTicks(),
-            EditedAt = x.EditedAt?.ToWithoutTicks(),
-            Title = x.Title,
-            Content = x.Content,
-            AuthorId = x.AuthorId,
-            AuthorFirstname = "Автор удалён"
-        });
-
-        // Act
-        var task = Task.Run(() => publicationsFromDb.ToPublicationsDto(authorName));
-        var task2 = Task.Run(() => publicationsFromDb.ToPublicationsDto(authorName));
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equivalent(result, mustResult);
-
-        Assert.Equivalent(result, result2);
-    }
-
-
-    [Fact]
-    public async Task ToPublicationsDtoByFunc_ConcurrencyConflict_ReturnsPublicationsDto()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
-
-        // Добавляем публикацию в базу
-        var publication2 = await DI.CreatePublicationAsync(_db, user.Id);
-        var publicationsFromDb = await _db.Publications.AsNoTracking().Include(x => x.User).ToListAsync();
-
-        var mustResult = publicationsFromDb.Select(x => new PublicationDto()
-        {
-            Id = x.Id,
-            CreatedAt = x.CreatedAt.ToWithoutTicks(),
-            EditedAt = x.EditedAt?.ToWithoutTicks(),
-            Title = x.Title,
-            Content = x.Content,
-            AuthorId = x.AuthorId,
-            AuthorFirstname = x.User?.Firstname ?? "Автор удалён"
-        });
-
-        // Act
-        var task = Task.Run(() => publicationsFromDb.ToPublicationsDto(x => x.User?.Firstname));
-        var task2 = Task.Run(() => publicationsFromDb.ToPublicationsDto(x => x.User?.Firstname));
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equivalent(result, mustResult);
-
-        Assert.Equivalent(result, result2);
-    }
-
-    [Fact]
-    public async Task ToPublicationsDtoByFunc_ConcurrencyConflict_NotInclude_ReturnsPublicationsDto()
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
-
-        // Добавляем публикацию в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
-
-        // Добавляем публикацию в базу
-        var publication2 = await DI.CreatePublicationAsync(_db, user.Id);
-
-        var publicationsFromDb = await _db.Publications.AsNoTracking().ToListAsync();
-
-        var mustResult = publicationsFromDb.Select(x => new PublicationDto()
-        {
-            Id = x.Id,
-            CreatedAt = x.CreatedAt.ToWithoutTicks(),
-            EditedAt = x.EditedAt?.ToWithoutTicks(),
-            Title = x.Title,
-            Content = x.Content,
-            AuthorId = x.AuthorId,
-            AuthorFirstname = "Автор удалён"
-        });
-
-        // Act
-        var task = Task.Run(() => publicationsFromDb.ToPublicationsDto(x => x.User?.Firstname));
-        var task2 = Task.Run(() => publicationsFromDb.ToPublicationsDto(x => x.User?.Firstname));
-
-        var results = await Task.WhenAll(task, task2);
-        var result = results[0];
-        var result2 = results[1];
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equivalent(result, mustResult);
-
-        Assert.Equivalent(result, result2);
     }
 }

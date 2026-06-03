@@ -6,9 +6,9 @@
 /// <remarks>
 /// Валидация реализована через Fluent Validation.
 /// </remarks>
-public class SetPasswordDtoValidator : AbstractValidator<SetPasswordDto>
+public sealed class SetPasswordDtoValidator : AbstractValidator<SetPasswordDto>
 {
-    public SetPasswordDtoValidator(IValidatorsLocalizer localizer)
+    public SetPasswordDtoValidator(IValidatorLocalizer localizer)
     {
         RuleFor(x => x.NewPassword).NewPassword(localizer);
     }

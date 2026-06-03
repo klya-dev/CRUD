@@ -1,14 +1,14 @@
 ﻿using Microsoft.AspNetCore.OpenApi;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 namespace CRUD.WebApi.SwaggerUI;
 
 /// <summary>
 /// Добавляет информацию об API, авторе в SwaggerUI.
 /// </summary>
-public class InfoTransformer : IOpenApiDocumentTransformer
+public sealed class InfoTransformer : IOpenApiDocumentTransformer
 {
-    public async Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
+    public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
         document.Info = new OpenApiInfo
         {
@@ -30,6 +30,6 @@ public class InfoTransformer : IOpenApiDocumentTransformer
             }
         };
 
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }

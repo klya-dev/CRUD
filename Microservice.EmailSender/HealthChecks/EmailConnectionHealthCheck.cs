@@ -6,7 +6,7 @@ namespace Microservice.EmailSender.HealthChecks;
 /// <summary>
 /// Проверяет подключение к почтовому серверу.
 /// </summary>
-public class EmailConnectionHealthCheck : IHealthCheck
+public sealed class EmailConnectionHealthCheck : IHealthCheck
 {
     private readonly IEmailSender _emailSender;
     private readonly ILogger<EmailConnectionHealthCheck> _logger;

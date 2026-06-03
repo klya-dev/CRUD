@@ -6,7 +6,7 @@ using System.Net;
 
 namespace CRUD.Tests.UnitTests;
 
-public class SmsSenderUnitTest
+public sealed class SmsSenderUnitTest
 {
     private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
     private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
@@ -45,7 +45,7 @@ public class SmsSenderUnitTest
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
 
         // Act
-        var result = await _smsSender.SendSmsAsync(phoneNumber, text);
+        var result = await _smsSender.SendSmsAsync(phoneNumber, text, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(result);
@@ -66,7 +66,7 @@ public class SmsSenderUnitTest
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.BadRequest));
 
         // Act
-        var result = await _smsSender.SendSmsAsync(phoneNumber, text);
+        var result = await _smsSender.SendSmsAsync(phoneNumber, text, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(result);
@@ -86,7 +86,7 @@ public class SmsSenderUnitTest
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Unauthorized));
 
         // Act
-        var result = await _smsSender.TestAuthAsync();
+        var result = await _smsSender.TestAuthAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(result);

@@ -1,10 +1,9 @@
-﻿#nullable disable
-using Microsoft.AspNetCore.Mvc.Testing;
+﻿using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class OrderUpdaterIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class OrderUpdaterIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IOrderUpdater _orderUpdater;
@@ -26,13 +25,13 @@ public class OrderUpdaterIntegrationTest : IClassFixture<TestWebApplicationFacto
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем продукт в базу
-        await DI.CreateProductAsync(_db);
+        await DI.CreateProductAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем заказ в базу
-        var order = await DI.CreateOrderAsync(_db, user.Id, status: OrderStatuses.Accept, paymentStatus: PaymentStatuses.Pending);
+        var order = await DI.CreateOrderAsync(_db, user.Id, status: OrderStatuses.Accept, paymentStatus: PaymentStatuses.Pending, ct: TestContext.Current.CancellationToken);
 
         var orderIdGuid = order.Id;
 
@@ -44,14 +43,14 @@ public class OrderUpdaterIntegrationTest : IClassFixture<TestWebApplicationFacto
         };
 
         // Act
-        var result = await _orderUpdater.UpdateOrderInfoAsync(paymentWebHook);
+        var result = await _orderUpdater.UpdateOrderInfoAsync(paymentWebHook, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Данные заказа обновились и товар выдан
-        var orderFromDbAfter = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == orderIdGuid);
+        var orderFromDbAfter = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == orderIdGuid, TestContext.Current.CancellationToken);
         Assert.Equal(PaymentStatuses.Succeeded, orderFromDbAfter.PaymentStatus);
         Assert.Equal(OrderStatuses.Done, orderFromDbAfter.Status);
         Assert.True(orderFromDbAfter.Paid);
@@ -70,7 +69,7 @@ public class OrderUpdaterIntegrationTest : IClassFixture<TestWebApplicationFacto
         };
 
         // Act
-        var result = await _orderUpdater.UpdateOrderInfoAsync(paymentWebHook);
+        var result = await _orderUpdater.UpdateOrderInfoAsync(paymentWebHook, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);

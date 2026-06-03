@@ -12,7 +12,7 @@ public static class AdminEndpoints
     {
         // Это админ-панель
         var adminMap = app.MapGroup("/admin")
-            .RequireAuthorization(UserRoles.Admin)
+            .RequireAuthorization(AuthorizationPolicyNames.OnlyAdmin)
             .WithTags(EndpointTags.Admin);
         adminMap.MapGet("/users/{userId:guid}", async Task<Results<ProblemHttpResult, JsonHttpResult<UserFullDto>>> ([FromRoute] Guid userId, IUserManager userManager, IResourceLocalizer localizer, CancellationToken ct) =>
         {
@@ -45,26 +45,15 @@ public static class AdminEndpoints
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await userManager.UpdateUserAsync(userId, updateUserDto, ct);
+            // Вызов сервиса
+            var result = await userManager.UpdateUserAsync(userId, updateUserDto, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый обновил - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithIdempotency()
             .WithValidation<UpdateUserDto>()
@@ -81,26 +70,15 @@ public static class AdminEndpoints
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await userManager.DeleteUserAsync(userId, ct);
+            // Вызов сервиса
+            var result = await userManager.DeleteUserAsync(userId, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый удалил - тот и удалил в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithIdempotency()
             .WithSummary("Удаляет пользователя из базы данных.")
@@ -127,26 +105,15 @@ public static class AdminEndpoints
             // Открываем поток
             await using var stream = file.OpenReadStream();
 
-            try
-            {
-                // Вызов сервиса
-                var result = await avatarManager.SetAvatarAsync(userId, stream, ct);
+            // Вызов сервиса
+            var result = await avatarManager.SetAvatarAsync(userId, stream, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый обновил - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .DisableAntiforgery()
             .WithSummary("Устанавливает аватарку пользователю.")
@@ -164,26 +131,15 @@ public static class AdminEndpoints
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await passwordChanger.SetPasswordAsync(userId, setPasswordDto, ct);
+            // Вызов сервиса
+            var result = await passwordChanger.SetPasswordAsync(userId, setPasswordDto, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый обновил - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithValidation<SetPasswordDto>()
             .WithSummary("Меняет пароль пользователю.")
@@ -199,26 +155,15 @@ public static class AdminEndpoints
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await premiumManager.SetPremiumAsync(userId, ct);
+            // Вызов сервиса
+            var result = await premiumManager.SetPremiumAsync(userId, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый создал заказ - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithIdempotency()
             .WithSummary("Устанавливает премиум пользователю.")
@@ -235,26 +180,15 @@ public static class AdminEndpoints
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await userManager.SetRoleUserAsync(userId, setRoleDto, ct);
+            // Вызов сервиса
+            var result = await userManager.SetRoleUserAsync(userId, setRoleDto, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый создал заказ - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithIdempotency()
             .WithValidation<SetRoleDto>()
@@ -272,26 +206,15 @@ public static class AdminEndpoints
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await userManager.RevokeRefreshTokensAsync(userId, ct);
+            // Вызов сервиса
+            var result = await userManager.RevokeRefreshTokensAsync(userId, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый удалил - тот и удалил в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithSummary("Удаляет все Refresh-токены пользователя.")
             .WithDescription("Удаление безвозвратно.")
@@ -329,26 +252,15 @@ public static class AdminEndpoints
             if (publicationId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await publicationManager.UpdatePublicationAsync(publicationId, updatePublicationFullDto, ct);
+            // Вызов сервиса
+            var result = await publicationManager.UpdatePublicationAsync(publicationId, updatePublicationFullDto, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый обновил - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithValidation<UpdatePublicationFullDto>()
             .WithSummary("Частично или полностью обновляет данные публикации по указанной модели.")
@@ -364,26 +276,15 @@ public static class AdminEndpoints
             if (publicationId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await publicationManager.DeletePublicationAsync(publicationId, ct);
+            // Вызов сервиса
+            var result = await publicationManager.DeletePublicationAsync(publicationId, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый удалил - тот и удалил в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithIdempotency()
             .WithSummary("Удаляет указанную публикацию из базы данных.")
@@ -399,26 +300,15 @@ public static class AdminEndpoints
             if (userId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await publicationManager.DeletePublicationsAsync(userId, ct);
+            // Вызов сервиса
+            var result = await publicationManager.DeletePublicationsAsync(userId, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый удалил - тот и удалил в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithSummary("Удаляет все публикации пользователя из базы данных.")
             .WithDescription("Удаление безвозвратно.")
@@ -462,30 +352,19 @@ public static class AdminEndpoints
 
         adminMap.MapPost("/notifications", async Task<Results<ProblemHttpResult, Created<NotificationDto>>> ([FromBody] CreateNotificationDto createNotificationDto, INotificationManager notificationManager, IHubContext<NotificationHub> notificationHub, IResourceLocalizer localizer, CancellationToken ct) =>
         {
-            try
+            // Вызов сервиса
+            var result = await notificationManager.CreateNotificationAsync(createNotificationDto, ct);
+
+            // Нет ошибки
+            if (result.ErrorMessage == null)
             {
-                // Вызов сервиса
-                var result = await notificationManager.CreateNotificationAsync(createNotificationDto, ct);
-
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                {
-                    // Отправляем уведомление всем подключённым клиентам
-                    await notificationHub.Clients.All.SendAsync(HubMethodNames.ReceiveNotification, result.Value, ct);
-                    return TypedResults.Created((string?)null, result.Value);
-                }
-
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
+                // Отправляем уведомление всем подключённым клиентам
+                await notificationHub.Clients.All.SendAsync(HubMethodNames.ReceiveNotification, result.Value, ct);
+                return TypedResults.Created((string?)null, result.Value);
             }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый обновил - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
 
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithValidation<CreateNotificationDto>()
             .WithSummary("Создаёт в базе и отправляет всем клиентам новое уведомление.")
@@ -496,30 +375,19 @@ public static class AdminEndpoints
 
         adminMap.MapPost("/notifications/selected-users", async Task<Results<ProblemHttpResult, Created<NotificationDto>>> ([FromBody] CreateNotificationSelectedUsersDto createNotificationSelectedUsersDto, INotificationManager notificationManager, IHubContext<NotificationHub> notificationHub, IResourceLocalizer localizer, CancellationToken ct) =>
         {
-            try
+            // Вызов сервиса
+            var result = await notificationManager.CreateNotificationAsync(createNotificationSelectedUsersDto, ct);
+
+            // Нет ошибки
+            if (result.ErrorMessage == null)
             {
-                // Вызов сервиса
-                var result = await notificationManager.CreateNotificationAsync(createNotificationSelectedUsersDto, ct);
-
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                {
-                    // Отправляем уведомление только пользователям из коллекции среди подключённых клиентов
-                    await notificationHub.Clients.Users(createNotificationSelectedUsersDto.UserIds.Select(x => x.ToString())).SendAsync(HubMethodNames.ReceiveNotification, result.Value, ct);
-                    return TypedResults.Created((string?)null, result.Value);
-                }
-
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
+                // Отправляем уведомление только пользователям из коллекции среди подключённых клиентов
+                await notificationHub.Clients.Users(createNotificationSelectedUsersDto.UserIds.Select(x => x.ToString())).SendAsync(HubMethodNames.ReceiveNotification, result.Value, ct);
+                return TypedResults.Created((string?)null, result.Value);
             }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый обновил - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
 
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithValidation<CreateNotificationSelectedUsersDto>()
             .WithSummary("Создаёт в базе и отправляет всем клиентам из указанного массива новое уведомление (персональное).")
@@ -534,26 +402,15 @@ public static class AdminEndpoints
             if (notificationId == Guid.Empty)
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
-            try
-            {
-                // Вызов сервиса
-                var result = await notificationManager.DeleteNotificationAsync(notificationId, ct);
+            // Вызов сервиса
+            var result = await notificationManager.DeleteNotificationAsync(notificationId, ct);
 
-                // Нет ошибки
-                if (result.ErrorMessage == null)
-                    return TypedResults.NoContent();
+            // Нет ошибки
+            if (result.ErrorMessage == null)
+                return TypedResults.NoContent();
 
-                // Сопоставление ошибки
-                return TypedResults.Extensions.Problem(result, localizer);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Кто первый обновил - тот и остаётся в базе. Второму сообщение о конфликте и предложение попробовать позже
-                if (DbExceptionHelper.IsConcurrencyConflict(ex))
-                    return TypedResults.Extensions.Problem(ApiErrorConstants.ConcurrencyConflicts, localizer);
-
-                throw;
-            }
+            // Сопоставление ошибки
+            return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithIdempotency()
             .WithSummary("Удаляет указанное уведомление полностью (даже у пользователей).")

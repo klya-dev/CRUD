@@ -1,8 +1,9 @@
-﻿using Microsoft.Extensions.Caching.Hybrid;
+﻿#nullable enable
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace CRUD.Tests.TestImplementions;
 
-public class FakeHybridCache : HybridCache
+public sealed class FakeHybridCache : HybridCache
 {
     // Not sure if this should be static, nor do I know what to do about Tags
     // Could make public since it's a fake cache anyway, and that could be useful for testing purposes

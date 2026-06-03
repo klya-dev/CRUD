@@ -8,13 +8,13 @@ namespace CRUD.Models.Dtos;
 /// <remarks>
 /// <seealso href="https://yookassa.ru/developers/using-api/webhooks#using"/>
 /// </remarks>
-public class PaymentWebHook
+public sealed record PaymentWebHook
 {
     /// <summary>
     /// Тип.
     /// </summary>
     [JsonPropertyName("type")]
-    public required string Type { get; set; }
+    public required string Type { get; init; }
 
     /// <summary>
     /// Событие.
@@ -23,11 +23,11 @@ public class PaymentWebHook
     /// <seealso href="https://yookassa.ru/developers/using-api/webhooks#events"/>
     /// </remarks>
     [JsonPropertyName("event")]
-    public required string Event { get; set; }
+    public required string Event { get; init; }
 
     /// <summary>
     /// Объект платежа, с которым произошло указанное событие.
     /// </summary>
     [JsonPropertyName("object")]
-    public required object Object { get; set; }
+    public required object Object { get; init; }
 }

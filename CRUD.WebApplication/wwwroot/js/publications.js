@@ -1,7 +1,7 @@
 ﻿async function deletePublication(publicationId) {
     const response = await fetch(server + "/publications/" + publicationId, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + sessionStorage.getItem(accessToken), "Accept-Language": currentCulture },
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + sessionStorage.getItem(accessToken), "Accept-Language": currentCulture, "Idempotency-Key": crypto.randomUUID() },
         body: JSON.stringify({
             username: document.getElementById("username").value,
             password: document.getElementById("password").value

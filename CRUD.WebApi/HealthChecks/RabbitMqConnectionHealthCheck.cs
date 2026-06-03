@@ -5,7 +5,7 @@ namespace CRUD.WebApi.HealthChecks;
 /// <summary>
 /// Проверяет подключение к RabbitMQ.
 /// </summary>
-public class RabbitMqConnectionHealthCheck : IHealthCheck
+public sealed class RabbitMqConnectionHealthCheck : IHealthCheck
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<RabbitMqConnectionHealthCheck> _logger;

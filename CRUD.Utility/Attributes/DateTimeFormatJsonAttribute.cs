@@ -7,7 +7,7 @@ namespace CRUD.Utility.Attributes;
 /// Атрибут для задания формата даты <see cref="DateTime"/> в JSON.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
-public class DateTimeFormatJsonAttribute : JsonConverterAttribute
+public sealed class DateTimeFormatJsonAttribute : JsonConverterAttribute
 {
     private readonly string _format;
 

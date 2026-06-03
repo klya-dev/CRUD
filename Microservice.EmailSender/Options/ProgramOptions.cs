@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции <c>Program.cs</c>.
 /// </summary>
-public class ProgramOptions
+public sealed class ProgramOptions
 {
     /// <summary>
     /// Название секции.
@@ -16,7 +16,7 @@ public class ProgramOptions
     /// <remarks>
     /// Используется в основном, если микросервис и клиент на одном ПК.
     /// </remarks>
-    public required bool UseUnixDomainSocketGRPC { get; set; }
+    public required bool UseUnixDomainSocketGRPC { get; init; }
 
     /// <summary>
     /// Имя файла с расширением.
@@ -25,10 +25,10 @@ public class ProgramOptions
     /// <para>Используется в паре с <see cref="UseUnixDomainSocketGRPC"/>.</para>
     /// <para>Файл создаётся в <c>Temp</c> папке.</para>
     /// </remarks>
-    public required string FileNameInTempFolder { get; set; }
+    public required string FileNameInTempFolder { get; init; }
 
     /// <summary>
     /// Пропустить ли логирование.
     /// </summary>
-    public required bool SkipLogging { get; set; }
+    public required bool SkipLogging { get; init; }
 }

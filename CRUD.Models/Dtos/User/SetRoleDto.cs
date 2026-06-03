@@ -3,10 +3,10 @@
 /// <summary>
 /// DTO-модель для изменения роли пользователя.
 /// </summary>
-public class SetRoleDto
+public sealed record SetRoleDto
 {
     /// <summary>
     /// Устанавливаемая роль пользователя.
     /// </summary>
-    public required string Role { get; set; }
+    public required string Role { get; init; }
 }

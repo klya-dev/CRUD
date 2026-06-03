@@ -5,7 +5,7 @@ using System.Diagnostics.Metrics;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class NotificationHubIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class NotificationHubIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ITokenManager _tokenManager;
@@ -45,14 +45,14 @@ public class NotificationHubIntegrationTest : IClassFixture<TestWebApplicationFa
             })
             .AddMessagePackProtocol()
             .Build();
-        await hubConnection.StartAsync();
+        await hubConnection.StartAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await hubConnection.SendAsync("IsUsefulNotification", notificationId);
+        await hubConnection.SendAsync("IsUsefulNotification", notificationId, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         // Метрика добавилась
-        await collector.WaitForMeasurementsAsync(minCount: 1).WaitAsync(TimeSpan.FromSeconds(5));
+        await collector.WaitForMeasurementsAsync(minCount: 1, cancellationToken: TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.Collection(collector.GetMeasurementSnapshot(),
             measurement =>
             {

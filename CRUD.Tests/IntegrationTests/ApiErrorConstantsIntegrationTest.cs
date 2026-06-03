@@ -1,13 +1,9 @@
-﻿#nullable disable
-using CRUD;
-using CRUD.WebApi.ApiError;
+﻿using CRUD;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class ApiErrorConstantsIntegrationTest
+public sealed class ApiErrorConstantsIntegrationTest
 {
-    // #nullable disable
-
     // Неотъемлемая часть эндпоинта, тщательно тестируем
     // Тут протестировали, значит в эндпоинтах не нужно тестировать "необработанную ошибку". Т.к всё равно сводится к методу Match
 

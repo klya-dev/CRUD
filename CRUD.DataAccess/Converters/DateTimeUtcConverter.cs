@@ -5,7 +5,7 @@ namespace CRUD.DataAccess.Converters;
 /// <summary>
 /// Конвертер для <see cref="DateTime"/>, преобразующий время в <c>UTC</c>.
 /// </summary>
-public class DateTimeUtcConverter : ValueConverter<DateTime, DateTime>
+public sealed class DateTimeUtcConverter : ValueConverter<DateTime, DateTime>
 {
     public DateTimeUtcConverter() : base(
         d => d.ToUniversalTime(), // В базу, всегда записывается UTC

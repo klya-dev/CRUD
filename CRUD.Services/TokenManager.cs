@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 namespace CRUD.Services;
 
 /// <inheritdoc cref="ITokenManager"/>
-public class TokenManager : ITokenManager
+public sealed class TokenManager : ITokenManager
 {
     private static readonly JwtSecurityTokenHandler _tokenHandler = new JwtSecurityTokenHandler();
 

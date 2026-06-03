@@ -1,23 +1,19 @@
-﻿using CRUD.Services.Interfaces;
-
-namespace CRUD.Services;
+﻿namespace CRUD.Services;
 
 /// <inheritdoc cref="IClientApiManager"/>
-public class ClientApiManager : IClientApiManager
+public sealed class ClientApiManager : IClientApiManager
 {
     private readonly ApplicationDbContext _db;
     private readonly IPublicationManager _publicationManager;
     private readonly IUserApiKeyManager _userApiKeyManager;
     private readonly IValidator<ClientApiCreatePublicationDto> _clientApiCreatePublicationDtoValidator;
-    private readonly IValidator<User> _userValidator;
 
-    public ClientApiManager(ApplicationDbContext db, IPublicationManager publicationManager, IUserApiKeyManager userApiKeyManager, IValidator<ClientApiCreatePublicationDto> clientApiCreatePublicationDtoValidator, IValidator<User> userValidator)
+    public ClientApiManager(ApplicationDbContext db, IPublicationManager publicationManager, IUserApiKeyManager userApiKeyManager, IValidator<ClientApiCreatePublicationDto> clientApiCreatePublicationDtoValidator)
     {
         _db = db;
         _publicationManager = publicationManager;
         _userApiKeyManager = userApiKeyManager;
         _clientApiCreatePublicationDtoValidator = clientApiCreatePublicationDtoValidator;
-        _userValidator = userValidator;
     }
 
     public async Task<ServiceResult<PublicationDto>> CreatePublicationAsync(ClientApiCreatePublicationDto clientApiCreatePublicationDto, CancellationToken ct = default)
@@ -31,7 +27,10 @@ public class ClientApiManager : IClientApiManager
             throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(ClientApiCreatePublicationDto), validationResult.Errors));
 
         // Ищем пользователя по ключу | Неверный API-ключ
-        var userFromDb = await _db.Users.FirstOrDefaultAsync(x => x.ApiKey == clientApiCreatePublicationDto.ApiKey || x.DisposableApiKey == clientApiCreatePublicationDto.ApiKey, ct);
+        var userFromDb = await _db.Users.Where(x => x.ApiKey == clientApiCreatePublicationDto.ApiKey || x.DisposableApiKey == clientApiCreatePublicationDto.ApiKey)
+            .Select(x => new { x.Id, x.IsPremium, x.IsEmailConfirm, x.IsPhoneNumberConfirm, x.DisposableApiKey, x.RowVersion })
+            .FirstOrDefaultAsync(ct);
+
         if (userFromDb == null)
             return ServiceResult<PublicationDto>.Fail(ErrorMessages.InvalidApiKey);
 
@@ -60,15 +59,16 @@ public class ClientApiManager : IClientApiManager
 
         // Если это был одноразовый ключ, создаём новый
         if (userFromDb.DisposableApiKey == clientApiCreatePublicationDto.ApiKey)
-            userFromDb.DisposableApiKey = _userApiKeyManager.GenerateDisposableUserApiKey();
+        {
+            // Обновляем пользователя
+            var updatedRows = await _db.Users.Where(x => x.Id == userFromDb.Id && x.RowVersion == userFromDb.RowVersion)
+                .ExecuteUpdateAsync(x =>
+                    x.SetProperty(p => p.DisposableApiKey, _userApiKeyManager.GenerateDisposableUserApiKey()), CancellationToken.None);
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultUser = await _userValidator.ValidateAsync(userFromDb, CancellationToken.None);
-        if (!validationResultUser.IsValid) // Если данные невалидны, то я уже ничего не сделаю - исключение
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(User), validationResultUser.Errors));
-
-        _db.Users.Update(userFromDb);
-        await _db.SaveChangesAsync(CancellationToken.None);
+            // Найдено 0 строк (Where;MySQL:UseAffectedRows). Вероятно, из-за разных RowVersion - конфликт
+            if (updatedRows == 0)
+                return ServiceResult<PublicationDto>.Fail(ErrorMessages.ConcurrencyConflicts);
+        }
 
         return ServiceResult<PublicationDto>.Success(result.Value!);
     }

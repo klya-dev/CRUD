@@ -7,7 +7,7 @@ namespace CRUD.WebApi.HealthChecks;
 /// <summary>
 /// Проверяет подключение к Prometheus.
 /// </summary>
-public class PrometheusConnectionHealthCheck : IHealthCheck
+public sealed class PrometheusConnectionHealthCheck : IHealthCheck
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOptions<MetricsOptions> _options;

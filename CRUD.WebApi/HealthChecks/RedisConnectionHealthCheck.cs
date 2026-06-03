@@ -5,7 +5,7 @@ namespace CRUD.WebApi.HealthChecks;
 /// <summary>
 /// Проверяет подключение к Redis.
 /// </summary>
-public class RedisConnectionHealthCheck : IHealthCheck
+public sealed class RedisConnectionHealthCheck : IHealthCheck
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<RedisConnectionHealthCheck> _logger;

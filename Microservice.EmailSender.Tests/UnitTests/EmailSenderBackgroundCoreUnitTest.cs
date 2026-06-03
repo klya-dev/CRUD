@@ -1,14 +1,11 @@
-﻿#nullable disable
-using MailKit.Net.Smtp;
+﻿using MailKit.Net.Smtp;
 using System.Reflection;
 using System.Threading.Channels;
 
 namespace Microservice.EmailSender.Tests.UnitTests;
 
-public class EmailSenderBackgroundCoreUnitTest
+public sealed class EmailSenderBackgroundCoreUnitTest
 {
-    // #nullable disable
-
     private readonly EmailSenderBackgroundCore _emailSenderBackgroundCore;
     private readonly Mock<IQueueEmail> _queueEmailMock;
     private readonly Mock<IEmailSender> _emailSenderMock;
@@ -54,10 +51,10 @@ public class EmailSenderBackgroundCoreUnitTest
 
         // Создаём реальный Channel для теста
         var channel = Channel.CreateUnbounded<LetterBackground>();
-        await channel.Writer.WriteAsync(letter);
+        await channel.Writer.WriteAsync(letter, TestContext.Current.CancellationToken);
         channel.Writer.Complete();
         _queueEmailMock.Setup(x => x.DequeueAllAsync(It.IsAny<CancellationToken>()))
-                       .Returns(channel.Reader.ReadAllAsync());
+                       .Returns(channel.Reader.ReadAllAsync(cancellationToken: TestContext.Current.CancellationToken));
 
         // Успешная отправка письма
         _emailSenderMock.Setup(es => es.SendEmailAsync(letter, It.IsAny<SmtpClient>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -89,9 +86,9 @@ public class EmailSenderBackgroundCoreUnitTest
 
         // Создаём реальный Channel для теста
         var channel = Channel.CreateUnbounded<LetterBackground>();
-        await channel.Writer.WriteAsync(letter);
+        await channel.Writer.WriteAsync(letter, TestContext.Current.CancellationToken);
         _queueEmailMock.Setup(x => x.DequeueAllAsync(It.IsAny<CancellationToken>()))
-                       .Returns(channel.Reader.ReadAllAsync());
+                       .Returns(channel.Reader.ReadAllAsync(cancellationToken: TestContext.Current.CancellationToken));
 
         int writeCount = 0;
         _queueEmailMock.Setup(x => x.EnqueueAsync(It.IsAny<LetterBackground>(), It.IsAny<CancellationToken>()))
@@ -131,10 +128,10 @@ public class EmailSenderBackgroundCoreUnitTest
 
         // Создаём реальный Channel для теста
         var channel = Channel.CreateUnbounded<LetterBackground>();
-        await channel.Writer.WriteAsync(letter);
+        await channel.Writer.WriteAsync(letter, TestContext.Current.CancellationToken);
         channel.Writer.Complete();
         _queueEmailMock.Setup(x => x.DequeueAllAsync(It.IsAny<CancellationToken>()))
-                       .Returns(channel.Reader.ReadAllAsync());
+                       .Returns(channel.Reader.ReadAllAsync(cancellationToken: TestContext.Current.CancellationToken));
 
         // Неудачная отправка письма
         _emailSenderMock.Setup(es => es.SendEmailAsync(letter, It.IsAny<SmtpClient>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
@@ -160,13 +157,13 @@ public class EmailSenderBackgroundCoreUnitTest
 
         // Создаём реальный Channel для теста
         var channel = Channel.CreateUnbounded<LetterBackground>();
-        await channel.Writer.WriteAsync(letter);
-        await channel.Writer.WriteAsync(letter2);
-        await channel.Writer.WriteAsync(letter3);
-        await channel.Writer.WriteAsync(letter4);
+        await channel.Writer.WriteAsync(letter, TestContext.Current.CancellationToken);
+        await channel.Writer.WriteAsync(letter2, TestContext.Current.CancellationToken);
+        await channel.Writer.WriteAsync(letter3, TestContext.Current.CancellationToken);
+        await channel.Writer.WriteAsync(letter4, TestContext.Current.CancellationToken);
         channel.Writer.Complete();
         _queueEmailMock.Setup(x => x.DequeueAllAsync(It.IsAny<CancellationToken>()))
-                       .Returns(channel.Reader.ReadAllAsync());
+                       .Returns(channel.Reader.ReadAllAsync(cancellationToken: TestContext.Current.CancellationToken));
 
         // Успешная отправка письмем
         _emailSenderMock.Setup(es => es.SendEmailAsync(It.IsAny<LetterBackground>(), It.IsAny<SmtpClient>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -190,7 +187,7 @@ public class EmailSenderBackgroundCoreUnitTest
         // Arrange
         _emailSenderMock.Setup(x => x.ConnectAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new SmtpClient()); // Создаются пустые SmtpClient'ы
 
-        var smtpClients = await _emailSenderBackgroundCore.CreateSmtpClientsAsync();
+        var smtpClients = await _emailSenderBackgroundCore.CreateSmtpClientsAsync(TestContext.Current.CancellationToken);
         var ctx = new CancellationToken();
 
         var letter = new LetterBackground(new Letter(Guid.NewGuid(), "email", "sub", "body"));
@@ -199,12 +196,12 @@ public class EmailSenderBackgroundCoreUnitTest
 
         // Создаём реальный Channel для теста
         var channel = Channel.CreateUnbounded<LetterBackground>();
-        await channel.Writer.WriteAsync(letter);
-        await channel.Writer.WriteAsync(letter2);
-        await channel.Writer.WriteAsync(letter3);
+        await channel.Writer.WriteAsync(letter, TestContext.Current.CancellationToken);
+        await channel.Writer.WriteAsync(letter2, TestContext.Current.CancellationToken);
+        await channel.Writer.WriteAsync(letter3, TestContext.Current.CancellationToken);
         channel.Writer.Complete();
         _queueEmailMock.Setup(x => x.DequeueAllAsync(It.IsAny<CancellationToken>()))
-                       .Returns(channel.Reader.ReadAllAsync());
+                       .Returns(channel.Reader.ReadAllAsync(cancellationToken: TestContext.Current.CancellationToken));
 
         // Письма всегда успешно отправляются
         _emailSenderMock.Setup(x => x.SendEmailAsync(It.IsAny<Letter>(), It.IsAny<SmtpClient>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);

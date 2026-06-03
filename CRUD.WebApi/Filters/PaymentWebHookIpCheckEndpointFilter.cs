@@ -10,7 +10,7 @@ namespace CRUD.WebApi.Filters;
 /// <para>Фильтр не пустит запрос, если <c>X-Forwarded-For</c> заголовка первого IP-адреса нет в списке разрешенных.</para>
 /// <para>Список допустимых IP-адресов берётся из <see cref="PayManagerOptions"/>.</para>
 /// </remarks>
-public class PaymentWebHookIpCheckEndpointFilter : IEndpointFilter
+public sealed class PaymentWebHookIpCheckEndpointFilter : IEndpointFilter
 {
     private readonly string _safelist;
     private readonly string[] _cidrs;
@@ -24,7 +24,7 @@ public class PaymentWebHookIpCheckEndpointFilter : IEndpointFilter
         _logger = logger;
     }
 
-    public virtual async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         // Заголовки связанные с Forwarded из HttpContext.Request.Headers - Tuna (запрос от ЮКассы на вебхук)
         //*специально для этого запилил LoggingHeadersMiddleware

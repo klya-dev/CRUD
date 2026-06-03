@@ -1,5 +1,4 @@
-﻿using CRUD.Services.BackgroundServices.RevokeExpiredRefreshTokensBackground;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
@@ -8,7 +7,7 @@ namespace CRUD.Services.BackgroundServices.DeleteExpiredRequestsBackground;
 /// <summary>
 /// Сервис для удаления истёкших запросов (<see cref="Request"/>) в фоне.
 /// </summary>
-public class DeleteExpiredRequestsBackgroundService : BackgroundService
+public sealed class DeleteExpiredRequestsBackgroundService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly DeleteExpiredRequestsBackgroundServiceOptions _options;
@@ -26,7 +25,7 @@ public class DeleteExpiredRequestsBackgroundService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         // Получаем сервис
-        using var scope = _serviceProvider.CreateScope();
+        await using var scope = _serviceProvider.CreateAsyncScope();
         var deleteExpiredRequestsBackgroundCore = scope.ServiceProvider.GetRequiredService<IDeleteExpiredRequestsBackgroundCore>();
 
         await deleteExpiredRequestsBackgroundCore.DoWorkAsync(ct); // При запуске приложения хочу выполнить итерацию (чтобы не ждать таймер)
@@ -39,7 +38,7 @@ public class DeleteExpiredRequestsBackgroundService : BackgroundService
         }
         catch (OperationCanceledException)
         {
-            _logger.StopedBackgroundServiceLog(nameof(RevokeExpiredRefreshTokensBackgroundService));
+            _logger.StopedBackgroundServiceLog(nameof(DeleteExpiredRequestsBackgroundService));
         }
     }
 }

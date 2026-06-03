@@ -1,19 +1,16 @@
-﻿#nullable disable
-using CRUD;
+﻿using CRUD;
 using CRUD.Models.Validators;
 using CRUD.Tests.Helpers;
 
 namespace CRUD.Tests.IntegrationTests.Validators.Publication;
 
-public class CreatePublicationDtoValidatorTest
+public sealed class CreatePublicationDtoValidatorTest
 {
-    // #nullable disable
-
     private readonly CreatePublicationDtoValidator _validator;
 
     public CreatePublicationDtoValidatorTest()
     {
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
+        var validatorsLocalizer = new ValidatorLocalizer();
         _validator = new CreatePublicationDtoValidator(validatorsLocalizer);
     }
 
@@ -29,7 +26,7 @@ public class CreatePublicationDtoValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(createPublicationDto);
+        var result = await _validator.ValidateAsync(createPublicationDto, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -62,7 +59,7 @@ public class CreatePublicationDtoValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(createPublicationDto);
+        var result = await _validator.ValidateAsync(createPublicationDto, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -80,7 +77,7 @@ public class CreatePublicationDtoValidatorTest
         // Act
         Func<Task> a = async () =>
         {
-            await _validator.ValidateAsync(createPublicationDto);
+            await _validator.ValidateAsync(createPublicationDto, TestContext.Current.CancellationToken);
         };
 
         // Assert

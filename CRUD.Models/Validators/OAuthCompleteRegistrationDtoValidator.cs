@@ -6,9 +6,9 @@
 /// <remarks>
 /// Валидация реализована через Fluent Validation.
 /// </remarks>
-public class OAuthCompleteRegistrationDtoValidator : AbstractValidator<OAuthCompleteRegistrationDto>
+public sealed class OAuthCompleteRegistrationDtoValidator : AbstractValidator<OAuthCompleteRegistrationDto>
 {
-    public OAuthCompleteRegistrationDtoValidator(IValidatorsLocalizer localizer)
+    public OAuthCompleteRegistrationDtoValidator(IValidatorLocalizer localizer)
     {
         RuleFor(x => x.PhoneNumber).PhoneNumber(localizer);
     }

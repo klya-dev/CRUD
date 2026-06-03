@@ -7,7 +7,7 @@ namespace CRUD.Test.Shared;
 /// <summary>
 /// Класс для работы с файлом <c>testsettings.json</c>.
 /// </summary>
-public class TestSettingsHelper
+public sealed class TestSettingsHelper
 {
     // В свойствах testsettings.json указать, чтобы файл копировался в сборку, чтобы его можно было легче найти
 

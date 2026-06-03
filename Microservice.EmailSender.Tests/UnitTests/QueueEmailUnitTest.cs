@@ -1,6 +1,6 @@
 ﻿namespace Microservice.EmailSender.Tests.UnitTests;
 
-public class QueueEmailUnitTest
+public sealed class QueueEmailUnitTest
 {
     private readonly IQueueEmail _queueEmail;
 

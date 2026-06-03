@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace CRUD.Tests.SystemTests;
 
-public class MetricsSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class MetricsSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ITokenManager _tokenManager;
@@ -35,17 +35,17 @@ public class MetricsSystemTest : IClassFixture<TestWebApplicationFactory>
         var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.METRICS_URL);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
 
         // Читаем содержимое ответа
-        var response = await result.Content.ReadAsStringAsync();
+        var response = await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         AssertExtensions.IsNotNullOrNotWhiteSpace(response);
 
-        await collector.WaitForMeasurementsAsync(minCount: 1).WaitAsync(TimeSpan.FromSeconds(5));
+        await collector.WaitForMeasurementsAsync(minCount: 1, cancellationToken: TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.Collection(collector.GetMeasurementSnapshot(),
             measurement =>
             {
@@ -67,13 +67,13 @@ public class MetricsSystemTest : IClassFixture<TestWebApplicationFactory>
         var request = new HttpRequestMessage(HttpMethod.Get, url);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Equal(System.Net.HttpStatusCode.OK, result.StatusCode);
 
-        await collector.WaitForMeasurementsAsync(minCount: 1).WaitAsync(TimeSpan.FromSeconds(5));
+        await collector.WaitForMeasurementsAsync(minCount: 1, cancellationToken: TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.Collection(collector.GetMeasurementSnapshot(),
             measurement =>
             {
@@ -106,7 +106,7 @@ public class MetricsSystemTest : IClassFixture<TestWebApplicationFactory>
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -114,7 +114,7 @@ public class MetricsSystemTest : IClassFixture<TestWebApplicationFactory>
 
         try
         {
-            await collector.WaitForMeasurementsAsync(minCount: 1).WaitAsync(TimeSpan.FromSeconds(5));
+            await collector.WaitForMeasurementsAsync(minCount: 1, cancellationToken: TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
             Assert.Fail("Метрики найдены, хотя не должны");
         }
         catch (TimeoutException) {}

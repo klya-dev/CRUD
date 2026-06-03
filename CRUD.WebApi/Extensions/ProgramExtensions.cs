@@ -1,5 +1,4 @@
-﻿using CRUD.WebApi.HealthChecks;
-using Grpc.Net.Client.Configuration;
+﻿using Grpc.Net.Client.Configuration;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -191,25 +190,34 @@ public static class ProgramExtensions
         {
             options.AddDocumentTransformer<BearerSecuritySchemeTransformer>(); // Кнопка Authorize и применение к запросам
             options.AddOperationTransformer<AcceptLanguageHeaderParameterTransformer>(); // Поле Accept-Language
+            options.AddOperationTransformer<IdempotencyKeyHeaderParameterTransformer>(); // Поле Idempotency-Key
             options.AddDocumentTransformer<InfoTransformer>(); // Информация об API, контакты
             options.AddOperationTransformer<ProduceTooManyRequestsTransformer>(); // Добавить всем эндпоинтам Produce TooManyRequests
             options.AddDocumentTransformer<HealthzInfoTransformer>(); // Добавляет "/healthz" в Swagger UI
             options.AddDocumentTransformer<MetricsInfoTransformer>(); // Добавляет "/metrics" в Swagger UI
             options.AddDocumentTransformer<TagsDescriptionTransformer>(); // Добавляет описание к тегам
+
+            options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0; // Оставляю прошлую версию (в .NET 10 по умолчанию версия 3.1)
+            // В новой версии достаточно серьёзный Breaking Change связанный с nullable типами, к примеру, если сейчас поставить новую версию, то NSwag UI даже не даст вписать count в конечную точку ниже
+            // И чтобы это исправить нужно в "/v1/publications?count=1" будет указать, что count может быть null, внутри конечной точки определить, что если count = null, то возвращаем BadRequest
         });
 
         builder.Services.AddOpenApi("v2", options =>
         {
-            // В /openapi/v2.json будет только указанная конечная точка, остальные даже не сгенерируются. НУЖНО закомментировать несколько трансформеров ниже
+            // Чтобы в /openapi/v2.json была только указанная конечная точка, а остальные даже не сгенерировались, нужно:
             //options.ShouldInclude = (apiDescription) => apiDescription.HttpMethod == "GET" && apiDescription.RelativePath == "v2/publications/";
+            // И плюсом удалить некоторые трансформеры, у которых есть упоминания скрытых конечных точек (будет исключение, т.к нет тега, например в TagsDescriptionTransformer)
 
             options.AddDocumentTransformer<BearerSecuritySchemeTransformer>(); // Кнопка Authorize и применение к запросам
             options.AddOperationTransformer<AcceptLanguageHeaderParameterTransformer>(); // Поле Accept-Language
+            options.AddOperationTransformer<IdempotencyKeyHeaderParameterTransformer>(); // Поле Idempotency-Key
             options.AddDocumentTransformer<InfoTransformer>(); // Информация об API, контакты
             options.AddOperationTransformer<ProduceTooManyRequestsTransformer>(); // Добавить всем эндпоинтам Produce TooManyRequests
             options.AddDocumentTransformer<HealthzInfoTransformer>(); // Добавляет "/healthz" в Swagger UI
             options.AddDocumentTransformer<MetricsInfoTransformer>(); // Добавляет "/metrics" в Swagger UI
             options.AddDocumentTransformer<TagsDescriptionTransformer>(); // Добавляет описание к тегам
+
+            options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0;
         });
     }
 
@@ -276,23 +284,6 @@ public static class ProgramExtensions
     /// </remarks>
     public static void ConfigureOutputCache(this WebApplicationBuilder builder)
     {
-        // Подключение Redis к OutputCache
-        builder.Services.AddStackExchangeRedisOutputCache(options =>
-        {
-            options.InstanceName = "localOutput";
-
-            // Более гибкая настройка, чем "options.Configuration = builder.Configuration.GetConnectionString("RedisConnection");"
-            options.ConfigurationOptions = new StackExchange.Redis.ConfigurationOptions()
-            {
-                EndPoints = new StackExchange.Redis.EndPointCollection()
-                {
-                    { builder.Configuration.GetConnectionString("RedisConnection")! } // HostAndPort
-                },
-                ConnectTimeout = 1000, // Не больше секунды на подключение. Если, например, к редису не удалось подключиться во время запроса "/publications?count=1", то API ответит только через секунду, т.к будет пытаться подключиться
-                SyncTimeout = 1000 // Работает в паре с ConnectTimeout, иначе не меняется. Хотя в RedisConnectionHealthCheck без него работает
-            };
-        });
-
         builder.Services.AddOutputCache(options =>
         {
             // Политика по умолчанию. 200; GET, HEAD; запросы авторизованного пользователя не кэшируются; но время переопределенно | https://learn.microsoft.com/ru-ru/aspnet/core/performance/caching/output?view=aspnetcore-9.0#default-output-caching-policy
@@ -302,13 +293,33 @@ public static class ProgramExtensions
             options.AddPolicy("Expire20", builder =>
                 builder.Expire(TimeSpan.FromSeconds(20)));
         });
+
+        // Можно подключить Redis к OutputCache, я отключил, т.к это не HybridCache, и если нет подключения к редису, то памятный кэш не будет перехватывать управление (будет долго отвечать на запрос)
+        //builder.Services.AddStackExchangeRedisOutputCache(options =>
+        //{
+        //    options.InstanceName = "localOutput";
+
+        //    // Более гибкая настройка, чем "options.Configuration = builder.Configuration.GetConnectionString("RedisConnection");"
+        //    options.ConfigurationOptions = new StackExchange.Redis.ConfigurationOptions()
+        //    {
+        //        EndPoints = new StackExchange.Redis.EndPointCollection()
+        //        {
+        //            { builder.Configuration.GetConnectionString("RedisConnection")! } // HostAndPort
+        //        },
+        //        ConnectRetry = 0, // Ограничиваем количество попыток
+        //        ReconnectRetryPolicy = new StackExchange.Redis.ExponentialRetry(250), // Пауза между попытками
+        //        AbortOnConnectFail = false, // Не выбрасывать исключения о таймауте
+        //        ConnectTimeout = 250, // Не больше 250 мс на подключение. Если, например, к редису не удалось подключиться во время запроса "/publications?count=1", то API ответит только через 250 мс + само подключение у Windows +- 2000 мс, т.к будет пытаться подключиться
+        //        SyncTimeout = 250 // Работает в паре с ConnectTimeout, иначе не меняется. Хотя в RedisConnectionHealthCheck без него работает
+        //    };
+        //});
     }
 
     /// <summary>
     /// Настраивает Hybrid Cache.
     /// </summary>
     /// <remarks>
-    /// Внутренее кэширование приложения с Redis.
+    /// Внутреннее кэширование приложения с Memory + Redis.
     /// </remarks>
     public static void ConfigureHybridCache(this WebApplicationBuilder builder)
     {
@@ -326,8 +337,17 @@ public static class ProgramExtensions
         // Подключение Redis к HybridCache
         builder.Services.AddStackExchangeRedisCache(options =>
         {
-            options.Configuration = builder.Configuration.GetConnectionString("RedisConnection");
             options.InstanceName = "localHybrid";
+
+            options.ConfigurationOptions = new StackExchange.Redis.ConfigurationOptions()
+            {
+                EndPoints = new StackExchange.Redis.EndPointCollection()
+                {
+                    { builder.Configuration.GetConnectionString("RedisConnection")! } // HostAndPort
+                },
+                ConnectTimeout = 250,
+                SyncTimeout = 250
+            };
         });
     }
 
@@ -342,6 +362,10 @@ public static class ProgramExtensions
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
+                // Указание options.Authority и options.Audience, нужно обычно только для автоматического скачивания публичных ключей по пути "/.well-known/openid-configuration" (options.MetadataAddress)
+                // Конкретно в WebApi, мне этого делать не нужно, т.к монолит, и не нужно скачивать ключи по URL
+                // А в EmailSender это бы пригодилось, но у меня нет "openid-configuration", есть только "jwks.json" отдельно, поэтому в микросервисе у меня другая реализация скачивания публичных ключей (кастомный парсер)
+
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true, // Указывает, будет ли валидироваться издатель при валидации токена
@@ -350,7 +374,7 @@ public static class ProgramExtensions
                     ValidateIssuerSigningKey = true, // Валидация ключа безопасности
 
                     // Остальные параметры вписываются через PostConfigureJwtBearerOptions, т.к я использую IOptionsMonitor, чтобы обновлять данные на лету
-                    // Если бы я использовал IOptions, то можно было бы спокойно получить опции (т.к она неизменяемая, пока не перезапустить приложение)
+                    // Если бы я использовал IOptions, то можно было бы спокойно получить опции (т.к IOptions неизменяемый, пока не перезапустить приложение)
                 };
 
                 options.Events = new JwtBearerEvents
@@ -376,19 +400,87 @@ public static class ProgramExtensions
     public static void ConfigureAuthorization(this WebApplicationBuilder builder)
     {
         builder.Services.AddAuthorizationBuilder()
-            .AddPolicy(UserRoles.Admin, policy =>
+            .AddPolicy(AuthorizationPolicyNames.OnlyAdmin, policy => // Только Admin
             {
-                policy.RequireRole(UserRoles.Admin);
+                // Для админа нет ограничений на язык
+                policy.RequireRole(UserRoles.Admin); // Под капотом есть авторизация https://stackoverflow.com/q/58948479/31342728
             })
-            .AddPolicy("OnlyPremium", policy =>
+            .AddPolicy(AuthorizationPolicyNames.OnlyPremium, policy => // Только премиум
             {
-                policy.RequireClaim("premium", "true", "True");
+                policy.RequireAuthenticatedUser(); // Требуем авторизацию, т.к у RequireClaim под капотом нет авторизации https://stackoverflow.com/q/64275186/31342728
+                OnlyPermittedLanguagesRequirement(policy); // Ограничение на язык
+                policy.RequireClaim(UserClaimTypes.IsPremium, "true", "True");
             })
-            .AddDefaultPolicy("LanguageDeny", policy =>
+            .AddPolicy(AuthorizationPolicyNames.OnlyEmailConfirmed, policy => // Только подтверждённая почта
             {
-                //policy.AddRequirements(new LanguageDeny("en"));
-                policy.AddRequirements(new LanguageDeny("uk"));
-            });
+                policy.RequireAuthenticatedUser(); // Требуем авторизацию
+                OnlyPermittedLanguagesRequirement(policy); // Ограничение на язык
+                policy.RequireClaim(UserClaimTypes.IsEmailConfirm, "true", "True");
+            })
+            .AddPolicy(AuthorizationPolicyNames.OnlyPhoneNumberConfirmed, policy => // Только подтверждённый номер телефона
+            {
+                policy.RequireAuthenticatedUser(); // Требуем авторизацию
+                OnlyPermittedLanguagesRequirement(policy); // Ограничение на язык
+                policy.RequireClaim(UserClaimTypes.IsPhoneNumberConfirm, "true", "True");
+            })
+            .AddDefaultPolicy(AuthorizationPolicyNames.OnlyPermittedLanguages, policy => // Политика по умолчанию ([Authorize] без параметров). Только разрешённые языки
+            {
+                policy.RequireAuthenticatedUser(); // Требуем авторизацию, т.к грубо говоря, прописывая AddDefaultPolicy мы это переопределили
+                OnlyPermittedLanguagesRequirement(policy); // Ограничение на язык
+            })
+            //.SetFallbackPolicy(new AuthorizationPolicyBuilder() // Резервная политика авторизации для всех конечных точек, у которых нет атрибутов авторизации. Анонимный пользователь не попадет ни в один метод, кроме тех, что помечены [AllowAnonymous] явно
+            //    .RequireAuthenticatedUser() // Грубо говоря, всем конечным точкам по умолчанию указывается [Authorize]. Поэтому для другой схемы или политики нужно это указать в атрибуте ([Authorize(Policy = ...)]), и все анонимные конечные точки помечаем [AllowAnonymous] явно (в том числе Swagger)
+            //    .Build()) // Т.е я сейчас могу удалить все RequireAuthorization (без параметров) (НО ТОГДА DefaultPolicy не сработает). AllowAnonymous, конечно, оставляем
+            .SetInvokeHandlersAfterFailure(false); // Я не хочу, чтобы выполнялись следующие обработчики (требований), если хоть один обработчик вернул Fail (https://learn.microsoft.com/ru-ru/aspnet/core/security/authorization/policies?view=aspnetcore-10.0#what-should-a-handler-return)
+
+        // P.S.: Убрал FallbackPolicy, мне не нравится, как возвращается 401, вместо 404, например, если параметр конечной точки указан неверно (IncorrectDataEndpointSystemTest)
+        // Также приходится выдумывать велосипед для UseStaticFiles, чтобы разрешить анонимный доступ (если авторизация ниже в pipeline'е), прописывать AllowAnonymous для MapPrometheusScrapingEndpoint, MapOpenApi
+        // Мне привычнее, когда авторизации по умолчанию нет, и я сам ручками указываю .RequireAuthorization() или .AllowAnonymous() явно
+        // Также, если FallbackPolicy включен, а private.txt в wwwroot, но он не входит в публичную папку, вернётся 401 вместо 404, т.к ответа на эту конечную точку никто не дал, а проверку RequireAuthenticatedUser нужно провести - так и получается 401
+        // *даже если UseAuthorization ниже, чем UseStaticFiles (UseStaticFiles пропускает запрос дальше, т.к private.txt не относится к публичной папке)
+
+        // Вот как это работает:
+        // DefaultPolicy: срабатывает, если УКАЗАН [Authorize] без параметров. Может показаться, что дефолтная политика учитывается во всех политиках, но это не так. Она срабатывает ТОЛЬКО, если указан [Authorize] без параметров
+        // FallbackPolicy: срабатывает, если НЕ указан атрибут [Authorize]. И при этом DefaultPolicy не сработает
+        // Именованная политика: если указано имя [Authorize(Policy = ...)], проверяется только эта политика (без учёта Default и Fallback).
+        // Поэтому я указываю OnlyPermittedLanguagesRequirement в других политиках
+
+        // Учитывая, настойки выше (SetFallbackPolicy указан):
+        // .RequireAuthorization() НЕ указан - сработает FallbackPolicy, которая требует просто авторизацию
+        // .RequireAuthorization() указан - сработает DefaultPolicy, которая требует авторизацию и проверяет язык
+        // .RequireAuthorization(AuthorizationPolicyNames.OnlyAdmin) указан - сработает OnlyAdmin политика, которая требует авторизацию (под капотом) и проверяет роль пользователя
+        // .RequireAuthorization(AuthorizationPolicyNames.OnlyPremium) указан - сработает OnlyPremium политика, которая требует авторизацию, проверяет язык и проверяет наличие премиума
+
+        // Суммирование политик:
+        // Если в группе конечных точек стоит .RequireAuthorization без параметров: var publicationsMap = app.MapGroup("/publications").RequireAuthorization();
+        // А в самой конечной точке стоит .RequireAuthorization(AuthorizationPolicyNames.OnlyEmailConfirmed, AuthorizationPolicyNames.OnlyPhoneNumberConfirmed)
+        // То тогда политики ПЛЮСУЮТСЯ, сработает DefaultPolicy и две именованных политики (необязательно должна быть группа, можно несколько раз вызвать .RequireAuthorization в конечной точке)
+
+        // Вызов _logger.LogDebug("Requirements: {requirements}", context.Requirements); в LanguageDenyHandler:
+        // Логирование произойдёт ТРИ раза (т.к в сумме три политики)
+        // DenyAnonymousAuthorizationRequirement,LanguageDenyRequirement,DenyAnonymousAuthorizationRequirement,LanguageDenyRequirement,ClaimsAuthorizationRequirement:email_confirm,DenyAnonymousAuthorizationRequirement,LanguageDenyRequirement,ClaimsAuthorizationRequirement:phonenumber_confirm
+        // Разбор:
+        // 1) DenyAnonymousAuthorizationRequirement, LanguageDenyRequirement - DefaultPolicy
+        // 2) DenyAnonymousAuthorizationRequirement, LanguageDenyRequirement, ClaimsAuthorizationRequirement:email_confirm - Именованная политика OnlyEmailConfirmed
+        // 3) DenyAnonymousAuthorizationRequirement, LanguageDenyRequirement, ClaimsAuthorizationRequirement:phonenumber_confirm - Именованная политика OnlyPhoneNumberConfirmed
+
+        // Если же убрать .RequireAuthorization из группы, то сработают только две именованные политики
+        // DenyAnonymousAuthorizationRequirement,LanguageDenyRequirement,ClaimsAuthorizationRequirement:email_confirm,DenyAnonymousAuthorizationRequirement,LanguageDenyRequirement,ClaimsAuthorizationRequirement:phonenumber_confirm
+        // Разбор:
+        // 1) DenyAnonymousAuthorizationRequirement, LanguageDenyRequirement, ClaimsAuthorizationRequirement:email_confirm - Именованная политика OnlyEmailConfirmed
+        // 2) DenyAnonymousAuthorizationRequirement, LanguageDenyRequirement, ClaimsAuthorizationRequirement:phonenumber_confirm - Именованная политика OnlyPhoneNumberConfirmed
+
+        /// <summary>
+        /// Только разрешённые языки.
+        /// </summary>
+        static void OnlyPermittedLanguagesRequirement(AuthorizationPolicyBuilder policy)
+        {
+            policy.AddRequirements(new LanguageDenyRequirement(["ua", "ww"])); // Список запрещённых языков
+
+            // Если регистрировать несколько раз, то и логика будет выполняться несколько раз (несколько логирований, несколько поисков значения из claim'ов), поэтому я решил передавать коллекцию
+            //policy.AddRequirements(new LanguageDenyRequirement("ua"));
+            //policy.AddRequirements(new LanguageDenyRequirement("ww"));
+        }
     }
 
     /// <summary>
@@ -422,7 +514,7 @@ public static class ProgramExtensions
             // Глобальный лимитер
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
             {
-                var userRole = httpContext.User?.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Role)?.Value;
+                var userRole = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Role)?.Value;
 
                 // Если пользователь админ, то не ограничиваем доступ
                 if (userRole == UserRoles.Admin)
@@ -430,7 +522,7 @@ public static class ProgramExtensions
 
                 // Лимитер для "/publications... GET"
                 string path = httpContext.Request.Path.ToString();
-                var apiVersion = httpContext.GetRequestedApiVersion();
+                var apiVersion = httpContext.RequestedApiVersion;
                 if (path.StartsWith($"/v{apiVersion}/publications")
                     && httpContext.Request.Method == "GET")
                     return RateLimitPartition.GetFixedWindowLimiter(
@@ -529,7 +621,7 @@ public static class ProgramExtensions
             options.BaseAddress = new Uri(emailSenderOptions.ServiceURL);
 
             // Авторизация для каждого запроса
-            using var scope = serviceProvider.CreateScope();
+            using var scope = serviceProvider.CreateScope(); // Не CreateAsyncScope, т.к делегат Action
             var grpcTokenManager = scope.ServiceProvider.GetRequiredService<IGrpcTokenManager>();
             var token = grpcTokenManager.GenerateAuthEmailSenderToken();
             options.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -654,14 +746,14 @@ public static class ProgramExtensions
 
                 options.HttpHandler = handler;
             })
-            .AddCallCredentials((context, metadata, serviceProvider) => // Аутентификация и авторизация
+            .AddCallCredentials(async (context, metadata, serviceProvider) => // Аутентификация и авторизация
             {
-                using var scope = serviceProvider.CreateScope();
+                await using var scope = serviceProvider.CreateAsyncScope();
                 var grpcTokenManager = scope.ServiceProvider.GetRequiredService<IGrpcTokenManager>();
                 var token = grpcTokenManager.GenerateAuthEmailSenderToken();
                 metadata.Add("Authorization", $"Bearer {token}");
 
-                return Task.CompletedTask;
+                await Task.CompletedTask;
             });
         //.EnableCallContextPropagation(); // Передавать ct, deadline во внутрение вызовы сервисов АВТОМАТИЧЕСКИ (можно ручками через контекст) (https://learn.microsoft.com/ru-ru/aspnet/core/grpc/deadlines-cancellation?view=aspnetcore-10.0#propagating-deadlines)
         // У меня внутрених вызовов нет, у меня только один микросервис. Необходим нугет Grpc.AspNetCore.Server.ClientFactory

@@ -1,19 +1,15 @@
-﻿#nullable disable
-
-using CRUD;
+﻿using CRUD;
 using CRUD.Models.Validators;
 
 namespace CRUD.Tests.IntegrationTests.Validators;
 
-public class ChangePasswordDtoValidatorTest
+public sealed class ChangePasswordDtoValidatorTest
 {
-    // #nullable disable
-
     private readonly ChangePasswordDtoValidator _validator;
 
     public ChangePasswordDtoValidatorTest()
     {
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
+        var validatorsLocalizer = new ValidatorLocalizer();
         _validator = new ChangePasswordDtoValidator(validatorsLocalizer);
     }
 
@@ -32,7 +28,7 @@ public class ChangePasswordDtoValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(changePasswordDto);
+        var result = await _validator.ValidateAsync(changePasswordDto, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -72,7 +68,7 @@ public class ChangePasswordDtoValidatorTest
         };
 
         // Act
-        var result = await _validator.ValidateAsync(changePasswordDto);
+        var result = await _validator.ValidateAsync(changePasswordDto, cancellation: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -90,7 +86,7 @@ public class ChangePasswordDtoValidatorTest
         // Act
         Func<Task> a = async () =>
         {
-            await _validator.ValidateAsync(changePasswordDto);
+            await _validator.ValidateAsync(changePasswordDto, TestContext.Current.CancellationToken);
         };
 
         // Assert

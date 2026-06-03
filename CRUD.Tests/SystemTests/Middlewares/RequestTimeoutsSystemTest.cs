@@ -6,7 +6,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 
-public class RequestTimeoutsSystemTest : IClassFixture<TestWebApplicationFactory>
+public sealed class RequestTimeoutsSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
 
@@ -43,7 +43,7 @@ public class RequestTimeoutsSystemTest : IClassFixture<TestWebApplicationFactory
         request.Content = json;
 
         // Act
-        using var result = await client.SendAsync(request);
+        using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);

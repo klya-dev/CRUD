@@ -3,10 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class PaginatedListIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class PaginatedListIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
-    // #nullable disable
-
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly ApplicationDbContext _db;
 
@@ -28,14 +26,14 @@ public class PaginatedListIntegrationTest : IClassFixture<TestWebApplicationFact
         int pageSize = 2;
 
         // Добавляем автора в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикации в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
-        var publication2 = await DI.CreatePublicationAsync(_db, user.Id);
-        var publication3 = await DI.CreatePublicationAsync(_db, user.Id);
-        var publication4 = await DI.CreatePublicationAsync(_db, user.Id);
-        var publication5 = await DI.CreatePublicationAsync(_db, null);
+        var publication = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        var publication2 = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        var publication3 = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        var publication4 = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        var publication5 = await DI.CreatePublicationAsync(_db, null, ct: TestContext.Current.CancellationToken);
 
         var publicationsFromDb = _db.Publications.AsNoTracking().OrderBy(x => x.CreatedAt).Select(x => x.ToPublicationDto(x.User!.Firstname));
 
@@ -65,7 +63,7 @@ public class PaginatedListIntegrationTest : IClassFixture<TestWebApplicationFact
         };
 
         // Act
-        var result = await PaginatedList<PublicationDto>.CreateAsync(publicationsFromDb, pageIndex, pageSize);
+        var result = await PaginatedList<PublicationDto>.CreateAsync(publicationsFromDb, pageIndex, pageSize, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -89,14 +87,14 @@ public class PaginatedListIntegrationTest : IClassFixture<TestWebApplicationFact
         int pageSize = 3;
 
         // Добавляем автора в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикации в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
-        var publication2 = await DI.CreatePublicationAsync(_db, user.Id);
-        var publication3 = await DI.CreatePublicationAsync(_db, user.Id);
-        var publication4 = await DI.CreatePublicationAsync(_db, user.Id);
-        var publication5 = await DI.CreatePublicationAsync(_db, null);
+        var publication = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        var publication2 = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        var publication3 = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        var publication4 = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        var publication5 = await DI.CreatePublicationAsync(_db, null, ct: TestContext.Current.CancellationToken);
 
         var publicationsFromDb = _db.Publications.AsNoTracking().OrderBy(x => x.CreatedAt).Select(x => x.ToPublicationDto(x.User!.Firstname));
 
@@ -126,7 +124,7 @@ public class PaginatedListIntegrationTest : IClassFixture<TestWebApplicationFact
         };
 
         // Act
-        var result = await PaginatedList<PublicationDto>.CreateAsync(publicationsFromDb, pageIndex, pageSize);
+        var result = await PaginatedList<PublicationDto>.CreateAsync(publicationsFromDb, pageIndex, pageSize, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -150,14 +148,14 @@ public class PaginatedListIntegrationTest : IClassFixture<TestWebApplicationFact
         int pageSize = 5;
 
         // Добавляем автора в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Добавляем публикации в базу
-        var publication = await DI.CreatePublicationAsync(_db, user.Id);
-        var publication2 = await DI.CreatePublicationAsync(_db, user.Id);
-        var publication3 = await DI.CreatePublicationAsync(_db, user.Id);
-        var publication4 = await DI.CreatePublicationAsync(_db, user.Id);
-        var publication5 = await DI.CreatePublicationAsync(_db, null);
+        var publication = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        var publication2 = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        var publication3 = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        var publication4 = await DI.CreatePublicationAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        var publication5 = await DI.CreatePublicationAsync(_db, null, ct: TestContext.Current.CancellationToken);
 
         var publicationsFromDb = _db.Publications.AsNoTracking().OrderBy(x => x.CreatedAt).Select(x => x.ToPublicationDto(x.User!.Firstname));
 
@@ -217,7 +215,7 @@ public class PaginatedListIntegrationTest : IClassFixture<TestWebApplicationFact
         };
 
         // Act
-        var result = await PaginatedList<PublicationDto>.CreateAsync(publicationsFromDb, pageIndex, pageSize);
+        var result = await PaginatedList<PublicationDto>.CreateAsync(publicationsFromDb, pageIndex, pageSize, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);

@@ -5,7 +5,7 @@ namespace CRUD.WebApi.HealthChecks;
 /// <summary>
 /// Проверяет подключение к Telegram серверу.
 /// </summary>
-public class TelegramConnectionHealthCheck : IHealthCheck
+public sealed class TelegramConnectionHealthCheck : IHealthCheck
 {
     private readonly ITelegramIntegrationManager _telegramIntegrationManager;
 

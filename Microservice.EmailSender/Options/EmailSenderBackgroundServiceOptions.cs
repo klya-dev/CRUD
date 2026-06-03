@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции фоновой отправки писем.
 /// </summary>
-public class EmailSenderBackgroundServiceOptions
+public sealed class EmailSenderBackgroundServiceOptions
 {
     /// <summary>
     /// Название секции.
@@ -17,7 +17,7 @@ public class EmailSenderBackgroundServiceOptions
     /// <para>Например, если три, то тогда сервис сможет обрабатывать три письма за раз.</para>
     /// <para>Ставить много не надо, иначе можно словить бан от mail.ru. В идеале иметь свой Smtp relay сервер.</para>
     /// </remarks>
-    public required int SmtpClientsCount { get; set; }
+    public required int SmtpClientsCount { get; init; }
 
     /// <summary>
     /// Сколько повторных попыток отправки может быть у письма.
@@ -25,12 +25,12 @@ public class EmailSenderBackgroundServiceOptions
     /// <remarks>
     /// Например, если вписано 0, то у письма не будет второго шанса.
     /// </remarks>
-    public required int RetriesCount { get; set; }
+    public required int RetriesCount { get; init; }
 
     /// <summary>
     /// Таймаут по умолчанию у неотправленных писем.
     /// </summary>
-    public required TimeSpan DefaultTimeout { get; set; }
+    public required TimeSpan DefaultTimeout { get; init; }
 
     /// <summary>
     /// Коэффициент к таймауту при последующих неудачах.
@@ -38,7 +38,7 @@ public class EmailSenderBackgroundServiceOptions
     /// <remarks>
     /// Считается так: <c><see cref="DefaultTimeout"/> * КОЛИЧЕСТВО_НЕУДАЧ * <see cref="TimeoutCoefficient"/>.</c>
     /// </remarks>
-    public required float TimeoutCoefficient { get; set; }
+    public required float TimeoutCoefficient { get; init; }
 
     /// <summary>
     /// Какое количество писем (включительно) можно отправить на одну и ту же электронную почту в течении <see cref="LIMIT_LETTERS_TIME"/>.
@@ -46,7 +46,7 @@ public class EmailSenderBackgroundServiceOptions
     /// <remarks>
     /// Например, 100, а <see cref="LimitLettersTime"/> = 3600 секунд. Значит не более 100 писем на одну электронную почту в час.
     /// </remarks>
-    public required int LimitLetters { get; set; }
+    public required int LimitLetters { get; init; }
 
     /// <summary>
     /// В течении какого времени можно отправить <see cref="LimitLetters"/> писем, до достижения лимита.
@@ -54,5 +54,5 @@ public class EmailSenderBackgroundServiceOptions
     /// <remarks>
     /// Например, <see cref="LimitLetters"/> = 100, а <see cref="LimitLettersTime"/> = 3600 секунд. Значит не более 100 писем на одну электронную почту в час.
     /// </remarks>
-    public required TimeSpan LimitLettersTime { get; set; }
+    public required TimeSpan LimitLettersTime { get; init; }
 }

@@ -6,7 +6,7 @@
 /// <remarks>
 /// <seealso href="https://id.vk.com/about/business/go/docs/ru/vkid/latest/oauth/oauth-mail/index"/>.
 /// </remarks>
-public class OAuthMailRuOptions
+public sealed class OAuthMailRuOptions
 {
     /// <summary>
     /// Название секции.
@@ -16,12 +16,12 @@ public class OAuthMailRuOptions
     /// <summary>
     /// Id клиента.
     /// </summary>
-    public required string ClientId { get; set; }
+    public required string ClientId { get; init; }
 
     /// <summary>
     /// Секрет клиента.
     /// </summary>
-    public required string ClientSecret { get; set; }
+    public required string ClientSecret { get; init; }
 
     /// <summary>
     /// Uri, на который перенаправляется пользователь после успешной авторизации.
@@ -29,10 +29,10 @@ public class OAuthMailRuOptions
     /// <remarks>
     /// Должен совпадать с указанным <c>redirect_uri</c> в настройке приложения.
     /// </remarks>
-    public required string RedirectUri { get; set; }
+    public required string RedirectUri { get; init; }
 
     /// <summary>
     /// Url OpenId конфигурации.
     /// </summary>
-    public required string OpenIdConfigurationUrl { get; set; }
+    public required string OpenIdConfigurationUrl { get; init; }
 }

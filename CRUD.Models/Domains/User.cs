@@ -14,6 +14,8 @@ public class User
 
     // Для DTO'шек, прописан Fluent Validation, и для Domain моделей тоже, добавление кастомных проверок очень простое. Шикарно
 
+    // Описал в "/docs/adr/0001-валидация-domain-и-dto-моделей.md"
+
     /// <summary>
     /// Id пользователя.
     /// </summary>

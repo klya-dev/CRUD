@@ -11,7 +11,7 @@ namespace Microservice.EmailSender.Utilities;
 /// <para>Полностью настраивает <see cref="JwtBearerOptions.TokenValidationParameters"/>.</para>
 /// <para>Значения берутся из <see cref="IOptions{TOptions}"/>, где <see cref="TOptions"/> - <see cref="AuthOptions"/>.</para>
 /// </remarks>
-public class PostConfigureJwtBearerOptions : IPostConfigureOptions<JwtBearerOptions>
+public sealed class PostConfigureJwtBearerOptions : IPostConfigureOptions<JwtBearerOptions>
 {
     private readonly AuthOptions _authOptions;
     private readonly ILogger<PostConfigureJwtBearerOptions> _logger;

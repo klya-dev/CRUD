@@ -3,10 +3,9 @@
 namespace CRUD.Services;
 
 /// <inheritdoc cref="IPublicationManager"/>
-public class PublicationManager : IPublicationManager
+public sealed class PublicationManager : IPublicationManager
 {
     private readonly ApplicationDbContext _db;
-    private readonly IValidator<Publication> _publicationValidator;
     private readonly IValidator<GetPublicationsDto> _getPublicationsDtoValidator;
     private readonly IValidator<GetPaginatedListDto> _getPaginatedListDtoValidator;
     private readonly IValidator<GetAuthorsDto> _getAuthorsDtoValidator;
@@ -18,7 +17,6 @@ public class PublicationManager : IPublicationManager
 
     public PublicationManager(
         ApplicationDbContext db,
-        IValidator<Publication> publicationValidator,
         IValidator<GetPublicationsDto> getPublicationsDtoValidator,
         IValidator<GetPaginatedListDto> getPaginatedListDtoValidator,
         IValidator<GetAuthorsDto> getAuthorsDtoValidator,
@@ -29,7 +27,6 @@ public class PublicationManager : IPublicationManager
         HybridCache cache)
     {
         _db = db;
-        _publicationValidator = publicationValidator;
         _getPublicationsDtoValidator = getPublicationsDtoValidator;
         _getPaginatedListDtoValidator = getPaginatedListDtoValidator;
         _getAuthorsDtoValidator = getAuthorsDtoValidator;
@@ -133,7 +130,7 @@ public class PublicationManager : IPublicationManager
             throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(GetPublicationsDto), validationResult.Errors));
 
         // Автор не найден
-        // Если писать Include в случае не найденого автора, EF всё равно будет пытаться прогрузить - лишние запросы
+        // Если писать Include в случае не найденного автора, EF всё равно будет пытаться прогрузить - лишние запросы
         var userExists = await _db.Users.AnyAsync(x => x.Id == authorId, ct);
         if (!userExists)
             return ServiceResult<IEnumerable<PublicationDto>>.Fail(ErrorMessages.AuthorNotFound);
@@ -236,12 +233,12 @@ public class PublicationManager : IPublicationManager
             return ServiceResult.Fail(ErrorMessages.AuthorNotFound);
 
         // Публикация не найдена
-        var publicationFromDb = await _db.Publications.FirstOrDefaultAsync(x => x.Id == updatePublicationDto.PublicationId, ct);
+        var publicationFromDb = await _db.Publications.Where(x => x.Id == updatePublicationDto.PublicationId).Select(x => new { x.AuthorId, x.Title, x.Content, x.RowVersion }).FirstOrDefaultAsync(ct);
         if (publicationFromDb == null)
             return ServiceResult.Fail(ErrorMessages.PublicationNotFound);
 
         // Является ли пользователь автором этой публикации
-        if (!await IsAuthorThisPublicationAsync(userId, updatePublicationDto.PublicationId, ct))
+        if (userId != publicationFromDb.AuthorId)
             return ServiceResult.Fail(ErrorMessages.UserIsNotAuthorOfThisPublication);
 
         // Если заголовок не задали (null), то берём из базы
@@ -259,17 +256,16 @@ public class PublicationManager : IPublicationManager
            publicationFromDb.Content == content)
             return ServiceResult.Fail(ErrorMessages.NoChangesDetected);
 
-        publicationFromDb.Title = title;
-        publicationFromDb.Content = content;
-        publicationFromDb.EditedAt = DateTime.UtcNow;
+        // Обновляем публикацию
+        var updatedRows = await _db.Publications.Where(x => x.Id == updatePublicationDto.PublicationId && x.RowVersion == publicationFromDb.RowVersion)
+            .ExecuteUpdateAsync(x =>
+                x.SetProperty(p => p.Title, title)
+                .SetProperty(p => p.Content, content)
+                .SetProperty(p => p.EditedAt, DateTime.UtcNow), ct);
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultPublication = await _publicationValidator.ValidateAsync(publicationFromDb, ct);
-        if (!validationResultPublication.IsValid) // Если данные невалидны, то я уже ничего не сделаю - исключение
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(Publication), validationResultPublication.Errors));
-
-        _db.Publications.Update(publicationFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Найдено 0 строк (Where;MySQL:UseAffectedRows). Вероятно, из-за разных RowVersion - конфликт
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.ConcurrencyConflicts);
 
         return ServiceResult.Success();
     }
@@ -289,7 +285,7 @@ public class PublicationManager : IPublicationManager
             throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(UpdatePublicationFullDto), validationResult.Errors));
 
         // Публикация не найдена
-        var publicationFromDb = await _db.Publications.FirstOrDefaultAsync(x => x.Id == publicationId, ct);
+        var publicationFromDb = await _db.Publications.Where(x => x.Id == publicationId).Select(x => new { x.Title, x.Content, x.CreatedAt, x.RowVersion }).FirstOrDefaultAsync(ct);
         if (publicationFromDb == null)
             return ServiceResult.Fail(ErrorMessages.PublicationNotFound);
 
@@ -312,17 +308,16 @@ public class PublicationManager : IPublicationManager
             && publicationFromDb.CreatedAt == date)
             return ServiceResult.Fail(ErrorMessages.NoChangesDetected);
 
-        publicationFromDb.Title = title;
-        publicationFromDb.Content = content;
-        publicationFromDb.CreatedAt = date;
+        // Обновляем публикацию
+        var updatedRows = await _db.Publications.Where(x => x.Id == publicationId && x.RowVersion == publicationFromDb.RowVersion)
+            .ExecuteUpdateAsync(x =>
+                x.SetProperty(p => p.Title, title)
+                .SetProperty(p => p.Content, content)
+                .SetProperty(p => p.CreatedAt, date), ct);
 
-        // Проверка валидности данных перед записью в базу
-        var validationResultPublication = await _publicationValidator.ValidateAsync(publicationFromDb, ct);
-        if (!validationResultPublication.IsValid) // Если данные невалидны, то я уже ничего не сделаю - исключение
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(Publication), validationResultPublication.Errors));
-
-        _db.Publications.Update(publicationFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Найдено 0 строк (Where;MySQL:UseAffectedRows). Вероятно, из-за разных RowVersion - конфликт
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.ConcurrencyConflicts);
 
         return ServiceResult.Success();
     }
@@ -341,11 +336,13 @@ public class PublicationManager : IPublicationManager
         if (!validationResult.IsValid)
             throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(CreatePublicationDto), validationResult.Errors));
 
+        string content = createPublicationDto.Content;
+
         // Очистка Html от вредоносного кода
-        createPublicationDto.Content = _htmlHelper.SanitizeHtml(createPublicationDto.Content);
+        content = _htmlHelper.SanitizeHtml(content);
 
         // Убираем лишние пробелы и отступы
-        createPublicationDto.Content = createPublicationDto.Content.ReplaceExtraSpacesAndNewLines();
+        content = content.ReplaceExtraSpacesAndNewLines();
 
         // Пользователь не найден (который пытается создать)
         var userFromDb = await _db.Users.AsNoTracking().Where(x => x.Id == userId).Select(x => new { x.IsEmailConfirm, x.IsPhoneNumberConfirm, x.Firstname }).FirstOrDefaultAsync(ct);
@@ -364,14 +361,9 @@ public class PublicationManager : IPublicationManager
         {
             CreatedAt = DateTime.UtcNow,
             Title = createPublicationDto.Title,
-            Content = createPublicationDto.Content,
+            Content = content,
             AuthorId = userId
         };
-
-        // Проверка валидности данных перед записью в базу
-        var validationResultPublication = await _publicationValidator.ValidateAsync(publication, ct);
-        if (!validationResultPublication.IsValid) // Если данные невалидны, то я уже ничего не сделаю - исключение
-            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(Publication), validationResultPublication.Errors));
 
         await _db.Publications.AddAsync(publication, ct);
         await _db.SaveChangesAsync(ct);
@@ -390,17 +382,18 @@ public class PublicationManager : IPublicationManager
         if (!isExistsUser)
             return ServiceResult.Fail(ErrorMessages.UserNotFound);
 
-        // Публикация не найдена
-        var publicationFromDb = await _db.Publications.FirstOrDefaultAsync(x => x.Id == publicationId, ct);
+        // Публикация не найдена. Грузим только AuthorId
+        var publicationFromDb = await _db.Publications.Where(x => x.Id == publicationId).Select(x => new { x.AuthorId }).FirstOrDefaultAsync(ct);
         if (publicationFromDb == null)
             return ServiceResult.Fail(ErrorMessages.PublicationNotFound);
 
         // Является ли пользователь автором этой публикации
-        if (!await IsAuthorThisPublicationAsync(userId, publicationId, ct))
+        if (userId != publicationFromDb.AuthorId)
             return ServiceResult.Fail(ErrorMessages.UserIsNotAuthorOfThisPublication);
 
-        _db.Publications.Remove(publicationFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Удаляем публикацию
+        await _db.Publications.Where(x => x.Id == publicationId)
+            .ExecuteDeleteAsync(ct);
 
         return ServiceResult.Success();
     }
@@ -411,13 +404,13 @@ public class PublicationManager : IPublicationManager
         if (publicationId == Guid.Empty)
             throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
 
-        // Публикация не найдена
-        var publicationFromDb = await _db.Publications.FirstOrDefaultAsync(x => x.Id == publicationId, ct);
-        if (publicationFromDb == null)
-            return ServiceResult.Fail(ErrorMessages.PublicationNotFound);
+        // Удаляем публикацию
+        var deletedRows = await _db.Publications.Where(x => x.Id == publicationId)
+            .ExecuteDeleteAsync(ct);
 
-        _db.Publications.Remove(publicationFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Публикация не найдена
+        if (deletedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.PublicationNotFound);
 
         return ServiceResult.Success();
     }
@@ -433,16 +426,14 @@ public class PublicationManager : IPublicationManager
         if (!isExistsUser)
             return ServiceResult.Fail(ErrorMessages.UserNotFound);
 
-        // Публикации автора
-        var publicationsFromDb = _db.Publications.Where(x => x.AuthorId == userId);
-
-        _db.Publications.RemoveRange(publicationsFromDb);
-        await _db.SaveChangesAsync(ct);
+        // Удаляем публикации автора
+        await _db.Publications.Where(x => x.AuthorId == userId)
+            .ExecuteDeleteAsync(ct);
 
         return ServiceResult.Success();
     }
 
-    public async Task<bool> IsAuthorThisPublicationAsync(Guid userId, Guid publicationId, CancellationToken ct = default)
+    public ValueTask<bool> IsAuthorThisPublicationAsync(Guid userId, Guid publicationId, CancellationToken ct = default)
     {
         // Закэшированно, что такой-то пользователь не является автором такой-то публикации
         // Нет функционала передать публикацию другому автору
@@ -455,7 +446,7 @@ public class PublicationManager : IPublicationManager
         };
 
         // Есть ли хоть одна публикация с таким Id от этого пользователя
-        return await _cache.GetOrCreateAsync(
+        return _cache.GetOrCreateAsync(
             $"{CacheKeys.IsAuthorThisPublication}-{userId}:{publicationId}",
             async ct => await _db.Publications.AnyAsync(x => x.AuthorId == userId && x.Id == publicationId, ct),
             options, cancellationToken: ct);

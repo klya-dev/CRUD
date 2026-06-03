@@ -24,10 +24,15 @@ namespace CRUD.WebApi.Filters;
 /// <item><seealso href="https://www.rfc-editor.org/rfc/rfc9110#name-idempotent-methods"/>.</item>
 /// </list>
 /// </remarks>
-public class IdempotencyFilter : IEndpointFilter
+public sealed class IdempotencyFilter : IEndpointFilter
 {
     private const string IdempotencyHeaderName = "Idempotency-Key";
     private const string IdempotencyQueryName = "idmkey";
+
+    // Заголовки, которые будут учитываться в хэше, т.е, если поменять значение заголовка (из указанных), то хэш будет другой, соответственно - переиспользование Idempotency-Key с другими данными
+    // Есть заголовок "request-start-time", он указывает время старта запроса, для каждого запроса он будет разным, поэтому нам не нужно его учитывать в хэше
+    // И ещё пример, если у двух запросов тело и заголовки одинаковы, но у второго запроса добавлен ещё один заголовок, который не учитывается в хэше, то не будет ошибки, т.к заголовки, которые учитываются в хэше равны
+    private static readonly string[] _hashedHeaders = ["Accept", "Connection", "Host", "User-Agent", "Accept-Encoding", "Content-Type", "Content-Length", "Idempotency-Key", "Authorization"];
 
     private readonly TimeSpan _cacheTime;
 
@@ -68,8 +73,15 @@ public class IdempotencyFilter : IEndpointFilter
         else // Нет ни заголовка, ни строки запроса
             return Results.Problem(title: $"Missing {IdempotencyHeaderName} header or {IdempotencyQueryName} query string.", detail: $"Missing {IdempotencyHeaderName} header or {IdempotencyQueryName} query.", statusCode: StatusCodes.Status400BadRequest);
 
-        // Достаём IDistributedCache (Redis) из DI
+        // Достаём IDistributedCache (Redis) из DI. IDistributedCache (Redis) полезен, если есть другие экземпляры приложения, чтобы кэш не зависил от одного приложения, а мог использоваться всеми
         IDistributedCache cache = context.HttpContext.RequestServices.GetRequiredService<IDistributedCache>();
+        //HybridCache cache = context.HttpContext.RequestServices.GetRequiredService<HybridCache>();
+        // HybridCache очень крутая штука, т.к как он сохраняет и в IMemoryCache, и в IDistributedCache, т.е если запись есть в памяти, то берёт из памяти, если нет, то пытается в добавок найти в редисе
+        // Также если внутренние фичи, например "Встроенная защита от «стадного» кэширования" - предотвращает одновременное возникновение дублирующих и дорогостоящих операций из-за множественных промахов кэша
+        // Дефолтная сериализация System.Text.Json
+        // https://dev.to/dorinandreidragan/hybridcache-redis-cache-smarter-not-harder-for-aspnet-apis-48cb
+        // https://codewithmukesh.com/blog/hybridcache-in-aspnet-core
+        // Но я захотел оставить пример с IDistributedCache, т.к с IMemoryCache и HybridCache у меня уже есть ситуации
 
         // Создаём MemoryStream и копируем в него тело запроса
         using var memoryStream = new MemoryStream();
@@ -82,7 +94,7 @@ public class IdempotencyFilter : IEndpointFilter
         requestDataStringBuilder.AppendLine(context.HttpContext.Request.Path + context.HttpContext.Request.QueryString.Value);
 
         // Добавляем в StringBuilder заголовки
-        foreach (var header in context.HttpContext.Request.Headers)
+        foreach (var header in context.HttpContext.Request.Headers.Where(x => _hashedHeaders.Contains(x.Key)))
             requestDataStringBuilder.AppendLine($"{header.Key}:{header.Value}");
 
         // Добавляем к байтам StringBuilder'а байты тела запроса
@@ -175,7 +187,7 @@ public class IdempotencyFilter : IEndpointFilter
 /// <remarks>
 /// Служит для кэширования результата ответа.
 /// </remarks>
-public class IdempotencyCacheResult
+public sealed record IdempotencyCacheResult
 {
     /// <summary>
     /// Статус код ответа.
@@ -183,12 +195,12 @@ public class IdempotencyCacheResult
     /// <remarks>
     /// <see cref="HttpResponse.StatusCode"/>.
     /// </remarks>
-    public required int StatusCode { get; set; }
+    public required int StatusCode { get; init; }
 
     /// <summary>
     /// Тело запроса.
     /// </summary>
-    public required object? Body { get; set; }
+    public required object? Body { get; init; }
 
     /// <summary>
     /// Хэш запроса.
@@ -196,7 +208,7 @@ public class IdempotencyCacheResult
     /// <remarks>
     /// Нужно для сравнивания запросов, чтобы нельзя было переиспользовать <c>Idempotency-Key</c> с другими данными.
     /// </remarks>
-    public required string RequestHash { get; set; }
+    public required string RequestHash { get; init; }
 
     /// <summary>
     /// Тип контента.
@@ -205,5 +217,5 @@ public class IdempotencyCacheResult
     /// <para>Если <see cref="Body"/> не пустой, то <see cref="ContentType"/> не будет пустым.</para>
     /// <see cref="HttpResponse.ContentType"/>.
     /// </remarks>
-    public required string? ContentType { get; set; }
+    public required string? ContentType { get; init; }
 }

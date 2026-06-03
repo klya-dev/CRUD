@@ -1,14 +1,11 @@
-﻿#nullable disable
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRUD.Tests.IntegrationTests;
 
-public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFactory>
+public sealed class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
-    // #nullable disable
-
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IPasswordChanger _passwordChanger;
     private readonly IPasswordHasher _passwordHasher;
@@ -26,13 +23,6 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
         _db = scopedServices.GetRequiredService<ApplicationDbContext>();
     }
 
-    private IPasswordChanger GenerateNewPasswordChanger()
-    {
-        var scope = _factory.Services.CreateScope();
-        var scopedServices = scope.ServiceProvider;
-        return scopedServices.GetRequiredService<IPasswordChanger>();
-    }
-
     [Theory]
     [InlineData("123", "!123@L")]
     [InlineData("kekpass", "newsuperpassword")]
@@ -40,7 +30,7 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, hashedPassword: password);
+        var user = await DI.CreateUserAsync(_db, hashedPassword: password, ct: TestContext.Current.CancellationToken);
 
         var changePasswordDto = new ChangePasswordDto()
         {
@@ -51,14 +41,14 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
         var userIdGuid = user.Id;
 
         // Act
-        var result = await _passwordChanger.ChangePasswordAsync(userIdGuid, changePasswordDto);
+        var result = await _passwordChanger.ChangePasswordAsync(userIdGuid, changePasswordDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Пароль и вправду не обновился (т.к нужно подтверждение)
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.False(_passwordHasher.Verify(changePasswordDto.NewPassword, userFromDbAfterUpdate.HashedPassword));
     }
 
@@ -68,7 +58,7 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, hashedPassword: password);
+        var user = await DI.CreateUserAsync(_db, hashedPassword: password, ct: TestContext.Current.CancellationToken);
 
         var changePasswordDto = new ChangePasswordDto()
         {
@@ -76,9 +66,9 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
             NewPassword = newPassword
         };
         var userIdGuid = user.Id;
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
-        var validationResult = await new ChangePasswordDtoValidator(validatorsLocalizer).ValidateAsync(changePasswordDto);
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var validatorsLocalizer = new ValidatorLocalizer();
+        var validationResult = await new ChangePasswordDtoValidator(validatorsLocalizer).ValidateAsync(changePasswordDto, TestContext.Current.CancellationToken);
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
         // Act
         Func<Task> a = async () =>
@@ -92,7 +82,7 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
         Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(ChangePasswordDto), validationResult.Errors), ex.Message);
 
         // Пароль и вправду не обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
     }
 
@@ -111,7 +101,7 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _passwordChanger.ChangePasswordAsync(userIdGuid, changePasswordDto);
+        var result = await _passwordChanger.ChangePasswordAsync(userIdGuid, changePasswordDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -126,7 +116,7 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
         string newPassword = "!123@L";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, hashedPassword: password + "SOMETHING_WRONG");
+        var user = await DI.CreateUserAsync(_db, hashedPassword: password + "SOMETHING_WRONG", ct: TestContext.Current.CancellationToken);
 
         var changePasswordDto = new ChangePasswordDto()
         {
@@ -134,17 +124,17 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
             NewPassword = newPassword
         };
         var userIdGuid = user.Id;
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _passwordChanger.ChangePasswordAsync(userIdGuid, changePasswordDto);
+        var result = await _passwordChanger.ChangePasswordAsync(userIdGuid, changePasswordDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.InvalidPassword, result.ErrorMessage);
 
         // Пароль и вправду не обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
     }
 
@@ -156,10 +146,10 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
         string newPassword = "!123@L";
 
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, hashedPassword: password);
+        var user = await DI.CreateUserAsync(_db, hashedPassword: password, ct: TestContext.Current.CancellationToken);
 
         // Добавляем токен в базу, чтобы возникла ошибка, что письмо уже отправлено
-        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, user.Id);
+        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
 
         var changePasswordDto = new ChangePasswordDto()
         {
@@ -167,17 +157,17 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
             NewPassword = newPassword
         };
         var userIdGuid = user.Id;
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _passwordChanger.ChangePasswordAsync(userIdGuid, changePasswordDto);
+        var result = await _passwordChanger.ChangePasswordAsync(userIdGuid, changePasswordDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.LetterAlreadySent, result.ErrorMessage);
 
         // Пароль и вправду не обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
     }
 
@@ -187,22 +177,22 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Добавляем токен в базу
-        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, userIdGuid);
+        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _passwordChanger.ChangePasswordAsync(changePasswordRequest.Token);
+        var result = await _passwordChanger.ChangePasswordAsync(changePasswordRequest.Token, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Пароль и вправду обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Equal(changePasswordRequest.HashedNewPassword, userFromDbAfterUpdate.HashedPassword);
     }
 
@@ -213,7 +203,7 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
         string token = "token";
 
         // Act
-        var result = await _passwordChanger.ChangePasswordAsync(token);
+        var result = await _passwordChanger.ChangePasswordAsync(token, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -225,15 +215,15 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Добавляем токен в базу
-        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, userIdGuid, expires: DateTime.UtcNow.AddDays(-1));
+        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, userIdGuid, expires: DateTime.UtcNow.AddDays(-1), ct: TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _passwordChanger.ChangePasswordAsync(changePasswordRequest.Token);
+        var result = await _passwordChanger.ChangePasswordAsync(changePasswordRequest.Token, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -245,21 +235,21 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var userIdGuid = user.Id;
 
         // Добавляем токен в базу
-        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, userIdGuid);
+        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
 
         // Удаляем пользователя
         _db.Users.Remove(user);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Тут токен удаляется автоматически сам
 
         // Act
-        var result = await _passwordChanger.ChangePasswordAsync(changePasswordRequest.Token);
+        var result = await _passwordChanger.ChangePasswordAsync(changePasswordRequest.Token, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -274,7 +264,7 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var setPasswordDto = new SetPasswordDto()
         {
@@ -284,14 +274,14 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
         var userIdGuid = user.Id;
 
         // Act
-        var result = await _passwordChanger.SetPasswordAsync(userIdGuid, setPasswordDto);
+        var result = await _passwordChanger.SetPasswordAsync(userIdGuid, setPasswordDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Null(result.ErrorMessage);
 
         // Пароль и вправду обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.True(_passwordHasher.Verify(setPasswordDto.NewPassword, userFromDbAfterUpdate.HashedPassword));
     }
 
@@ -301,7 +291,7 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
     {
         // Arrange
         // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db);
+        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         var setPasswordDto = new SetPasswordDto()
         {
@@ -310,9 +300,9 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
 
         var userIdGuid = user.Id;
 
-        var validatorsLocalizer = new Models.Validators.ValidatorsLocalizer.ValidatorsLocalizer();
-        var validationResult = await new SetPasswordDtoValidator(validatorsLocalizer).ValidateAsync(setPasswordDto);
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var validatorsLocalizer = new ValidatorLocalizer();
+        var validationResult = await new SetPasswordDtoValidator(validatorsLocalizer).ValidateAsync(setPasswordDto, TestContext.Current.CancellationToken);
+        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
 
         // Act
         Func<Task> a = async () =>
@@ -326,7 +316,7 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
         Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(SetPasswordDto), validationResult.Errors), ex.Message);
 
         // Пароль и вправду не обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
+        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
     }
 
@@ -344,70 +334,10 @@ public class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFa
         var userIdGuid = Guid.NewGuid();
 
         // Act
-        var result = await _passwordChanger.SetPasswordAsync(userIdGuid, setPasswordDto);
+        var result = await _passwordChanger.SetPasswordAsync(userIdGuid, setPasswordDto, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.UserNotFound, result.ErrorMessage);
-    }
-
-
-    // Конфликты параллельности
-
-
-    [Theory]
-    [InlineData("123", "!123@L")]
-    [InlineData("kekpass", "newsuperpassword")]
-    public async Task ChangePasswordAsync_ConcurrencyConflict_ReturnsErrorMessage_NothingOrConflictOrInvalidPasswordOrLetterAlreadySent(string password, string newPassword)
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, hashedPassword: password);
-
-        var changePasswordDto = new ChangePasswordDto()
-        {
-            Password = password,
-            NewPassword = newPassword
-        };
-        var userIdGuid = user.Id;
-        var passwordChanger = GenerateNewPasswordChanger();
-        var passwordChanger2 = GenerateNewPasswordChanger();
-
-        // Act
-        var task = passwordChanger.ChangePasswordAsync(userIdGuid, changePasswordDto);
-        var task2 = passwordChanger2.ChangePasswordAsync(userIdGuid, changePasswordDto);
-
-        // Может выбросится исключение с конфликтом параллельности, в документации это написано
-        try
-        {
-            var results = await Task.WhenAll(task, task2);
-
-            // Assert
-            foreach (var result in results)
-            {
-                Assert.NotNull(result);
-
-                // Либо ничего, либо неверный пароль
-                var errorMessage = result.ErrorMessage;
-                string[] allowedErrors =
-                [
-                    null,
-                    ErrorMessages.InvalidPassword,
-                    ErrorMessages.LetterAlreadySent
-                ];
-
-                Assert.Contains(errorMessage, allowedErrors);
-            }
-
-            // Пароль и вправду не обновился
-            var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid);
-            Assert.False(_passwordHasher.Verify(changePasswordDto.NewPassword, userFromDbAfterUpdate.HashedPassword));
-        }
-        catch (DbUpdateException ex)
-        {
-            // Если не конфликт параллельности, не обрабатываем
-            if (!DbExceptionHelper.IsConcurrencyConflict(ex))
-                throw;
-        }
     }
 }

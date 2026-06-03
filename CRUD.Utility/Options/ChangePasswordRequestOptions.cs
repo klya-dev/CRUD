@@ -3,7 +3,7 @@
 /// <summary>
 /// Опции, используемые для подтверждения смены пароля пользователя.
 /// </summary>
-public class ChangePasswordRequestOptions
+public sealed class ChangePasswordRequestOptions
 {
     /// <summary>
     /// Название секции.
@@ -13,10 +13,10 @@ public class ChangePasswordRequestOptions
     /// <summary>
     /// Через сколько истекает токен.
     /// </summary>
-    public required TimeSpan Expires { get; set; }
+    public required TimeSpan Expires { get; init; }
 
     /// <summary>
     /// Через сколько можно отправить запрос повторно.
     /// </summary>
-    public required TimeSpan Timeout { get; set; }
+    public required TimeSpan Timeout { get; init; }
 }

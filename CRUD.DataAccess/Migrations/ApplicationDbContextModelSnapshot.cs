@@ -17,7 +17,7 @@ namespace CRUD.DataAccess.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
@@ -339,30 +339,23 @@ namespace CRUD.DataAccess.Migrations
                     b.ToTable("UserNotifications");
                 });
 
-            modelBuilder.Entity("CRUD.Models.Domains.ChangePasswordRequest", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
                 {
-                    b.HasBaseType("CRUD.Models.Domains.Request");
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                    b.Property<string>("HashedNewPassword")
-                        .IsRequired()
-                        .HasMaxLength(69)
-                        .HasColumnType("varchar(69)");
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                    b.Property<string>("FriendlyName")
+                        .HasColumnType("longtext");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("char(36)");
+                    b.Property<string>("Xml")
+                        .HasColumnType("longtext");
 
-                    b.HasIndex("Token")
-                        .IsUnique();
+                    b.HasKey("Id");
 
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("ChangePasswordRequests");
+                    b.ToTable("DataProtectionKeys");
                 });
 
             modelBuilder.Entity("CRUD.Models.Domains.ConfirmEmailRequest", b =>
@@ -458,23 +451,6 @@ namespace CRUD.DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Notification");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("CRUD.Models.Domains.ChangePasswordRequest", b =>
-                {
-                    b.HasOne("CRUD.Models.Domains.Request", null)
-                        .WithOne()
-                        .HasForeignKey("CRUD.Models.Domains.ChangePasswordRequest", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CRUD.Models.Domains.User", "User")
-                        .WithOne()
-                        .HasForeignKey("CRUD.Models.Domains.ChangePasswordRequest", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("User");
                 });

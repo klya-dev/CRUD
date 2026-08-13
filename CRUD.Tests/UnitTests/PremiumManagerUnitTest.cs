@@ -1,8 +1,6 @@
-﻿using FluentValidation;
-using Microsoft.EntityFrameworkCore;
+﻿namespace CRUD.Tests.UnitTests;
 
-namespace CRUD.Tests.UnitTests;
-
+[Collection(nameof(GlobalDbContainerCollection))]
 public sealed class PremiumManagerUnitTest
 {
     private readonly PremiumManager _premiumManager;
@@ -11,9 +9,9 @@ public sealed class PremiumManagerUnitTest
     private readonly Mock<IPremiumInformator> _mockPremiumInformator;
     private readonly ApplicationDbContext _db;
 
-    public PremiumManagerUnitTest()
+    public PremiumManagerUnitTest(DbContainerFixture fixture)
     {
-        var db = DbContextGenerator.GenerateDbContextTestInMemory();
+        var db = DbContextGenerator.GenerateDbContextTestContainer(fixture.DbOptions);
         _db = db;
 
         _mockUserApiKeyManager = new();

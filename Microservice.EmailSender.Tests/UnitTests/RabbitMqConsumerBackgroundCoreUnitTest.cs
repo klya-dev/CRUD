@@ -1,11 +1,12 @@
 ﻿#nullable enable
+using Microservice;
 using Microservice.EmailSender.Services.RabbitMqConsumer;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
 
-namespace Microservice.EmailSender.Tests.IntegrationTests;
+namespace Microservice.EmailSender.Tests.UnitTests;
 
 public sealed class RabbitMqConsumerBackgroundCoreUnitTest
 {

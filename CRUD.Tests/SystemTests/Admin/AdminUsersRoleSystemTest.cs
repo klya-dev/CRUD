@@ -1,10 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Admin;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
@@ -41,9 +43,10 @@ public sealed class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationF
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_USERS_USER_ID_ROLE_URL, user.Id);
-        var request = new HttpRequestMessage(HttpMethod.Put, url);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Put, url)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
         TestConstants.AddIdempotencyKey(request);
 
@@ -74,9 +77,10 @@ public sealed class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationF
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_USERS_USER_ID_ROLE_URL, Guid.NewGuid());
-        var request = new HttpRequestMessage(HttpMethod.Put, url);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Put, url)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
         TestConstants.AddIdempotencyKey(request);
 
@@ -112,9 +116,10 @@ public sealed class AdminUsersRoleSystemTest : IClassFixture<TestWebApplicationF
 
         // Запрос
         var url = string.Format(TestConstants.ADMIN_USERS_USER_ID_ROLE_URL, user.Id);
-        var request = new HttpRequestMessage(HttpMethod.Put, url);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Put, url)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, role: UserRoles.Admin);
         TestConstants.AddIdempotencyKey(request);
 

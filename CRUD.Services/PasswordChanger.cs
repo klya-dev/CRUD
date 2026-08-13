@@ -1,5 +1,6 @@
 ﻿using CRUD.Models.Dtos.Password;
-using CRUD.Services.Interfaces;
+using Microsoft.AspNetCore.DataProtection;
+using System.Text.Json;
 
 namespace CRUD.Services;
 
@@ -11,14 +12,18 @@ public sealed class PasswordChanger : IPasswordChanger
     private readonly IValidator<SetPasswordDto> _setPasswordDtoValidator;
     private readonly IChangePasswordRequestManager _changePasswordRequestManager;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly ITimeLimitedDataProtector _protector;
 
-    public PasswordChanger(ApplicationDbContext db, IValidator<ChangePasswordDto> changePasswordDtoValidator, IValidator<SetPasswordDto> setPasswordDtoValidator, IChangePasswordRequestManager changePasswordRequestManager, IPasswordHasher passwordHasher)
+    public PasswordChanger(ApplicationDbContext db, IValidator<ChangePasswordDto> changePasswordDtoValidator, IValidator<SetPasswordDto> setPasswordDtoValidator, IChangePasswordRequestManager changePasswordRequestManager, IPasswordHasher passwordHasher, IDataProtectionProvider provider)
     {
         _db = db;
         _changePasswordDtoValidator = changePasswordDtoValidator;
         _setPasswordDtoValidator = setPasswordDtoValidator;
         _changePasswordRequestManager = changePasswordRequestManager;
         _passwordHasher = passwordHasher;
+
+        // Создаём протектор с ограничением времени
+        _protector = provider.CreateProtector(ChangePasswordRequestManager.Purpose).ToTimeLimitedDataProtector();
     }
 
     public async Task<ServiceResult> ChangePasswordAsync(Guid userId, ChangePasswordDto changePasswordDto, CancellationToken ct = default)
@@ -44,13 +49,13 @@ public sealed class PasswordChanger : IPasswordChanger
         if (!_passwordHasher.Verify(changePasswordDto.Password, userFromDb.HashedPassword))
             return ServiceResult.Fail(ErrorMessages.InvalidPassword);
 
-        // Добавляем токен в базу и отправляем письмо
-        var resultAddTokenToDbAndSendLetter = await _changePasswordRequestManager.AddTokenToDatabaseAndSendLetterAsync(userFromDb.Id, userFromDb.Email, userFromDb.LanguageCode,
+        // Добавляем токен в кэш и отправляем письмо
+        var resultAddTokenToStorageAndSendLetter = await _changePasswordRequestManager.AddTokenToStorageAndSendLetterAsync(userFromDb.Id, userFromDb.Email, userFromDb.LanguageCode,
             _passwordHasher.GenerateHashedPassword(changePasswordDto.NewPassword), ct);
 
         // Есть ошибка
-        if (resultAddTokenToDbAndSendLetter.ErrorMessage != null)
-            return ServiceResult.Fail(resultAddTokenToDbAndSendLetter.ErrorMessage, resultAddTokenToDbAndSendLetter.ErrorParams);
+        if (resultAddTokenToStorageAndSendLetter.ErrorMessage != null)
+            return ServiceResult.Fail(resultAddTokenToStorageAndSendLetter.ErrorMessage, resultAddTokenToStorageAndSendLetter.ErrorParams);
 
         return ServiceResult.Success();
     }
@@ -60,42 +65,30 @@ public sealed class PasswordChanger : IPasswordChanger
         // Пустые данные
         ArgumentNullException.ThrowIfNull(token);
 
-        // Запрос не найден
-        var changePasswordRequestFromDb = await _db.ChangePasswordRequests.Where(x => x.Token == token)
-            .AsNoTracking()
-            .Select(x => new
-            {
-                // Очень осторожно с полной сущностью (Request = x), если где-то загрузили/создали всю сущность, а потом вызвали ExecuteUpdateAsync, то из-за кэша значения могут разниться
-                // Прикол, в том, что EF и вправду делает запрос в базу (FirstOrDefaultAsync), но после получения этих данных он сравнивает ID сущности с ID сущности в кэше и просто отдаёт кэшированные значения - так и работает ChangeTracker (в одном контексте базы)
-                // Поэтому когда грузим всю сущность через .Select() - .AsNoTracking() обязательно
-                Request = x,
-                User = new { x.User!.Id, x.User.IsEmailConfirm, x.User.RowVersion }
-            })
-            .FirstOrDefaultAsync(ct);
+        try
+        {
+            // Расшифровываем полезную нагрузку
+            string payloadJson = _protector.Unprotect(token);
 
-        if (changePasswordRequestFromDb == null)
+            // Достаём данные из полезной нагрузки
+            var payload = JsonSerializer.Deserialize<ChangePasswordPayload>(payloadJson);
+
+            // Невалидный токен
+            if (payload == null)
+                return ServiceResult.Fail(ErrorMessages.InvalidToken);
+
+            // Меняем пароль
+            var updatedRows = await _db.Users.Where(x => x.Id == payload.UserId)
+                .ExecuteUpdateAsync(x => x.SetProperty(p => p.HashedPassword, payload.HashedNewPassword), ct);
+
+            // Найдено 0 строк. Пользователь не найден
+            if (updatedRows == 0)
+                return ServiceResult.Fail(ErrorMessages.UserNotFound);
+        }
+        catch (System.Security.Cryptography.CryptographicException) // Защищенные полезные данные не могут быть проверены или расшифрованы
+        {
             return ServiceResult.Fail(ErrorMessages.InvalidToken);
-
-        // Удаляем токен из базы (в любом случае надо удалить токен, он одноразовый)
-        _db.ChangePasswordRequests.Remove(changePasswordRequestFromDb.Request);
-        await _db.SaveChangesAsync(ct);
-
-        // Проверка срока действия токена
-        if (changePasswordRequestFromDb.Request.IsExpired())
-            return ServiceResult.Fail(ErrorMessages.InvalidToken);
-
-        // Пользователь не найден
-        var userFromDb = changePasswordRequestFromDb.User;
-        if (userFromDb == null)
-            return ServiceResult.Fail(ErrorMessages.UserNotFound);
-
-        // Меняем пароль
-        var updatedRows = await _db.Users.Where(x => x.Id == userFromDb.Id && x.RowVersion == userFromDb.RowVersion)
-            .ExecuteUpdateAsync(x => x.SetProperty(p => p.HashedPassword, changePasswordRequestFromDb.Request.HashedNewPassword), ct);
-
-        // Найдено 0 строк (Where;MySQL:UseAffectedRows). Вероятно, из-за разных RowVersion - конфликт
-        if (updatedRows == 0)
-            return ServiceResult.Fail(ErrorMessages.ConcurrencyConflicts);
+        }
 
         return ServiceResult.Success();
     }

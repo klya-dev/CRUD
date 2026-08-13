@@ -1,4 +1,6 @@
-﻿namespace CRUD.Tests.UnitTests;
+﻿using System.Net;
+
+namespace CRUD.Tests.UnitTests;
 
 public sealed class UserManagerUnitTest
 {
@@ -7,6 +9,8 @@ public sealed class UserManagerUnitTest
     private readonly Mock<IPasswordHasher> _mockPasswordHasher;
     private readonly Mock<IAvatarManager> _mockAvatarManager;
     private readonly Mock<IOptions<AvatarManagerOptions>> _mockAvatarManagerOptions;
+    private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
+    private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
     private readonly Mock<IValidator<CreateUserDto>> _mockCreateUserDtoValidator;
     private readonly Mock<IValidator<OAuthCompleteRegistrationDto>> _mockOAuthCompleteRegistrationDtoValidator;
     private readonly Mock<IValidator<UpdateUserDto>> _mockUpdateUserDtoValidator;
@@ -22,6 +26,8 @@ public sealed class UserManagerUnitTest
         _mockPasswordHasher = new();
         _mockAvatarManager = new();
         _mockAvatarManagerOptions = new();
+        _mockHttpClientFactory = new();
+        _mockHttpMessageHandler = new();
         _mockCreateUserDtoValidator = new();
         _mockOAuthCompleteRegistrationDtoValidator = new();
         _mockUpdateUserDtoValidator = new();
@@ -31,11 +37,17 @@ public sealed class UserManagerUnitTest
 
         _mockAvatarManagerOptions.Setup(x => x.Value).Returns(TestSettingsHelper.GetConfigurationValue<AvatarManagerOptions, TestMarker>(AvatarManagerOptions.SectionName));
 
+        // Мокаем создание клиента через фабрику
+        var httpClient = new HttpClient(_mockHttpMessageHandler.Object);
+        httpClient.BaseAddress = new Uri("https://localhost");
+        _mockHttpClientFactory.Setup(_ => _.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
         _userManager = new UserManager(
             db,
             _mockPasswordHasher.Object,
             _mockAvatarManager.Object,
             _mockAvatarManagerOptions.Object,
+            _mockHttpClientFactory.Object,
             _mockCreateUserDtoValidator.Object,
             _mockOAuthCompleteRegistrationDtoValidator.Object,
             _mockUpdateUserDtoValidator.Object,
@@ -319,6 +331,23 @@ public sealed class UserManagerUnitTest
 
         // Не удалось установить аватарку
         _mockAvatarManager.Setup(x => x.SetAvatarAsync(It.IsAny<Guid>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult.Fail(ErrorMessages.DoesNotMatchSignature));
+
+        // Ответ на скачивание картинки
+        var httpClient = new HttpClient();
+        var pictureStream = await httpClient.GetStreamAsync(userInfo.Picture, TestContext.Current.CancellationToken);
+        var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StreamContent(pictureStream)
+        };
+
+        _mockHttpMessageHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .ReturnsAsync(responseMessage);
 
         // Act
         var result = await _userManager.CreateUserAsync(userInfo, oAuthCompleteRegistrationDto, ct: TestContext.Current.CancellationToken);

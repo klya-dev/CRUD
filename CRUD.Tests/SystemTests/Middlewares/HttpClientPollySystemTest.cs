@@ -5,6 +5,7 @@ using System.Net;
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class HttpClientPollySystemTest
 {
     [Fact] // Политика WaitAndRetry - в сумме 4 попытки

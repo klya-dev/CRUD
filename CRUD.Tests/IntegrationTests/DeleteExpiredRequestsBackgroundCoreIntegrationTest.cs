@@ -2,6 +2,7 @@
 
 namespace CRUD.Tests.IntegrationTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class DeleteExpiredRequestsBackgroundCoreIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
@@ -28,10 +29,9 @@ public sealed class DeleteExpiredRequestsBackgroundCoreIntegrationTest : IClassF
         var user2 = await DI.CreateUserAsync(_db, username: "test", email: "test", phoneNumber: "123", ct: TestContext.Current.CancellationToken);
 
         // Добавляем запросы в базу
-        var request = await DI.CreateChangePasswordRequestAsync(_db, user.Id, expires: DateTime.MinValue, ct: TestContext.Current.CancellationToken); // Истёкший
-        var request2 = await DI.CreateConfirmEmailRequestAsync(_db, user.Id, token: "123", ct: TestContext.Current.CancellationToken);
-        var request3 = await DI.CreateChangePasswordRequestAsync(_db, user2.Id, token: "12345", ct: TestContext.Current.CancellationToken);
-        var request4 = await DI.CreateVerificationPhoneNumberRequestAsync(_db, user2.Id, code: "1234567", expires: DateTime.MinValue, ct: TestContext.Current.CancellationToken); // Истёкший
+        var request = await DI.CreateConfirmEmailRequestAsync(_db, user.Id, token: "123", ct: TestContext.Current.CancellationToken);
+        var request2 = await DI.CreateVerificationPhoneNumberRequestAsync(_db, user2.Id, code: "1234567", expires: DateTime.MinValue, ct: TestContext.Current.CancellationToken); // Истёкший
+        var request3 = await DI.CreateVerificationPhoneNumberRequestAsync(_db, user.Id, code: "12345678", expires: DateTime.MinValue, ct: TestContext.Current.CancellationToken);
 
         // Act
         await _deleteExpiredRequestsBackgroundCore.DoWorkAsync(CancellationToken.None);

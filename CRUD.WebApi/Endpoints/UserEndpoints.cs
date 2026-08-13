@@ -40,7 +40,6 @@ public static class UserEndpoints
         })
             .WithSummary("Возвращает минимальные данные текущего пользователя.")
             .WithDescription("Возвратимые данные: Имя, Username, Код языка.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces<UserDto>((int)HttpStatusCode.OK);
 
@@ -68,7 +67,6 @@ public static class UserEndpoints
             .WithValidation<UpdateUserDto>()
             .WithSummary("Обновляет данные текущего пользователя по указанной модели.")
             .WithDescription("Обновляемые данные: Имя, Username, Код языка.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
 
@@ -96,7 +94,6 @@ public static class UserEndpoints
             .WithValidation<DeleteUserDto>()
             .WithSummary("Удаляет текущего пользователя из базы данных через пароль этого пользователя.")
             .WithDescription("Удаление безвозвратно, освободившийся Username сразу можно зарегистрировать.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
 
@@ -126,7 +123,6 @@ public static class UserEndpoints
         })
             .WithSummary("Получает аватарку текущего пользователя файлом.")
             .WithDescription("Размер файла может быть не более $AvatarManagerOptions.MaxFileSizeString$ МБ.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .ProducesProblem((int)HttpStatusCode.BadRequest)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
@@ -153,7 +149,6 @@ public static class UserEndpoints
         })
             .WithSummary("Получает аватарку текущего пользователя ссылкой.")
             .WithDescription("По умолчанию срок действия ссылки 1 час.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .ProducesProblem((int)HttpStatusCode.BadRequest)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
@@ -189,10 +184,9 @@ public static class UserEndpoints
             // Сопоставление ошибки
             return TypedResults.Extensions.Problem(result, localizer);
         })
-            .DisableAntiforgery() // Отключаем Antiforgery (CSRF), т.к я не использую cookie, у меня есть JWT авторизация. Для IFormFile по умолчанию CSRF включён
+            .DisableAntiforgery() // Отключаем Antiforgery (CSRF), т.к я не использую cookie, у меня есть JWT авторизация. Для IFormFile по умолчанию CSRF включён // https://learn.microsoft.com/ru-ru/aspnet/core/security/anti-request-forgery?view=aspnetcore-10.0#antiforgery-with-minimal-apis
             .WithSummary("Устанавливает аватарку текущему пользователю.")
             .WithDescription($"Размер файла может быть не более $AvatarManagerOptions.MaxFileSizeString$ МБ.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .ProducesProblem((int)HttpStatusCode.BadRequest)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.RequestEntityTooLarge)
@@ -221,7 +215,6 @@ public static class UserEndpoints
             .WithValidation<ChangePasswordDto>()
             .WithSummary("Отправляет письмо для смены пароля на электронную почту текущего пользователя.")
             .WithDescription("Задаваемые данные: Пароль, Новый пароль.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
 
@@ -247,7 +240,6 @@ public static class UserEndpoints
         })
             .WithSummary("Генерирует ссылку на покупку премиума для текущего пользователя.")
             .WithDescription("Премиум остаётся пожизненным, доступны API-ключи и многое другое.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .ProducesProblem((int)HttpStatusCode.BadRequest)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.InternalServerError)
@@ -275,12 +267,11 @@ public static class UserEndpoints
         })
             .WithSummary("Отправляет на электронную почту письмо для подтверждения почты текущего пользователя.")
             .WithDescription("Подтверждение единоразовое, дополнительных подтверждений не требуется.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .ProducesProblem((int)HttpStatusCode.BadRequest)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
 
-        userMap.MapPost("/confirmation/phone", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, NoContent>> ([FromQuery] bool isTelegram, IAuthManager authManager, IResourceLocalizer localizer, HttpContext httpContext, CancellationToken ct) =>
+        userMap.MapPost("/confirmation/phone", async Task<Results<UnauthorizedHttpResult, ProblemHttpResult, NoContent>> ([FromQuery] MessageType messageType, IAuthManager authManager, IResourceLocalizer localizer, HttpContext httpContext, CancellationToken ct) =>
         {
             // Ищем userId в claim'ах и пытаемся пропарсить Id, т.к может прийти "" или вообще любая строчка
             if (!httpContext.User.Claims.GetNameIdentifierGuid(out Guid userId))
@@ -291,7 +282,7 @@ public static class UserEndpoints
                 return TypedResults.Extensions.Problem(ApiErrorConstants.EmptyUniqueIdentifier, localizer);
 
             // Вызов сервиса
-            var result = await authManager.SendVerificationCodePhoneNumberAsync(userId, isTelegram, ct);
+            var result = await authManager.SendVerificationCodePhoneNumberAsync(userId, messageType, ct);
 
             // Нет ошибки
             if (result.ErrorMessage == null)
@@ -301,8 +292,7 @@ public static class UserEndpoints
             return TypedResults.Extensions.Problem(result, localizer);
         })
             .WithSummary("Отправляет на телефонный номер сообщение для подтверждения номера текущего пользователя.")
-            .WithDescription("Если isTelegram = true, то сообщение отправляется в Телеграме, иначе СМС.")
-            .Produces((int)HttpStatusCode.Unauthorized)
+            .WithDescription("Есть возможность выбрать тип сообщения: Sms, Telegram.")
             .ProducesProblem((int)HttpStatusCode.BadRequest)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
@@ -339,7 +329,6 @@ public static class UserEndpoints
         })
             .WithSummary("Возвращает указанное количество публикаций текущего автора (пользователя).")
             .WithDescription("Возвратимые данные каждой публикации: Дата, Заголовок, Содержимое, Id автора (пользователя), Имя автора.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces<IEnumerable<PublicationDto>>((int)HttpStatusCode.OK);
 
@@ -375,7 +364,6 @@ public static class UserEndpoints
         })
             .WithSummary("Возвращает указанное количество уведомлений текущего пользователя.")
             .WithDescription("Возвратимые данные: Коллекция уведомлений пользователя.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces<IEnumerable<UserNotificationDto>>((int)HttpStatusCode.OK);
 
@@ -402,7 +390,6 @@ public static class UserEndpoints
             .WithIdempotency()
             .WithSummary("Задаёт указанному уведомлению текущего пользователя статус \"прочитано\".")
             .WithDescription($"Свойство {nameof(UserNotification.IsRead)} уставливается на true.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.Conflict);
     }

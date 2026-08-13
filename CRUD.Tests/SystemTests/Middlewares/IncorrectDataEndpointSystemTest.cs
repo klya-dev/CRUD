@@ -1,17 +1,20 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class IncorrectDataEndpointSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     // В этом тесте я тестирую разные эндпоинты на возможные возникновения null и других некорректных данных. Я молодец и этого не допускаю
     // FromBody LoginDataDto
     // FromRoute string
+    // FromQuery enum
     // FromQuery bool
     // FromForm IFormFile
     // Тобишь каждый атрибут, который я использую я протестил
@@ -54,13 +57,14 @@ public sealed class IncorrectDataEndpointSystemTest : IClassFixture<TestWebAppli
     public async Task Post_Login_SerializeNullLoginData_ReturnsIncorrectRequest()
     {
         // Arrange
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL);
-        request.Headers.Add("Accept-Language", "ru");
-
         // Тело запроса
         LoginDataDto loginData = null;
-        var json = new StringContent(JsonSerializer.Serialize(loginData), Encoding.UTF8, Application.Json); // Вернёт "null"
-        request.Content = json;
+
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL)
+        {
+            Content = JsonContent.Create(loginData) // Вернёт null
+        };
+        request.Headers.Add("Accept-Language", "ru");
 
         // Act
         using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -128,15 +132,16 @@ public sealed class IncorrectDataEndpointSystemTest : IClassFixture<TestWebAppli
     public async Task Post_Login_WrongContentType_ReturnsUnsupportedMediaType()
     {
         // Arrange
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL);
-        request.Headers.Add("Accept-Language", "ru");
-        TestConstants.AddBearerToken(request, _tokenManager);
-
         // Тело запроса
         var loginData = new LoginDataDto() { Username = "user", Password = "pass" };
-        var json = new StringContent(JsonSerializer.Serialize(loginData), Encoding.UTF8, Application.Json);
-        request.Content = json;
+
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL)
+        {
+            Content = JsonContent.Create(loginData)
+        };
         request.Content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
+        request.Headers.Add("Accept-Language", "ru");
+        TestConstants.AddBearerToken(request, _tokenManager);
 
         // Act
         using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -306,8 +311,7 @@ public sealed class IncorrectDataEndpointSystemTest : IClassFixture<TestWebAppli
         Assert.Equal(ErrorCodes.EMPTY_UNIQUE_IDENTIFIER, jsonDocument.RootElement.GetProperty("code").GetString());
     }
 
-
-    // FromQuery bool
+    // FromQuery enum + JsonStringEnumConverter
 
     [Fact]
     public async Task Post_UserConfirmationPhone_None_ReturnsBadRequest()
@@ -335,10 +339,10 @@ public sealed class IncorrectDataEndpointSystemTest : IClassFixture<TestWebAppli
     }
 
     [Fact]
-    public async Task Post_UserConfirmationPhone_BoolWithoutValue_ReturnsBadRequest()
+    public async Task Post_UserConfirmationPhone_EnumWithoutValue_ReturnsBadRequest()
     {
         // Arrange
-        var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?isTelegram";
+        var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?messageType";
         var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.Add("Accept-Language", "ru");
 
@@ -359,6 +363,146 @@ public sealed class IncorrectDataEndpointSystemTest : IClassFixture<TestWebAppli
 
         Assert.Equal("Отправленный запрос некорректен, проверьте сигнатуру эндпоинта.", jsonDocument.RootElement.GetProperty("detail").GetString());
     }
+
+    [Fact]
+    public async Task Post_UserConfirmationPhone_EnumInt_ReturnsNotBadRequest()
+    {
+        // Arrange
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_CONFIRMATION_PHONE_URL + "?messageType=1");
+        request.Headers.Add("Accept-Language", "ru");
+
+        // Авторизация
+        TestConstants.AddBearerToken(request, _tokenManager);
+
+        // Act
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEqual(HttpStatusCode.BadRequest, result.StatusCode);
+    }
+
+    [Fact] // JsonStringEnumConverter решает
+    public async Task Post_UserConfirmationPhone_EnumString_ReturnsNotBadRequest()
+    {
+        // Arrange
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_CONFIRMATION_PHONE_URL + "?messageType=Sms");
+        request.Headers.Add("Accept-Language", "ru");
+
+        // Авторизация
+        TestConstants.AddBearerToken(request, _tokenManager);
+
+        // Act
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEqual(HttpStatusCode.BadRequest, result.StatusCode);
+    }
+
+    [Fact] // Нужно кастомный конвертор писать для регистронезависимости
+    public async Task Post_UserConfirmationPhone_EnumStringLowerCase_ReturnsBadRequest()
+    {
+        // Arrange
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_CONFIRMATION_PHONE_URL + "?messageType=sms");
+        request.Headers.Add("Accept-Language", "ru");
+
+        // Авторизация
+        TestConstants.AddBearerToken(request, _tokenManager);
+
+        // Act
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
+        Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
+
+        // Читаем содержимое ответа
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal("Отправленный запрос некорректен, проверьте сигнатуру эндпоинта.", jsonDocument.RootElement.GetProperty("detail").GetString());
+    }
+
+    [Fact] // Нужно кастомный конвертор писать для регистронезависимости
+    public async Task Post_UserConfirmationPhone_EnumStringAnyCase_ReturnsBadRequest()
+    {
+        // Arrange
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_CONFIRMATION_PHONE_URL + "?messageType=TeLeGraM");
+        request.Headers.Add("Accept-Language", "ru");
+
+        // Авторизация
+        TestConstants.AddBearerToken(request, _tokenManager);
+
+        // Act
+        using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
+        Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
+
+        // Читаем содержимое ответа
+        await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+        using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal("Отправленный запрос некорректен, проверьте сигнатуру эндпоинта.", jsonDocument.RootElement.GetProperty("detail").GetString());
+    }
+
+
+    // FromQuery bool
+
+    //[Fact]
+    //public async Task Post_UserConfirmationPhone_None_ReturnsBadRequest()
+    //{
+    //    // Arrange
+    //    var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_CONFIRMATION_PHONE_URL);
+    //    request.Headers.Add("Accept-Language", "ru");
+
+    //    // Авторизация
+    //    TestConstants.AddBearerToken(request, _tokenManager);
+
+    //    // Act
+    //    using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
+
+    //    // Assert
+    //    Assert.NotNull(result);
+    //    Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
+    //    Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
+
+    //    // Читаем содержимое ответа
+    //    await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+    //    using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
+
+    //    Assert.Equal("Отправленный запрос некорректен, проверьте сигнатуру эндпоинта.", jsonDocument.RootElement.GetProperty("detail").GetString());
+    //}
+
+    //[Fact]
+    //public async Task Post_UserConfirmationPhone_BoolWithoutValue_ReturnsBadRequest()
+    //{
+    //    // Arrange
+    //    var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?isTelegram";
+    //    var request = new HttpRequestMessage(HttpMethod.Post, url);
+    //    request.Headers.Add("Accept-Language", "ru");
+
+    //    // Авторизация
+    //    TestConstants.AddBearerToken(request, _tokenManager);
+
+    //    // Act
+    //    using var result = await _client.SendAsync(request, TestContext.Current.CancellationToken);
+
+    //    // Assert
+    //    Assert.NotNull(result);
+    //    Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
+    //    Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
+
+    //    // Читаем содержимое ответа
+    //    await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
+    //    using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
+
+    //    Assert.Equal("Отправленный запрос некорректен, проверьте сигнатуру эндпоинта.", jsonDocument.RootElement.GetProperty("detail").GetString());
+    //}
 
 
     // FromForm IFormFile

@@ -3,6 +3,7 @@ using System.Text.Json;
 
 namespace CRUD.Tests.SystemTests.User;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class UserConfirmationSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
@@ -140,7 +141,7 @@ public sealed class UserConfirmationSystemTest : IClassFixture<TestWebApplicatio
 
 
     [Fact]
-    public async Task Post_Phone_Mock_WhenIsTelegramFalse_ReturnsNoContent()
+    public async Task Post_Phone_Mock_WhenSms_ReturnsNoContent()
     {
         // Arrange
         var mockSmsSender = new Mock<ISmsSender>();
@@ -158,7 +159,7 @@ public sealed class UserConfirmationSystemTest : IClassFixture<TestWebApplicatio
         var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Запрос
-        var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?isTelegram=false";
+        var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?messageType=" + MessageType.Sms;
         var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.Add("Accept-Language", "ru");
         TestConstants.AddBearerToken(request, _tokenManager, user.Id.ToString());
@@ -173,7 +174,7 @@ public sealed class UserConfirmationSystemTest : IClassFixture<TestWebApplicatio
     }
 
     [Fact]
-    public async Task Post_Phone_Mock_WhenIsTelegramTrue_ReturnsNoContent()
+    public async Task Post_Phone_Mock_WhenTelegram_ReturnsNoContent()
     {
         // Arrange
         var mockTelegramIntegrationManager = new Mock<ITelegramIntegrationManager>();
@@ -191,7 +192,7 @@ public sealed class UserConfirmationSystemTest : IClassFixture<TestWebApplicatio
         var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Запрос
-        var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?isTelegram=true";
+        var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?messageType=" + MessageType.Telegram;
         var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.Add("Accept-Language", "ru");
         TestConstants.AddBearerToken(request, _tokenManager, user.Id.ToString());
@@ -221,7 +222,7 @@ public sealed class UserConfirmationSystemTest : IClassFixture<TestWebApplicatio
         }).CreateClient();
 
         // Запрос
-        var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?isTelegram=false";
+        var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?messageType=" + MessageType.Sms;
         var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.Add("Accept-Language", "ru");
         TestConstants.AddBearerToken(request, _tokenManager);
@@ -261,7 +262,7 @@ public sealed class UserConfirmationSystemTest : IClassFixture<TestWebApplicatio
         var user = await DI.CreateUserAsync(_db, isPhoneNumberConfirm: true, ct: TestContext.Current.CancellationToken);
 
         // Запрос
-        var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?isTelegram=false";
+        var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?messageType=" + MessageType.Sms;
         var request = new HttpRequestMessage(HttpMethod.Post, url);
         TestConstants.AddBearerToken(request, _tokenManager, user.Id.ToString());
 
@@ -299,7 +300,7 @@ public sealed class UserConfirmationSystemTest : IClassFixture<TestWebApplicatio
         var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
 
         // Данные для запросов
-        var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?isTelegram=false";
+        var url = TestConstants.USER_CONFIRMATION_PHONE_URL + "?messageType=" + MessageType.Sms;
 
         // Запрос 1
         var request = new HttpRequestMessage(HttpMethod.Post, url);

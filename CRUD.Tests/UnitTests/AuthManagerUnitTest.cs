@@ -58,7 +58,7 @@ public sealed class AuthManagerUnitTest
         var loginData = new LoginDataDto { Username = username, Password = password };
 
         // Валидация проходит
-        _mockLoginDataValidator.Setup(x => x.ValidateAsync(It.IsAny<LoginDataDto>(), default)).ReturnsAsync(new FluentValidation.Results.ValidationResult());
+        _mockLoginDataValidator.Setup(x => x.ValidateAsync(It.IsAny<LoginDataDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new FluentValidation.Results.ValidationResult());
 
         // Пароль подходит
         _mockPasswordHasher.Setup(x => x.Verify(It.IsAny<string>(), It.IsAny<string>())).Returns(true);
@@ -88,7 +88,7 @@ public sealed class AuthManagerUnitTest
         var loginData = new LoginDataDto { Username = username, Password = password };
 
         // Модель невалидна
-        _mockLoginDataValidator.Setup(x => x.ValidateAsync(It.IsAny<LoginDataDto>(), default)).ReturnsAsync(new FluentValidation.Results.ValidationResult() { Errors = [new()] });
+        _mockLoginDataValidator.Setup(x => x.ValidateAsync(It.IsAny<LoginDataDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new FluentValidation.Results.ValidationResult() { Errors = [new()] });
 
         // Act
         Func<Task> a = async () =>
@@ -111,7 +111,7 @@ public sealed class AuthManagerUnitTest
         var loginData = new LoginDataDto { Username = username, Password = password };
 
         // Валидация проходит
-        _mockLoginDataValidator.Setup(x => x.ValidateAsync(It.IsAny<LoginDataDto>(), default)).ReturnsAsync(new FluentValidation.Results.ValidationResult());
+        _mockLoginDataValidator.Setup(x => x.ValidateAsync(It.IsAny<LoginDataDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new FluentValidation.Results.ValidationResult());
 
         // Act
         var result = await _authManager.LoginAsync(loginData, TestContext.Current.CancellationToken);
@@ -138,7 +138,7 @@ public sealed class AuthManagerUnitTest
         var loginData = new LoginDataDto { Username = username, Password = password };
 
         // Валидация проходит
-        _mockLoginDataValidator.Setup(x => x.ValidateAsync(It.IsAny<LoginDataDto>(), default)).ReturnsAsync(new FluentValidation.Results.ValidationResult());
+        _mockLoginDataValidator.Setup(x => x.ValidateAsync(It.IsAny<LoginDataDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new FluentValidation.Results.ValidationResult());
 
         // Пароль не подходит
         _mockPasswordHasher.Setup(x => x.Verify(It.IsAny<string>(), It.IsAny<string>())).Returns(false);
@@ -237,7 +237,7 @@ public sealed class AuthManagerUnitTest
         };
 
         // Валидация проходит
-        _mockCreateUserDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<CreateUserDto>(), default)).ReturnsAsync(new FluentValidation.Results.ValidationResult());
+        _mockCreateUserDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<CreateUserDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new FluentValidation.Results.ValidationResult());
 
         // Успешное создание пользователя
         _mockUserManager.Setup(x => x.CreateUserAsync(It.IsAny<CreateUserDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult<User>.Success(user));
@@ -284,7 +284,7 @@ public sealed class AuthManagerUnitTest
         };
 
         // Валидация не проходит
-        _mockCreateUserDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<CreateUserDto>(), default)).ReturnsAsync(new FluentValidation.Results.ValidationResult() { Errors = [new ValidationFailure()] });
+        _mockCreateUserDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<CreateUserDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new FluentValidation.Results.ValidationResult() { Errors = [new ValidationFailure()] });
 
         // Act
         Func<Task> a = async () =>
@@ -322,7 +322,7 @@ public sealed class AuthManagerUnitTest
         };
 
         // Валидация проходит
-        _mockCreateUserDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<CreateUserDto>(), default)).ReturnsAsync(new FluentValidation.Results.ValidationResult());
+        _mockCreateUserDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<CreateUserDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new FluentValidation.Results.ValidationResult());
 
         // Ошибка при создании пользователя (Username уже занят)
         _mockUserManager.Setup(x => x.CreateUserAsync(It.IsAny<CreateUserDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult<User>.Fail(ErrorMessages.UsernameAlreadyTaken));
@@ -364,7 +364,7 @@ public sealed class AuthManagerUnitTest
         };
 
         // Валидация проходит
-        _mockCreateUserDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<CreateUserDto>(), default)).ReturnsAsync(new FluentValidation.Results.ValidationResult());
+        _mockCreateUserDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<CreateUserDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new FluentValidation.Results.ValidationResult());
 
         // Успешное создание пользователя
         _mockUserManager.Setup(x => x.CreateUserAsync(It.IsAny<CreateUserDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult<User>.Success(user));
@@ -442,7 +442,7 @@ public sealed class AuthManagerUnitTest
         };
 
         // Валидация не проходит
-        _mockOAuthCompleteRegistrationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<OAuthCompleteRegistrationDto>(), default)).ReturnsAsync(new ValidationResult() { Errors = [new ValidationFailure()] });
+        _mockOAuthCompleteRegistrationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<OAuthCompleteRegistrationDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new ValidationResult() { Errors = [new ValidationFailure()] });
 
         // Act
         Func<Task> a = async () =>
@@ -577,17 +577,17 @@ public sealed class AuthManagerUnitTest
         string email = "test@test.ru";
         string phoneNumber = "12345678";
         bool emailConfirm = false;
-        bool isTelegram = true;
+        MessageType messageType = MessageType.Telegram;
 
         // Добавляем пользователя в базу
         var user = await DI.CreateUserAsync(_db, firstname: firstname, hashedPassword: password, username: username, languageCode: languageCode, email: email, phoneNumber: phoneNumber, isEmailConfirm: emailConfirm, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Успешное добавление кода в базу и отправка кода
-        _mockVerificationPhoneNumberRequestManager.Setup(x => x.AddCodeToDatabaseAndSendSmsAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult.Success());
+        _mockVerificationPhoneNumberRequestManager.Setup(x => x.AddCodeToDatabaseAndSendMessageAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<MessageType>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult.Success());
 
         // Act
-        var result = await _authManager.SendVerificationCodePhoneNumberAsync(userIdGuid, isTelegram, TestContext.Current.CancellationToken);
+        var result = await _authManager.SendVerificationCodePhoneNumberAsync(userIdGuid, messageType, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -599,10 +599,10 @@ public sealed class AuthManagerUnitTest
     {
         // Arrange
         var userIdGuid = Guid.NewGuid();
-        bool isTelegram = true;
+        MessageType messageType = MessageType.Telegram;
 
         // Act
-        var result = await _authManager.SendVerificationCodePhoneNumberAsync(userIdGuid, isTelegram, TestContext.Current.CancellationToken);
+        var result = await _authManager.SendVerificationCodePhoneNumberAsync(userIdGuid, messageType, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -620,14 +620,14 @@ public sealed class AuthManagerUnitTest
         string email = "test@test.ru";
         string phoneNumber = "12345678";
         bool phoneNumberConfirm = true;
-        bool isTelegram = true;
+        MessageType messageType = MessageType.Telegram;
 
         // Добавляем пользователя в базу
         var user = await DI.CreateUserAsync(_db, firstname: firstname, hashedPassword: password, username: username, languageCode: languageCode, email: email, phoneNumber: phoneNumber, isPhoneNumberConfirm: phoneNumberConfirm, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Act
-        var result = await _authManager.SendVerificationCodePhoneNumberAsync(userIdGuid, isTelegram, TestContext.Current.CancellationToken);
+        var result = await _authManager.SendVerificationCodePhoneNumberAsync(userIdGuid, messageType, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -645,17 +645,17 @@ public sealed class AuthManagerUnitTest
         string email = "test@test.ru";
         string phoneNumber = "12345678";
         bool phoneNumberConfirm = false;
-        bool isTelegram = true;
+        MessageType messageType = MessageType.Telegram;
 
         // Добавляем пользователя в базу
         var user = await DI.CreateUserAsync(_db, firstname: firstname, hashedPassword: password, username: username, languageCode: languageCode, email: email, phoneNumber: phoneNumber, isPhoneNumberConfirm: phoneNumberConfirm, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
         // Письмо уже отправлено
-        _mockVerificationPhoneNumberRequestManager.Setup(x => x.AddCodeToDatabaseAndSendSmsAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult.Fail(ErrorMessages.CodeAlreadySent));
+        _mockVerificationPhoneNumberRequestManager.Setup(x => x.AddCodeToDatabaseAndSendMessageAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<MessageType>(), It.IsAny<CancellationToken>())).ReturnsAsync(ServiceResult.Fail(ErrorMessages.CodeAlreadySent));
 
         // Act
-        var result = await _authManager.SendVerificationCodePhoneNumberAsync(userIdGuid, isTelegram, TestContext.Current.CancellationToken);
+        var result = await _authManager.SendVerificationCodePhoneNumberAsync(userIdGuid, messageType, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -667,12 +667,12 @@ public sealed class AuthManagerUnitTest
     {
         // Arrange
         var userIdGuid = Guid.Parse(TestConstants.EmptyGuidString);
-        bool isTelegram = true;
+        MessageType messageType = MessageType.Telegram;
 
         // Act
         Func<Task> a = async () =>
         {
-            await _authManager.SendVerificationCodePhoneNumberAsync(userIdGuid, isTelegram, TestContext.Current.CancellationToken);
+            await _authManager.SendVerificationCodePhoneNumberAsync(userIdGuid, messageType, TestContext.Current.CancellationToken);
         };
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);

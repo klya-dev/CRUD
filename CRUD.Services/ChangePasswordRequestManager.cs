@@ -1,26 +1,33 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Hybrid;
+using System.Text.Json;
 
 namespace CRUD.Services;
 
 public sealed class ChangePasswordRequestManager : IChangePasswordRequestManager
 {
-    private readonly ApplicationDbContext _db;
-    private readonly ITokenManager _tokenManager;
+    // Назначение протектора (уникальное название для этого кейса)
+    public const string Purpose = "User.PasswordChange.Confirmation.v1";
+
     private readonly ChangePasswordRequestOptions _options;
     private readonly IQueueEmail _queueEmail;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ITimeLimitedDataProtector _protector;
+    private readonly HybridCache _cache;
 
-    public ChangePasswordRequestManager(ApplicationDbContext db, ITokenManager tokenManager, IOptions<ChangePasswordRequestOptions> options, IQueueEmail queueEmail, IHttpContextAccessor httpContextAccessor)
+    public ChangePasswordRequestManager(IOptions<ChangePasswordRequestOptions> options, IQueueEmail queueEmail, IHttpContextAccessor httpContextAccessor, IDataProtectionProvider provider, HybridCache cache)
     {
-        _db = db;
-        _tokenManager = tokenManager;
         _options = options.Value;
         _queueEmail = queueEmail;
         _httpContextAccessor = httpContextAccessor;
+        _cache = cache;
+
+        // Создаём протектор с ограничением времени
+        _protector = provider.CreateProtector(Purpose).ToTimeLimitedDataProtector();
     }
 
-    public async Task<ServiceResult> AddTokenToDatabaseAndSendLetterAsync(Guid userId, string email, string languageCode, string newHashedPassword, CancellationToken ct = default)
+    public async Task<ServiceResult> AddTokenToStorageAndSendLetterAsync(Guid userId, string email, string languageCode, string newHashedPassword, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(email);
         ArgumentNullException.ThrowIfNull(languageCode);
@@ -30,37 +37,32 @@ public sealed class ChangePasswordRequestManager : IChangePasswordRequestManager
         if (userId == Guid.Empty)
             throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
 
-        // Если есть прошлый токен
-        var changePasswordRequestsFromDb = await _db.ChangePasswordRequests.FirstOrDefaultAsync(x => x.UserId == userId, ct);
-        if (changePasswordRequestsFromDb != null)
+        string cacheKey = $"{CacheKeys.RateLimitSendEmailPasswordChange}-{userId}";
+
+        // Пытаемся получить время отправки последнего письма на смену пароля из кэша
+        // Если ключа нет, вернется дефолтное значение DateTime (DateTime.MinValue)
+        DateTime createdAt = await _cache.GetOrCreateAsync(
+            key: cacheKey,
+            factory: _ => ValueTask.FromResult(DateTime.MinValue), // Заглушка, если ключа нет
+            cancellationToken: ct
+        );
+
+        // Если время валидное (не дефолтное), проверяем таймаут
+        if (createdAt != DateTime.MinValue)
         {
-            // И с момента создания запроса прошлого токена не прошло определённое время
-            if (changePasswordRequestsFromDb.IsTimeout(_options, out var timeout))
-                return ServiceResult.Fail(ErrorMessages.LetterAlreadySent, args: timeout.Minutes);
-            else // Удаляем прошлый токен
-            {
-                _db.ChangePasswordRequests.Remove(changePasswordRequestsFromDb); // Использовать ExecuteDeleteAsync нет смысла, мы и уже прогрузили сущность в память
-                await _db.SaveChangesAsync(ct);
-            }
+            // С момента создания прошлого токена не прошло определённое время
+            if (ChangePasswordPayload.IsTimeout(_options, createdAt, out TimeSpan timeout))
+                return ServiceResult.Fail(ErrorMessages.LetterAlreadySent, args: timeout);
         }
 
-        // Генерируем токен
-        string token = _tokenManager.GenerateUniqueToken();
+        // Полезная нагрузка токена
+        var payload = new ChangePasswordPayload() { UserId = userId, HashedNewPassword = newHashedPassword };
 
-        var createdAt = DateTime.UtcNow;
+        // Сериализируем в Json
+        string payloadJson = JsonSerializer.Serialize(payload);
 
-        // Создаём запрос
-        var changePasswordRequest = new ChangePasswordRequest()
-        {
-            UserId = userId,
-            HashedNewPassword = newHashedPassword,
-            Token = token,
-            CreatedAt = createdAt,
-            Expires = createdAt.Add(_options.Expires),
-        };
-
-        // Записываем токен в базу
-        await _db.ChangePasswordRequests.AddAsync(changePasswordRequest, ct);
+        // Шифруем полезную нагрузку (создаём токен) со сроком жизни
+        string token = _protector.Protect(payloadJson, _options.Expires);
 
         // Данные письма
         var letter = EmailLetters.GetLetter(EmailLetters.ChangePasswordRequest, email, languageCode, _httpContextAccessor.GetBaseUrl(), token);
@@ -68,7 +70,14 @@ public sealed class ChangePasswordRequestManager : IChangePasswordRequestManager
         // Добавляем письмо в очередь
         await _queueEmail.EnqueueAsync(letter, ct);
 
-        await _db.SaveChangesAsync(CancellationToken.None); // Если уж отправили письмо, то сохраняем без отката
+        // Добавляем время отправки письма в кэш
+        var cacheOptions = new HybridCacheEntryOptions
+        {
+            Expiration = _options.Timeout, // Время жизни в распределенном кэше (L2)
+            LocalCacheExpiration = _options.Timeout // Время жизни в локальной памяти (L1)
+        };
+
+        await _cache.SetAsync(cacheKey, DateTime.UtcNow, cacheOptions, cancellationToken: ct);
 
         return ServiceResult.Success();
     }

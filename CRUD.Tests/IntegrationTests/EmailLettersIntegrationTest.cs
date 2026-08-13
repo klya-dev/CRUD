@@ -2,6 +2,7 @@
 
 namespace CRUD.Tests.IntegrationTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class EmailLettersIntegrationTest
 {
     private readonly IHttpContextAccessor _httpContextAccessor = TestConstants.CreateHttpContextAccessor();

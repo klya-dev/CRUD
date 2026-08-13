@@ -3,6 +3,7 @@ using System.Security.Claims;
 
 namespace CRUD.Tests.IntegrationTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class TokenManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;

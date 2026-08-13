@@ -2,6 +2,7 @@
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class StaticFilesSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;

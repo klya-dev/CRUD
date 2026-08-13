@@ -1,5 +1,6 @@
 ﻿using CRUD.DataAccess.Converters;
 using CRUD.Models.Domains;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
@@ -9,7 +10,7 @@ namespace CRUD.DataAccess.Data;
 /// <summary>
 /// Контекст базы данных приложения.
 /// </summary>
-public sealed class ApplicationDbContext : DbContext
+public sealed class ApplicationDbContext : DbContext, IDataProtectionKeyContext
 {
     private readonly ILogger<ApplicationDbContext> _logger;
 
@@ -23,7 +24,6 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Publication> Publications { get; set; }
     public DbSet<Request> Requests { get; set; }
-    public DbSet<ChangePasswordRequest> ChangePasswordRequests { get; set; }
     public DbSet<ConfirmEmailRequest> ConfirmEmailRequests { get; set; }
     public DbSet<VerificationPhoneNumberRequest> VerificationPhoneNumberRequests { get; set; }
     public DbSet<Order> Orders { get; set; }
@@ -32,6 +32,7 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<UserNotification> UserNotifications { get; set; }
     public DbSet<AuthRefreshToken> AuthRefreshTokens { get; set; }
+    public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } // Ключи шифрования Data Protection
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -54,8 +55,6 @@ public sealed class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Request>().UseTptMappingStrategy(); // Устанавливаем подход TPT (Наследование, Table Per Type)
         SetupRequests(modelBuilder);
-
-        SetupChangePasswordRequests(modelBuilder);
 
         SetupConfirmEmailRequests(modelBuilder);
 
@@ -205,28 +204,6 @@ public sealed class ApplicationDbContext : DbContext
         modelBuilder.Entity<Request>().Property(x => x.RowVersion)
             .IsRequired(false)
             .IsRowVersion();
-    }
-
-    private static void SetupChangePasswordRequests(ModelBuilder modelBuilder)
-    {
-        // один-к-одному
-        modelBuilder.Entity<ChangePasswordRequest>()
-            .HasOne(x => x.User) // Каждый экземпляр ChangePasswordRequest связан с одним User
-            .WithOne() // Указывает, что User может иметь только один запрос
-            .HasForeignKey<ChangePasswordRequest>(x => x.UserId) // Указывает, какой ключ используется для связи
-            .HasPrincipalKey<User>(x => x.Id) // UserId это и есть Id пользователя
-            .OnDelete(DeleteBehavior.Cascade); // При удалении пользователя все связанные запросы будут удалены
-
-        modelBuilder.Entity<ChangePasswordRequest>().Property(x => x.HashedNewPassword)
-            .HasMaxLength(69) // В данный момент длина любого захэшированного пароля 69 символов
-            .IsRequired();
-
-        modelBuilder.Entity<ChangePasswordRequest>().Property(x => x.Token)
-            .HasMaxLength(100)
-            .IsRequired();
-
-        modelBuilder.Entity<ChangePasswordRequest>().HasIndex(x => x.Token)
-            .IsUnique();
     }
 
     private static void SetupConfirmEmailRequests(ModelBuilder modelBuilder)

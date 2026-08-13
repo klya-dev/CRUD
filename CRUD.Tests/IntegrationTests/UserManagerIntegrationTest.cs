@@ -2,6 +2,7 @@
 
 namespace CRUD.Tests.IntegrationTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class UserManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
@@ -1097,6 +1098,12 @@ public sealed class UserManagerIntegrationTest : IClassFixture<TestWebApplicatio
         // Добавляем токен в базу
         var confirmEmailRequest = await DI.CreateConfirmEmailRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
 
+        // Т.к в методе ConfirmEmailAsync мы подгружаем всю сущность ConfirmEmailRequest, а она уже отслеживается после создания в тестах возникает исключение
+        // "The instance of entity type 'ConfirmEmailRequest' cannot be tracked because another instance with the same key value for {'Id'} is already being tracked"
+        // Желательно вообще контекст базы данных не должен быть одним в тестах и в приложении,
+        // т.е один контекст используется для Arrange, и другой для самого приложения. Этого легко добится, просто создать новый Scope в конструкторе и оттуда вытащить контекст базы и передавать его в методы класса DI
+        _db.ChangeTracker.Clear();
+
         // Act
         var result = await _userManager.ConfirmEmailAsync(confirmEmailRequest.Token, ct: TestContext.Current.CancellationToken);
 
@@ -1160,6 +1167,10 @@ public sealed class UserManagerIntegrationTest : IClassFixture<TestWebApplicatio
         // Добавляем токен в базу
         var confirmEmailRequest = await DI.CreateConfirmEmailRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
 
+        // Т.к в методе ConfirmEmailAsync мы подгружаем всю сущность ConfirmEmailRequest, а она уже отслеживается после создания в тестах возникает исключение
+        // "The instance of entity type 'ConfirmEmailRequest' cannot be tracked because another instance with the same key value for {'Id'} is already being tracked"
+        _db.ChangeTracker.Clear();
+
         // Act
         var result = await _userManager.ConfirmEmailAsync(confirmEmailRequest.Token, ct: TestContext.Current.CancellationToken);
 
@@ -1180,6 +1191,10 @@ public sealed class UserManagerIntegrationTest : IClassFixture<TestWebApplicatio
 
         // Добавляем токен в базу
         var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
+
+        // Т.к в методе ConfirmEmailAsync мы подгружаем всю сущность ConfirmEmailRequest, а она уже отслеживается после создания в тестах возникает исключение
+        // "The instance of entity type 'ConfirmEmailRequest' cannot be tracked because another instance with the same key value for {'Id'} is already being tracked"
+        _db.ChangeTracker.Clear();
 
         // Act
         var result = await _userManager.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code, ct: TestContext.Current.CancellationToken);
@@ -1269,6 +1284,10 @@ public sealed class UserManagerIntegrationTest : IClassFixture<TestWebApplicatio
 
         // Добавляем токен в базу
         var verificationPhoneNumberRequest = await DI.CreateVerificationPhoneNumberRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
+
+        // Т.к в методе ConfirmEmailAsync мы подгружаем всю сущность ConfirmEmailRequest, а она уже отслеживается после создания в тестах возникает исключение
+        // "The instance of entity type 'ConfirmEmailRequest' cannot be tracked because another instance with the same key value for {'Id'} is already being tracked"
+        _db.ChangeTracker.Clear();
 
         // Act
         var result = await _userManager.VerificatePhoneNumberAsync(userIdGuid, verificationPhoneNumberRequest.Code, ct: TestContext.Current.CancellationToken);

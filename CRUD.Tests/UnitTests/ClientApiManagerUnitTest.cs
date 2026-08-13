@@ -43,7 +43,7 @@ public sealed class ClientApiManagerUnitTest
         };
 
         // Валидация проходит
-        _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), default)).ReturnsAsync(new ValidationResult());
+        _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new ValidationResult());
 
         // Успешное создание публикации
         var publicationDto = new PublicationDto() { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow, EditedAt = null, Title = title, Content = content, AuthorId = user.Id, AuthorFirstname = user.Firstname }; // В целом, без разницы, это нужно чисто для ответа API
@@ -75,7 +75,7 @@ public sealed class ClientApiManagerUnitTest
 
         // Валидация не проходит
         var validationResult = new ValidationResult() { Errors = [new ValidationFailure()] };
-        _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), default)).ReturnsAsync(validationResult);
+        _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(validationResult);
 
         // Act
         Func<Task> a = async () =>
@@ -106,7 +106,7 @@ public sealed class ClientApiManagerUnitTest
         };
 
         // Валидация проходит
-        _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), default)).ReturnsAsync(new ValidationResult());
+        _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new ValidationResult());
 
         // Act
         var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto, ct: TestContext.Current.CancellationToken);
@@ -136,7 +136,7 @@ public sealed class ClientApiManagerUnitTest
         };
 
         // Валидация проходит
-        _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), default)).ReturnsAsync(new ValidationResult());
+        _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new ValidationResult());
 
         // Act
         var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto, ct: TestContext.Current.CancellationToken);
@@ -166,7 +166,7 @@ public sealed class ClientApiManagerUnitTest
         };
 
         // Валидация проходит
-        _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), default)).ReturnsAsync(new ValidationResult());
+        _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new ValidationResult());
 
         // Act
         var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto, ct: TestContext.Current.CancellationToken);
@@ -196,7 +196,7 @@ public sealed class ClientApiManagerUnitTest
         };
 
         // Валидация проходит
-        _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), default)).ReturnsAsync(new ValidationResult());
+        _mockClientApiCreatePublicationDtoValidator.Setup(x => x.ValidateAsync(It.IsAny<ClientApiCreatePublicationDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(new ValidationResult());
 
         // Act
         var result = await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto, ct: TestContext.Current.CancellationToken);

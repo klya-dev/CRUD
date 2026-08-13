@@ -145,36 +145,23 @@ public static class DI
     }
 
     /// <summary>
-    /// Создаёт запрос на изменение пароля.
+    /// Создаёт полезную нагрузку токена на смену пароля.
     /// </summary>
     /// <remarks>
     /// Пароль хэшируется через <see cref="PasswordHasher"/>.
     /// </remarks>
-    public static async Task<ChangePasswordRequest> CreateChangePasswordRequestAsync(
-        ApplicationDbContext db,
+    public static ChangePasswordPayload CreateChangePasswordPayload(
         Guid userId,
-        DateTime? createdAt = null,
-        DateTime? expires = null,
-        string hashedNewPassword = "12345",
-        string token = "token",
-        CancellationToken ct = default)
+        string hashedNewPassword = "12345")
     {
         // В базе лежит захешированный пароль
         hashedNewPassword = new PasswordHasher().GenerateHashedPassword(hashedNewPassword);
 
-        var createdAtNow = DateTime.UtcNow;
-
-        var changePasswordRequest = new ChangePasswordRequest
+        var changePasswordRequest = new ChangePasswordPayload
         {
             UserId = userId,
-            HashedNewPassword = hashedNewPassword,
-            Token = token,
-            CreatedAt = createdAt ?? createdAtNow,
-            Expires = expires ?? createdAtNow.Add(TestSettingsHelper.GetConfigurationValue<TimeSpan, TestMarker>($"{ChangePasswordRequestOptions.SectionName}:{nameof(ChangePasswordRequestOptions.Expires)}"))
+            HashedNewPassword = hashedNewPassword
         };
-
-        await db.ChangePasswordRequests.AddAsync(changePasswordRequest, ct);
-        await db.SaveChangesAsync(ct);
 
         return changePasswordRequest;
     }

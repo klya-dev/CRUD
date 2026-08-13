@@ -14,11 +14,28 @@ public static class DbContextGenerator
         ConnectionString = TestSettingsHelper.GetDbConnectionString<TestMarker>();
     }
 
+    // Таблица методов
+
+    // GenerateDbContextTestInMemory
+    // Назначение: Тестовая база данных в памяти (InMemory)
+    // Кейсы: Подходит для Unit-тестов. Если нужна поддержка ExecuteUpdateAsync/ExecuteDeleteAsync проще всего использовать вариант с Docker-контейнером (GenerateDbContextContainerTest), если не хочется использовать реальную облачную базу
+    // Минусы: Не поддерживаются методы ExecuteUpdateAsync/ExecuteDeleteAsync (у текущего провайдера)
+
+    // GenerateDbContextTest
+    // Назначение: Тестовая база данных (облачная - реальный кейс)
+    // Кейсы: Подходит для Integration/System-тестов.
+    // Минусы: Долгое выполнение
+
+    // GenerateDbContextTestContainer
+    // Назначение: Тестовая база данных в Docker-контейнере
+    // Кейсы: Подходит для Unit/Integration/System-тестов. Этот вариант был добавлен для поддержки Execute-методов в Unit-тестах. Альтернативный вариант реальной облачной базы. 
+    // Минусы: Ещё более долгое выполнение, хоть и контейнер запускается единожды на всю сессию
+
     /// <summary>
     /// Полностью пересоздаёт тестовую базу данных, используя <c>UseInMemoryDatabase</c>.
     /// </summary>
     /// <remarks>
-    /// <para>Чтобы не пересоздавать базу данных, а получить только контекст уже созданной базы данных, нужно указать <c><paramref name="create"/> = false</c>.</para>
+    /// <para>Чтобы не пересоздавать базу данных, а получить только контекст уже созданной базы данных, нужно указать <c><paramref name="create"/> = <see langword="false"/></c>.</para>
     /// <para>Например, для теста конфликтов параллельности нужен хотя бы второй контекст той же базы данных.</para>
     /// </remarks>
     /// <returns>Контекст базы данных.</returns>
@@ -47,7 +64,7 @@ public static class DbContextGenerator
     /// Полностью пересоздаёт тестовую базу данных.
     /// </summary>
     /// <remarks>
-    /// <para>Чтобы не пересоздавать базу данных, а получить только контекст уже созданной базы данных, нужно указать <c><paramref name="create"/> = false</c>.</para>
+    /// <para>Чтобы не пересоздавать базу данных, а получить только контекст уже созданной базы данных, нужно указать <c><paramref name="create"/> = <see langword="false"/></c>.</para>
     /// <para>Например, для теста конфликтов параллельности нужен хотя бы второй контекст той же базы данных.</para>
     /// </remarks>
     /// <param name="create">Применить ли миграции.</param>
@@ -76,12 +93,39 @@ public static class DbContextGenerator
     }
 
     /// <summary>
+    /// Полностью пересоздаёт тестовую базу данных на основе Docker-контейнера.
+    /// </summary>
+    /// <remarks>
+    /// <para>Чтобы не пересоздавать базу данных, а получить только контекст уже созданной базы данных, нужно указать <c><paramref name="create"/> = <see langword="false"/></c>.</para>
+    /// <para>Например, для теста конфликтов параллельности нужен хотя бы второй контекст той же базы данных.</para>
+    /// </remarks>
+    /// <param name="options">Настройки базы данных.</param>
+    /// <param name="create">Применить ли миграции.</param>
+    /// <returns>Контекст базы данных.</returns>
+    public static ApplicationDbContext GenerateDbContextTestContainer(DbContextOptions<ApplicationDbContext> options, bool create = true)
+    {
+        using var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder.SetMinimumLevel(LogLevel.Trace).AddConsole());
+        ILogger<ApplicationDbContext> logger = loggerFactory.CreateLogger<ApplicationDbContext>();
+
+        var db = new ApplicationDbContext(options, logger);
+        if (create)
+        {
+            // Удаляем таблицы
+            DeleteTables(db);
+
+            db.Database.EnsureCreated(); // Создаём базу
+        }
+
+        return db;
+    }
+
+    /// <summary>
     /// Очищает все таблицы из базы данных (TRUNCATE).
     /// </summary>
     /// <param name="db">Контекст базы данных.</param>
     private static void ClearTables(ApplicationDbContext db)
     {
-        string[] tables = ["Users", "Publications", "Requests", "ConfirmEmailRequests", "ChangePasswordRequests", "VerificationPhoneNumberRequests", "Orders", "Products", "OrderNumberSequences", "Notifications", "UserNotifications", "AuthRefreshTokens"];
+        string[] tables = ["Users", "Publications", "Requests", "ConfirmEmailRequests", "VerificationPhoneNumberRequests", "Orders", "Products", "OrderNumberSequences", "Notifications", "UserNotifications", "AuthRefreshTokens", "DataProtectionKeys"];
         string query = "SET FOREIGN_KEY_CHECKS = 0;\n"; // Обязательно должно быть в одном запросе
         foreach (var table in tables)
             query += $"TRUNCATE TABLE {table};\n";
@@ -102,7 +146,7 @@ public static class DbContextGenerator
     /// <param name="db">Контекст базы данных.</param>
     public static void DeleteTables(ApplicationDbContext db)
     {
-        string[] tables = ["Users", "Publications", "Requests", "ConfirmEmailRequests", "ChangePasswordRequests", "VerificationPhoneNumberRequests", "Orders", "Products", "OrderNumberSequences", "Notifications", "UserNotifications", "AuthRefreshTokens"];
+        string[] tables = ["Users", "Publications", "Requests", "ConfirmEmailRequests", "VerificationPhoneNumberRequests", "Orders", "Products", "OrderNumberSequences", "Notifications", "UserNotifications", "AuthRefreshTokens", "DataProtectionKeys"];
         string query = "SET FOREIGN_KEY_CHECKS = 0;\n"; // Обязательно должно быть в одном запросе
         foreach (var table in tables)
             query += $"DROP TABLE IF EXISTS {table};\n";

@@ -129,6 +129,9 @@ public static class ProgramExtensions
         var optionsClientsSection = builder.Configuration.GetSection(ClientsOptions.SectionName);
         builder.Services.Configure<ClientsOptions>(optionsClientsSection); // Заполняем ClientsOptions
 
+        var optionsProxiesOptionsSection = builder.Configuration.GetSection(ProxiesOptions.SectionName);
+        builder.Services.Configure<ProxiesOptions>(optionsProxiesOptionsSection); // Заполняем ProxiesOptions
+
         // К сожалению, нет возможность провалидировать опции при изменении "на лету", точнее провалидировать можно (только если всё удачно спарсится),
         // а вот, если будет введено not parsing значение, то исключение выбросится только при попытке обратиться к полю через .CurrentValue
         // https://github.com/dotnet/runtime/issues/44381
@@ -192,10 +195,11 @@ public static class ProgramExtensions
             options.AddOperationTransformer<AcceptLanguageHeaderParameterTransformer>(); // Поле Accept-Language
             options.AddOperationTransformer<IdempotencyKeyHeaderParameterTransformer>(); // Поле Idempotency-Key
             options.AddDocumentTransformer<InfoTransformer>(); // Информация об API, контакты
-            options.AddOperationTransformer<ProduceTooManyRequestsTransformer>(); // Добавить всем эндпоинтам Produce TooManyRequests
+            options.AddOperationTransformer<ProduceTooManyRequestsTransformer>(); // Добавить всем конечным точкам Produce TooManyRequests
             options.AddDocumentTransformer<HealthzInfoTransformer>(); // Добавляет "/healthz" в Swagger UI
             options.AddDocumentTransformer<MetricsInfoTransformer>(); // Добавляет "/metrics" в Swagger UI
             options.AddDocumentTransformer<TagsDescriptionTransformer>(); // Добавляет описание к тегам
+            options.AddOperationTransformer<ProduceUnauthorizeTransformer>(); // Добавить всем конечным точкам требующим авторизацию Produce Unauthorize
 
             options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0; // Оставляю прошлую версию (в .NET 10 по умолчанию версия 3.1)
             // В новой версии достаточно серьёзный Breaking Change связанный с nullable типами, к примеру, если сейчас поставить новую версию, то NSwag UI даже не даст вписать count в конечную точку ниже
@@ -212,10 +216,11 @@ public static class ProgramExtensions
             options.AddOperationTransformer<AcceptLanguageHeaderParameterTransformer>(); // Поле Accept-Language
             options.AddOperationTransformer<IdempotencyKeyHeaderParameterTransformer>(); // Поле Idempotency-Key
             options.AddDocumentTransformer<InfoTransformer>(); // Информация об API, контакты
-            options.AddOperationTransformer<ProduceTooManyRequestsTransformer>(); // Добавить всем эндпоинтам Produce TooManyRequests
+            options.AddOperationTransformer<ProduceTooManyRequestsTransformer>(); // Добавить всем конечным точкам Produce TooManyRequests
             options.AddDocumentTransformer<HealthzInfoTransformer>(); // Добавляет "/healthz" в Swagger UI
             options.AddDocumentTransformer<MetricsInfoTransformer>(); // Добавляет "/metrics" в Swagger UI
             options.AddDocumentTransformer<TagsDescriptionTransformer>(); // Добавляет описание к тегам
+            options.AddOperationTransformer<ProduceUnauthorizeTransformer>(); // Добавить всем конечным точкам требующим авторизацию Produce Unauthorize
 
             options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0;
         });
@@ -244,7 +249,13 @@ public static class ProgramExtensions
     /// </summary>
     public static void ConfigureCors(this WebApplicationBuilder builder)
     {
-        var metricsOptions = builder.Configuration.GetSection(MetricsOptions.SectionName).Get<MetricsOptions>()!;
+        // "Сервер всегда физически отправляет заголовки в HTTP-ответе,
+        // просто браузер является единственным клиентом,
+        // который их сознательно прячет от JavaScript-кода ради безопасности пользователя."
+
+        // В микросервисе EmailSender вообще не нужен CORS, т.к его клиенты это только Prometheus и API, ничто из них не является браузером.
+        // Так называемый Server-to-Server
+
         var clientsOptions = builder.Configuration.GetSection(ClientsOptions.SectionName).Get<ClientsOptions>()!;
 
         builder.Services.AddCors(options =>
@@ -253,9 +264,11 @@ public static class ProgramExtensions
             {
                 // Разрешаем только нашему клиенту (сайту)
                 builder.WithOrigins(clientsOptions.WebClientURLs)
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials(); // Разрешает отправку данных
+                    .AllowAnyMethod() // Разрешаем любые HTTP-методы в запросе
+                    .AllowAnyHeader() // Разрешаем любые заголовки в запросе
+                    .AllowCredentials() // Разрешаем отправку данных
+                    .WithExposedHeaders("X-REQUIRE-UPDATE-AUTH-TOKEN"); // Разрешаем кастомные заголовки в ответе
+                // JS-код клиента (браузера) не сможет получить мой кастомный заголовок, если явно его не разрешить (не даст прочитать - null)
             });
 
             options.AddPolicy(CorsPolicyNames.AllowAll, builder =>
@@ -265,14 +278,7 @@ public static class ProgramExtensions
                        .AllowAnyHeader(); // С любыми заголовками
             });
 
-            options.AddPolicy(CorsPolicyNames.Metrics, builder =>
-            {
-                // Разрешаем только нашему Prometheus серверу
-                builder.WithOrigins(metricsOptions.PrometheusURL)
-                    .WithMethods(HttpMethods.Get)
-                    .AllowAnyHeader()
-                    .AllowCredentials();
-            });
+            // Политики CORS для Prometheus не нужны, т.к это не браузер, и он не использует JavaScript для отправки HTTP-запросов
         });
     }
 
@@ -294,7 +300,7 @@ public static class ProgramExtensions
                 builder.Expire(TimeSpan.FromSeconds(20)));
         });
 
-        // Можно подключить Redis к OutputCache, я отключил, т.к это не HybridCache, и если нет подключения к редису, то памятный кэш не будет перехватывать управление (будет долго отвечать на запрос)
+        // Можно подключить Redis к OutputCache, я отключил, т.к это не HybridCache, и если нет подключения к редису, то локальный кэш не будет перехватывать управление (будет долго отвечать на запрос)
         //builder.Services.AddStackExchangeRedisOutputCache(options =>
         //{
         //    options.InstanceName = "localOutput";
@@ -496,9 +502,35 @@ public static class ProgramExtensions
             // Если прокси-сервер на одной машине с приложением, то адрес, считается доверенным (т.к 127.0.0.1) и его не нужно указывать в KnownProxies или KnownNetworks
             // Если прокси-сервер находится удалённо, то обязательно нужно указать KnownProxies (если IP-адрес один) или KnownNetworks (если IP-адресов несколько, например, целый кластер)
 
-            var proxyUrl = builder.Configuration.GetValue<string>("Tuna") ?? string.Empty;
-            var address = ForwardedHeadersHelper.GetIpByDomain(proxyUrl.Replace("https://", "")); // Получаю IP по домену | для прода указывать IP своего прокси (если удалённый)
-            options.KnownProxies.Add(address); // IP моего прокси Tuna | Важно указать прокси, которому я доверяю, иначе можно подделать заголовок
+            // Поддержка удалённых прокси серверов
+            ProxiesOptions proxiesOptions = builder.Configuration.GetSection(ProxiesOptions.SectionName).Get<ProxiesOptions>()!;
+
+            foreach (var proxyIp in proxiesOptions.RemoteProxyIps)
+            {
+                // Диапазон или IP
+                if (proxyIp.Contains('/'))
+                {
+                    if (System.Net.IPNetwork.TryParse(proxyIp, out var network))
+                        options.KnownIPNetworks.Add(network);
+                    else
+                        throw new InvalidOperationException($"Not valid network from \"{ProxiesOptions.SectionName}:{nameof(ProxiesOptions.RemoteProxyIps)}\": \"{proxyIp}\".");
+                }
+                else if (IPAddress.TryParse(proxyIp, out var ipAddress))
+                    options.KnownProxies.Add(ipAddress);
+                else
+                    throw new InvalidOperationException($"Not valid IP from \"{ProxiesOptions.SectionName}:{nameof(ProxiesOptions.RemoteProxyIps)}\": \"{proxyIp}\".");
+            }
+
+            options.ForwardLimit = proxiesOptions.ForwardLimit; // Позволяет обрабатывать цепочку X-Forwarded-For не более чем из двух элементов
+            // В моём случае X-Forwarded-For: 77.75.153.78, 127.0.0.1
+            // Где 77.75.153.78 - это IP-адрес платёжного шлюза (реальный отправитель запроса)
+            // А 127.0.0.1 - это локальный IP-адрес моего прокси Tuna
+            // ВАЖНО: если оставить по дефолту 1, то сопоставление с HttpContext.Connection.RemoteIpAddress не будет работать, т.к ASP.NET не посчитает значения из X-Forwarded-For доверенными IP-адресами
+            // Т.е вместо 77.75.153.78, будет 127.0.0.1, что неверно
+
+            // Т.к адрес прокси локальный добавлять его в KnownProxies не нужно
+            // Хоть у Tuna есть домен, его IP-адрес не учавствует в цепочке X-Forwarded-For, поэтому добавлять его в KnownProxies не нужно
+            // По идее nginx должен тоже корректно отрабатывать
         });
     }
 

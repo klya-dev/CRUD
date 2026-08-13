@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.DataProtection;
+using System.Text.Json.Serialization;
+
 var builder = WebApplication.CreateBuilder(args);
 ProgramOptions programOptions = builder.Configuration.GetSection(ProgramOptions.SectionName).Get<ProgramOptions>()!;
 
@@ -24,12 +27,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.ConfigureOpenApi();
 builder.ConfigureApiVersioning();
 
-// Порядок регистраций обработчиков имеет значение, 1 - BadRequestExceptionHandler, 2 - ConcurrencyConflictExceptionHandler, 3 - GlobalExceptionHandler (не как в Middleware)
+// Порядок регистраций обработчиков имеет значение, 1 - BadRequestExceptionHandler (он и будет обрабатывать первый), 2 - ConcurrencyConflictExceptionHandler, 3 - GlobalExceptionHandler (порядок не как в Middleware)
 builder.Services.AddExceptionHandler<BadRequestExceptionHandler>(); // Обработка BadRequest исключений
 builder.Services.AddExceptionHandler<ConcurrencyConflictExceptionHandler>(); // Обработка конфликтов параллельности
 // Глобальный обработчик ошибок только в Production, т.к он скрывает трейс
+// P.S: К сожалению, UseDeveloperExceptionPage и UseExceptionHandler не работают в связке, поэтому в Dev не будет отрабатывать UseDeveloperExceptionPage. В Prod всё норм, все обработчики
 if (builder.Environment.IsProduction())
-    builder.Services.AddExceptionHandler<GlobalExceptionHandler>(); 
+    builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true); // Выбрасывать исключение BadRequest в Production +у меня есть обработчик этих исключений // https://github.com/dotnet/aspnetcore/issues/48355
 builder.Services.AddProblemDetails(options =>
 {
@@ -40,8 +44,9 @@ builder.Services.AddProblemDetails(options =>
 });
 builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
 {
-    options.SerializerOptions.Converters.Add(new DateTimeConverter());
-    options.SerializerOptions.Converters.Add(new TrimStringConverter());
+    options.SerializerOptions.Converters.Add(new DateTimeConverter()); // Изменить формат записи даты
+    options.SerializerOptions.Converters.Add(new TrimStringConverter()); // Обрезать все лишние пробелы в начале и конце строки
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()); // Парсить enum, как строку, а не int (при привязке параметров)
 });
 
 builder.ConfigureRateLimiter();
@@ -68,6 +73,11 @@ builder.Services.AddSignalR()
     .AddMessagePackProtocol(); // Добавляем поддержку MessagePack протокола. По дефолту JSON уже есть. MessagePack протокол быстрее, чем Json (https://learn.microsoft.com/ru-ru/aspnet/core/signalr/messagepackhubprotocol?view=aspnetcore-10.0)
 
 builder.ConfigureGrpcClients();
+
+builder.Services.AddDataProtection()
+    .PersistKeysToDbContext<ApplicationDbContext>();
+// Чтобы ключи шифрования Data Protection не исчезали, можно сохранять их в хранилище, например - в Redis'е, в папке, в базе
+// И тогда, после перезагрузки приложения ничего не сломается
 
 #region Сервисы
 builder.Services.AddScoped<IValidator<UpdateUserDto>, UpdateUserDtoValidator>();
@@ -162,14 +172,15 @@ app.UseRequestLocalization(); // В обработчиках исключений используется локализа
 
 // Добавить обработчики ошибок в pipeline (выше добавлены AddExceptionHandler)
 app.UseExceptionHandler(); // GlobalExceptionHandler, который скрывает внутренности включается только в Production, а остальные обработчики везде
-// СПЕЦИАЛЬНО после UseDeveloperExceptionPage, чтобы сначала мои обработчики обработают всё что смогут, потом уже исключение с трейсом
 
 if (app.Environment.IsProduction())
 {
     app.UseHsts();
 }
 
-//app.UseHttpsRedirection(); // Если не закомментировать, то ЮКасса не будет работать с Tuna (307 статус код)
+app.UseMiddleware<BasicAuthMetricsMiddleware>();
+
+//app.UseHttpsRedirection(); // Если не закомментировать, то ЮКасса не будет работать с Tuna (307 статус код). Приложение получает запрос от Tuna, а в ответ присылает редирект на https, но Tuna не умеет в редиректы
 app.UseReadyStaticFilesAndDirectoryBrowser();
 app.UseRouting();
 app.UseRequestTimeouts();
@@ -219,7 +230,7 @@ app.MapHealthChecks("/healthz", new Microsoft.AspNetCore.Diagnostics.HealthCheck
 #endregion
 
 #region Metrics
-app.MapPrometheusScrapingEndpoint().RequireCors(CorsPolicyNames.Metrics); // Телеметрия (/metrics)
+app.MapPrometheusScrapingEndpoint(); // Телеметрия (/metrics)
 #endregion
 
 #region Hubs
@@ -233,6 +244,11 @@ app.MapHub<NotificationHub>("/notificationHub", options =>
 app.MapShortCircuit(404, "robots.txt", "favicon.ico"); // Т.к у меня нет этих файлов, я могу уменьшить нагрузку на сервер, путём пропуска нескольких Middleware'ов (CORS, Endpoint...)
 // (https://andrewlock.net/exploring-the-dotnet-8-preview-short-circuit-routing | https://learn.microsoft.com/ru-ru/aspnet/core/fundamentals/routing?view=aspnetcore-9.0#short-circuit-middleware-after-routing)
 #endregion
+
+// Уведомление о отсутствии удалённого прокси сервера
+var proxyIps = builder.Configuration.GetSection(ProxiesOptions.SectionName).Get<ProxiesOptions>()!.RemoteProxyIps;
+if (proxyIps.Length == 0)
+    app.Logger.LogInformation("Удалённые прокси сервера не указаны, в качестве доверенного прокси используется локальный диапазон IP-адресов.");
 
 app.Logger.LogInformation("Приложение запущено.");
 

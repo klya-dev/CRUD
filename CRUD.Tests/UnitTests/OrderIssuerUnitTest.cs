@@ -1,14 +1,9 @@
-﻿using Amazon.Runtime.Telemetry.Metrics;
-using CRUD.Services;
-using CRUD.Services.Interfaces;
-using CRUD.Tests.Helpers;
-using CRUD.Utility.Metrics;
-using FluentValidation;
-using Microsoft.EntityFrameworkCore;
+﻿using CRUD.Utility.Metrics;
 using System.Diagnostics.Metrics;
 
 namespace CRUD.Tests.UnitTests;
 
+[Collection(nameof(GlobalDbContainerCollection))]
 public sealed class OrderIssuerUnitTest
 {
     private readonly OrderIssuer _orderIssuer;
@@ -16,9 +11,9 @@ public sealed class OrderIssuerUnitTest
     private readonly Mock<IPremiumManager> _mockPremiumManager;
     private readonly Mock<IMeterFactory> _mockMetrics;
 
-    public OrderIssuerUnitTest()
+    public OrderIssuerUnitTest(DbContainerFixture fixture)
     {
-        var db = DbContextGenerator.GenerateDbContextTestInMemory();
+        var db = DbContextGenerator.GenerateDbContextTestContainer(fixture.DbOptions);
         _db = db;
 
         _mockPremiumManager = new();

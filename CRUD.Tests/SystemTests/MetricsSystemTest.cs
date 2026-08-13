@@ -2,15 +2,19 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using System.Diagnostics.Metrics;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 
 namespace CRUD.Tests.SystemTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class MetricsSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ITokenManager _tokenManager;
     private readonly IMeterFactory _meterFactory;
+    private readonly IOptions<MetricsOptions> _metricsOptions;
 
     public MetricsSystemTest(TestWebApplicationFactory factory)
     {
@@ -20,6 +24,7 @@ public sealed class MetricsSystemTest : IClassFixture<TestWebApplicationFactory>
         var scopedServices = scope.ServiceProvider;
         _tokenManager = scopedServices.GetRequiredService<ITokenManager>();
         _meterFactory = scopedServices.GetRequiredService<IMeterFactory>();
+        _metricsOptions = scopedServices.GetRequiredService<IOptions<MetricsOptions>>();
     }
 
     // Тесты метрики ещё есть в WebHookSystemTest (не работает), OrderIssuerIntegrationTest
@@ -33,6 +38,7 @@ public sealed class MetricsSystemTest : IClassFixture<TestWebApplicationFactory>
 
         // Запрос
         var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.METRICS_URL);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_metricsOptions.Value.User}:{_metricsOptions.Value.Password}")));
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);

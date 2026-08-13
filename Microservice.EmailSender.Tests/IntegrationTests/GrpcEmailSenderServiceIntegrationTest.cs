@@ -5,6 +5,7 @@ using OpenTelemetry.Metrics;
 
 namespace Microservice.EmailSender.Tests.IntegrationTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class GrpcEmailSenderServiceIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;

@@ -1,10 +1,10 @@
-﻿namespace CRUD.Tests.IntegrationTests.Validators.Publication;
+﻿namespace CRUD.Tests.UnitTests.Validators.Publication;
 
-public sealed class UpdatePublicationDtoValidatorTest
+public sealed class UpdatePublicationDtoValidatorUnitTest
 {
     private readonly UpdatePublicationDtoValidator _validator;
 
-    public UpdatePublicationDtoValidatorTest()
+    public UpdatePublicationDtoValidatorUnitTest()
     {
         var validatorsLocalizer = new ValidatorLocalizer();
         _validator = new UpdatePublicationDtoValidator(validatorsLocalizer);

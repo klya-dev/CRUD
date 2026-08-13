@@ -3,6 +3,7 @@ using System.Text.Json;
 
 namespace CRUD.Tests.SystemTests.Admin;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class AdminUsersPremiumSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;

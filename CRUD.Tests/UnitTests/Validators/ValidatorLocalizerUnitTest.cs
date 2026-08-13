@@ -1,11 +1,10 @@
-﻿using CRUD;
-using CRUD.Models.Validators.Localization.Languages;
+﻿using CRUD.Models.Validators.Localization.Languages;
 using CRUD.Models.Validators.Localization;
 using System.Globalization;
 
-namespace CRUD.Tests.IntegrationTests.Validators;
+namespace CRUD.Tests.UnitTests.Validators;
 
-public sealed class ValidatorLocalizerTest
+public sealed class ValidatorLocalizerUnitTest
 {
     private readonly string[] _supportedCultures = ["ru", "en"];
 

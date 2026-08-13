@@ -54,9 +54,8 @@
     }
   },
   "Metrics": {
-    "PrometheusURL": "http://localhost:9090"
-  },
-  "Clients": {
-    "WebClientURLs": [ "https://localhost:7260" ]
+    "PrometheusURL": "http://localhost:9090",
+    "User": "CONFIGURED_IN_SECRETS_MANAGER",
+    "Password": "CONFIGURED_IN_SECRETS_MANAGER"
   }
 }

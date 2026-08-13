@@ -186,7 +186,6 @@ public static class PublicationsEndpoints
             .WithValidation<UpdatePublicationDto>()
             .WithSummary("Частично или полностью обновляет данные публикации по указанной модели.")
             .WithDescription("Обновляемые данные: Заголовок, Содержимое.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.Conflict);
@@ -215,7 +214,6 @@ public static class PublicationsEndpoints
             .WithValidation<CreatePublicationDto>()
             .WithSummary("Создаёт публикацию по указанной модели.")
             .WithDescription("Задаваемые данные: Заголовок, Содержимое.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.Conflict);
@@ -244,7 +242,6 @@ public static class PublicationsEndpoints
             .WithIdempotency()
             .WithSummary("Удаляет указанную публикацию из базы данных.")
             .WithDescription("Удаление безвозвратно.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.Conflict);

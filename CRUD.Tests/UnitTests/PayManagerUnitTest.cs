@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq.Protected;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace CRUD.Tests.UnitTests;
@@ -76,10 +77,9 @@ public sealed class PayManagerUnitTest
             refundable = false,
             metadata = new { }
         };
-        var responseJson = JsonSerializer.Serialize(responseContent);
         var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson)
+            Content = JsonContent.Create(responseContent)
         };
 
         _mockHttpMessageHandler
@@ -92,8 +92,8 @@ public sealed class PayManagerUnitTest
             .ReturnsAsync(responseMessage);
 
         // Получаем не пустой PaymentResponse
-        var paymentResonse = JsonSerializer.Deserialize<PaymentResponse>(responseJson);
-        _mockOrderCreator.Setup(x => x.GetPaymentResponseFromApi(It.IsAny<JsonDocument>())).Returns(paymentResonse);
+        var paymentResponse = JsonSerializer.Deserialize<PaymentResponse>(JsonSerializer.Serialize(responseContent));
+        _mockOrderCreator.Setup(x => x.GetPaymentResponseFromApi(It.IsAny<JsonDocument>())).Returns(paymentResponse);
 
         // Act
         var result = await _payManager.PayAsync(productName, userIdGuid, ct: TestContext.Current.CancellationToken);
@@ -143,10 +143,9 @@ public sealed class PayManagerUnitTest
         {
             description = "Something"
         };
-        var responseJson = JsonSerializer.Serialize(responseContent);
         var responseMessage = new HttpResponseMessage(HttpStatusCode.BadRequest)
         {
-            Content = new StringContent(responseJson)
+            Content = JsonContent.Create(responseContent)
         };
 
         _mockHttpMessageHandler

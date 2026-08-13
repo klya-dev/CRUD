@@ -1,12 +1,12 @@
 ﻿using CRUD.Models.Validators;
 
-namespace CRUD.Tests.IntegrationTests.Validators.User;
+namespace CRUD.Tests.UnitTests.Validators.User;
 
-public sealed class UpdateUserDtoValidatorTest
+public sealed class UpdateUserDtoValidatorUnitTest
 {
     private readonly UpdateUserDtoValidator _validator;
 
-    public UpdateUserDtoValidatorTest()
+    public UpdateUserDtoValidatorUnitTest()
     {
         var validatorsLocalizer = new ValidatorLocalizer();
         _validator = new UpdateUserDtoValidator(validatorsLocalizer);

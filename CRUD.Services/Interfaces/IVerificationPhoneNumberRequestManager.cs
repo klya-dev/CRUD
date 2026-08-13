@@ -38,7 +38,7 @@ public interface IVerificationPhoneNumberRequestManager
     /// <param name="userId">Id пользователя.</param>
     /// <param name="phoneNumber">Телефонный номер пользователя.</param>
     /// <param name="languageCode">Код языка пользователя.</param>
-    /// <param name="isTelegram">Отправить ли код через Телеграм.</param>
+    /// <param name="messageType">Тип отправки сообщения.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="phoneNumber"/> или <paramref name="languageCode"/> <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
@@ -46,5 +46,5 @@ public interface IVerificationPhoneNumberRequestManager
     /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
     /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns>Результат сервиса <see cref="ServiceResult"/>.</returns>
-    Task<ServiceResult> AddCodeToDatabaseAndSendSmsAsync(Guid userId, string phoneNumber, string languageCode, bool isTelegram = true, CancellationToken ct = default);
+    Task<ServiceResult> AddCodeToDatabaseAndSendMessageAsync(Guid userId, string phoneNumber, string languageCode, MessageType messageType = MessageType.Telegram, CancellationToken ct = default);
 }

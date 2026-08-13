@@ -32,7 +32,6 @@ public static class AdminEndpoints
         })
             .WithSummary("Возвращает максимальные данные пользователя.")
             .WithDescription("Возвратимые данные: Id, Имя, Username, Код языка, Роль, IsPremium, API-ключ, Одноразовый API-ключ, AvatarURL, Email, IsEmailConfirm, Телефонный номер, IsPhoneNumberConfirm.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces<UserFullDto>((int)HttpStatusCode.OK);
@@ -59,7 +58,6 @@ public static class AdminEndpoints
             .WithValidation<UpdateUserDto>()
             .WithSummary("Обновляет данные пользователя по указанной модели.")
             .WithDescription("Обновляемые данные: Имя, Username, Код языка.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
@@ -83,7 +81,6 @@ public static class AdminEndpoints
             .WithIdempotency()
             .WithSummary("Удаляет пользователя из базы данных.")
             .WithDescription("Удаление безвозвратно, освободившийся Username сразу можно зарегистрировать.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
@@ -118,7 +115,6 @@ public static class AdminEndpoints
             .DisableAntiforgery()
             .WithSummary("Устанавливает аватарку пользователю.")
             .WithDescription($"Размер файла может быть не более $AvatarManagerOptions.MaxFileSizeString$ МБ.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .ProducesProblem((int)HttpStatusCode.BadRequest)
             .Produces((int)HttpStatusCode.NotFound)
@@ -144,7 +140,6 @@ public static class AdminEndpoints
             .WithValidation<SetPasswordDto>()
             .WithSummary("Меняет пароль пользователю.")
             .WithDescription("Задаваемые данные: Новый пароль.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
@@ -168,7 +163,6 @@ public static class AdminEndpoints
             .WithIdempotency()
             .WithSummary("Устанавливает премиум пользователю.")
             .WithDescription("Премиум остаётся пожизненным, доступны API-ключи и многое другое.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .ProducesProblem((int)HttpStatusCode.BadRequest)
             .Produces((int)HttpStatusCode.NotFound)
@@ -194,7 +188,6 @@ public static class AdminEndpoints
             .WithValidation<SetRoleDto>()
             .WithSummary("Меняет роль пользователя.")
             .WithDescription("Задаваемые данные: Устанавливаемая роль пользователя.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .ProducesProblem((int)HttpStatusCode.BadRequest)
             .Produces((int)HttpStatusCode.NotFound)
@@ -218,7 +211,6 @@ public static class AdminEndpoints
         })
             .WithSummary("Удаляет все Refresh-токены пользователя.")
             .WithDescription("Удаление безвозвратно.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
@@ -241,7 +233,6 @@ public static class AdminEndpoints
         })
             .WithSummary("Возвращает полные данные об указанной публикации.")
             .WithDescription("Возвратимые данные: Id, Дата, Заголовок, Содержимое, Id автора (пользователя), Имя автора.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces<PublicationFullDto>((int)HttpStatusCode.OK);
@@ -265,7 +256,6 @@ public static class AdminEndpoints
             .WithValidation<UpdatePublicationFullDto>()
             .WithSummary("Частично или полностью обновляет данные публикации по указанной модели.")
             .WithDescription("Обновляемые данные: Заголовок, Содержимое, Дата.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
@@ -289,7 +279,6 @@ public static class AdminEndpoints
             .WithIdempotency()
             .WithSummary("Удаляет указанную публикацию из базы данных.")
             .WithDescription("Удаление безвозвратно.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
@@ -312,7 +301,6 @@ public static class AdminEndpoints
         })
             .WithSummary("Удаляет все публикации пользователя из базы данных.")
             .WithDescription("Удаление безвозвратно.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
@@ -345,7 +333,6 @@ public static class AdminEndpoints
         })
             .WithSummary("Возвращает указанное количество уведомлений указанного пользователя.")
             .WithDescription("Возвратимые данные: Коллекция уведомлений пользователя.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces<IEnumerable<UserNotificationDto>>((int)HttpStatusCode.OK);
@@ -369,7 +356,6 @@ public static class AdminEndpoints
             .WithValidation<CreateNotificationDto>()
             .WithSummary("Создаёт в базе и отправляет всем клиентам новое уведомление.")
             .WithDescription("Задаваемые данные: Заголовок, Содержимое.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.Conflict);
 
@@ -392,7 +378,6 @@ public static class AdminEndpoints
             .WithValidation<CreateNotificationSelectedUsersDto>()
             .WithSummary("Создаёт в базе и отправляет всем клиентам из указанного массива новое уведомление (персональное).")
             .WithDescription("Задаваемые данные: Массив Id пользователей, Заголовок уведомления, Содержимое уведомления.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.Conflict);
 
@@ -415,7 +400,6 @@ public static class AdminEndpoints
             .WithIdempotency()
             .WithSummary("Удаляет указанное уведомление полностью (даже у пользователей).")
             .WithDescription("Удаление безвозвратно.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.Forbidden)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);

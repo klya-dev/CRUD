@@ -7,6 +7,7 @@ public sealed class UserManager : IUserManager
     private readonly IPasswordHasher _passwordHasher;
     private readonly IAvatarManager _avatarManager;
     private readonly AvatarManagerOptions _avatarManagerOptions;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IValidator<CreateUserDto> _createUserDtoValidator;
     private readonly IValidator<OAuthCompleteRegistrationDto> _oAuthCompleteRegistrationDtoValidator;
     private readonly IValidator<UpdateUserDto> _updateUserDtoValidator;
@@ -14,11 +15,12 @@ public sealed class UserManager : IUserManager
     private readonly IValidator<SetRoleDto> _setRoleDtoValidator;
     private readonly ILogger<UserManager> _logger;
 
-    public UserManager(ApplicationDbContext db, IPasswordHasher passwordHasher, IAvatarManager avatarManager, IOptions<AvatarManagerOptions> avatarManagerOptions, IValidator<CreateUserDto> createUserDtoValidator, IValidator<OAuthCompleteRegistrationDto> oAuthCompleteRegistrationDtoValidator, IValidator<UpdateUserDto> updateUserDtoValidator, IValidator<DeleteUserDto> deleteUserDtoValidator, IValidator<SetRoleDto> setRoleDtoValidator, ILogger<UserManager> logger)
+    public UserManager(ApplicationDbContext db, IPasswordHasher passwordHasher, IAvatarManager avatarManager, IOptions<AvatarManagerOptions> avatarManagerOptions, IHttpClientFactory httpClientFactory, IValidator<CreateUserDto> createUserDtoValidator, IValidator<OAuthCompleteRegistrationDto> oAuthCompleteRegistrationDtoValidator, IValidator<UpdateUserDto> updateUserDtoValidator, IValidator<DeleteUserDto> deleteUserDtoValidator, IValidator<SetRoleDto> setRoleDtoValidator, ILogger<UserManager> logger)
     {
         _db = db;
         _passwordHasher = passwordHasher;
         _avatarManagerOptions = avatarManagerOptions.Value;
+        _httpClientFactory = httpClientFactory;
         _createUserDtoValidator = createUserDtoValidator;
         _oAuthCompleteRegistrationDtoValidator = oAuthCompleteRegistrationDtoValidator;
         _updateUserDtoValidator = updateUserDtoValidator;
@@ -275,12 +277,15 @@ public sealed class UserManager : IUserManager
         await _db.Users.AddAsync(user, ct);
         await _db.SaveChangesAsync(ct);
 
+        // Создаём HttpClient для скачивания картинки
+        var httpClient = _httpClientFactory.CreateClient();
+
         // Устанавливаем пользователю UserInfo аватарку
-        var setAvatarResult = await _avatarManager.SetAvatarAsync(user.Id, await OAuthHelper.DownloadPictureAsync(userInfo.Picture), ct);
+        var setAvatarResult = await _avatarManager.SetAvatarAsync(user.Id, await OAuthHelper.DownloadPictureAsync(httpClient, userInfo.Picture), ct);
 
         // Не удалось установить аватарку, просто логируем. Если не получилось, то дефолтную так и оставим
         if (setAvatarResult.ErrorMessage != null)
-            _logger.LogWarning("Не удалось установить аватарку, как из UserInfo. Причина: \"{error}\".", setAvatarResult.ErrorMessage);
+            _logger.LogWarning("Не удалось установить аватарку из UserInfo. Причина: \"{error}\".", setAvatarResult.ErrorMessage);
 
         return ServiceResult<User>.Success(user);
     }
@@ -374,10 +379,12 @@ public sealed class UserManager : IUserManager
             .Select(x => new
             {
                 // Очень осторожно с полной сущностью (Request = x), если где-то загрузили/создали всю сущность, а потом вызвали ExecuteUpdateAsync, то из-за кэша значения могут разниться
-                // Прикол, в том, что EF и вправду делает запрос в базу (FirstOrDefaultAsync), но после получения этих данных он сравнивает ID сущности с ID сущности в кэше и просто отдаёт кэшированные значения - так и работает ChangeTracker (в одном контексте базы)
-                // Поэтому когда грузим всю сущность через .Select() - .AsNoTracking() обязательно
+                // Прикол, в том, что EF и вправду делает запрос в базу (FirstOrDefaultAsync), но после получения этих данных он сравнивает ID сущности с ID сущности в кэше и просто отдаёт кэшированные значения - так и работает ChangeTracker (в одном контексте базы) | После ExecuteUpdateAsync данные сущности отличные от кэша
+                // Поэтому когда грузим всю сущность через .Select() - .AsNoTracking() обязательно и данные будут прямиком из базы (актуальные)
                 Request = x,
-                User = new { x.User!.Id, x.User.IsEmailConfirm, x.User.RowVersion }
+
+                // Пользователя может не существовать. Если не сущетсвует, то userFromDb.User = null
+                User = x.User == null ? null : new { x.User.Id, x.User.IsEmailConfirm, x.User.RowVersion }
             })
             .FirstOrDefaultAsync(ct);
 
@@ -431,7 +438,9 @@ public sealed class UserManager : IUserManager
                 // Прикол, в том, что EF и вправду делает запрос в базу (FirstOrDefaultAsync), но после получения этих данных он сравнивает ID сущности с ID сущности в кэше и просто отдаёт кэшированные значения - так и работает ChangeTracker (в одном контексте базы)
                 // Поэтому когда грузим всю сущность через .Select() - .AsNoTracking() обязательно
                 Request = x,
-                User = new { x.User!.Id, x.User.IsPhoneNumberConfirm, x.User.RowVersion }
+
+                // Пользователя может не существовать. Если не сущетсвует, то userFromDb.User = null
+                User = x.User == null ? null : new { x.User.Id, x.User.IsPhoneNumberConfirm, x.User.RowVersion }
             })
             .FirstOrDefaultAsync(ct);
 

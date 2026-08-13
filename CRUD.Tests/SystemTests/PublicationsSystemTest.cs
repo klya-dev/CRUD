@@ -1,11 +1,13 @@
 ﻿using CRUD.Models.Domains;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class PublicationsSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
@@ -1083,9 +1085,10 @@ public sealed class PublicationsSystemTest : IClassFixture<TestWebApplicationFac
         };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Patch, TestConstants.PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Patch, TestConstants.PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         // Act
@@ -1126,9 +1129,10 @@ public sealed class PublicationsSystemTest : IClassFixture<TestWebApplicationFac
         var publicationFromDbBeforeUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Patch, TestConstants.PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Patch, TestConstants.PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager);
 
         // Act
@@ -1171,9 +1175,10 @@ public sealed class PublicationsSystemTest : IClassFixture<TestWebApplicationFac
         };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Patch, TestConstants.PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Patch, TestConstants.PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         // Act
@@ -1219,9 +1224,10 @@ public sealed class PublicationsSystemTest : IClassFixture<TestWebApplicationFac
         var publicationFromDbBeforeUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Patch, TestConstants.PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Patch, TestConstants.PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user2.Id.ToString());
 
         // Act
@@ -1270,9 +1276,10 @@ public sealed class PublicationsSystemTest : IClassFixture<TestWebApplicationFac
         var publicationFromDbBeforeUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Patch, TestConstants.PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Patch, TestConstants.PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         // Act
@@ -1315,9 +1322,10 @@ public sealed class PublicationsSystemTest : IClassFixture<TestWebApplicationFac
         var userIdGuid = user.Id;
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         // Act
@@ -1375,9 +1383,10 @@ public sealed class PublicationsSystemTest : IClassFixture<TestWebApplicationFac
         var userIdGuid = user.Id;
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         // Act
@@ -1431,9 +1440,10 @@ public sealed class PublicationsSystemTest : IClassFixture<TestWebApplicationFac
         var userIdGuid = Guid.NewGuid();
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager);
 
         // Act
@@ -1474,9 +1484,10 @@ public sealed class PublicationsSystemTest : IClassFixture<TestWebApplicationFac
         var userIdGuid = user.Id;
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: userIdGuid.ToString(), isEmailConfirm: false); // isEmailConfirm false в токене
 
         // Act
@@ -1512,9 +1523,10 @@ public sealed class PublicationsSystemTest : IClassFixture<TestWebApplicationFac
         var userIdGuid = user.Id;
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: userIdGuid.ToString(), isEmailConfirm: true); // isEmailConfirm true в токене
 
         // Act
@@ -1556,9 +1568,10 @@ public sealed class PublicationsSystemTest : IClassFixture<TestWebApplicationFac
         var userIdGuid = user.Id;
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: userIdGuid.ToString(), isPhoneNumberConfirm: false); // isPhoneNumberConfirm false в токене
 
         // Act
@@ -1594,9 +1607,10 @@ public sealed class PublicationsSystemTest : IClassFixture<TestWebApplicationFac
         var userIdGuid = user.Id;
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: userIdGuid.ToString(), isPhoneNumberConfirm: true); // isPhoneNumberConfirm true в токене
 
         // Act

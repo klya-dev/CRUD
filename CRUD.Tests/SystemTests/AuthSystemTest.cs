@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.TestHost;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
@@ -34,9 +36,10 @@ public sealed class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         var loginData = new LoginDataDto { Username = username, Password = password };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL);
-        var json = new StringContent(JsonSerializer.Serialize(loginData), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL)
+        {
+            Content = JsonContent.Create(loginData)
+        };
 
         // Добавляем пользователя в базу
         var user = await DI.CreateUserAsync(_db, username: username, hashedPassword: password, ct: TestContext.Current.CancellationToken);
@@ -79,10 +82,11 @@ public sealed class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         var loginData = new LoginDataDto { Username = username, Password = password };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL);
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL)
+        {
+            Content = JsonContent.Create(loginData)
+        };
         request.Headers.Add("Accept-Language", "ru");
-        var json = new StringContent(JsonSerializer.Serialize(loginData), Encoding.UTF8, Application.Json);
-        request.Content = json;
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -112,10 +116,11 @@ public sealed class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         var loginData = new LoginDataDto { Username = username, Password = "123" };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL);
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL)
+        {
+            Content = JsonContent.Create(loginData)
+        };
         request.Headers.Add("Accept-Language", "ru");
-        var json = new StringContent(JsonSerializer.Serialize(loginData), Encoding.UTF8, Application.Json);
-        request.Content = json;
 
         // Добавляем пользователя в базу
         var user = await DI.CreateUserAsync(_db, username: username, hashedPassword: password, ct: TestContext.Current.CancellationToken);
@@ -151,9 +156,10 @@ public sealed class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, user.Id, token: refreshToken, ct: TestContext.Current.CancellationToken);
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REFRESH_LOGIN_URL);
-        var json = new StringContent(JsonSerializer.Serialize(authRefreshToken.Token), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REFRESH_LOGIN_URL)
+        {
+            Content = JsonContent.Create(authRefreshToken.Token)
+        };
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -192,9 +198,10 @@ public sealed class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         string token = "some";
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REFRESH_LOGIN_URL);
-        var json = new StringContent(JsonSerializer.Serialize(token), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REFRESH_LOGIN_URL)
+        {
+            Content = JsonContent.Create(token)
+        };
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -224,9 +231,10 @@ public sealed class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         var authRefreshToken = await DI.CreateAuthRefreshTokenAsync(_db, user.Id, expires: DateTime.MinValue, ct: TestContext.Current.CancellationToken);
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REFRESH_LOGIN_URL);
-        var json = new StringContent(JsonSerializer.Serialize(authRefreshToken.Token), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REFRESH_LOGIN_URL)
+        {
+            Content = JsonContent.Create(authRefreshToken.Token)
+        };
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -264,10 +272,11 @@ public sealed class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REGISTER_URL);
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REGISTER_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         request.Headers.Add("Accept-Language", "ru");
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -321,10 +330,11 @@ public sealed class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REGISTER_URL);
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_REGISTER_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         request.Headers.Add("Accept-Language", "ru");
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
 
         // Добавляем пользователя в базу
         var user = await DI.CreateUserAsync(_db, username: username, ct: TestContext.Current.CancellationToken);
@@ -540,9 +550,10 @@ public sealed class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         }).CreateClient();
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_OAUTH_REGISTRATION_URL + $"?code={code}&state={state}");
-        var json = new StringContent(JsonSerializer.Serialize(oAuthCompleteRegistrationDto), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_OAUTH_REGISTRATION_URL + $"?code={code}&state={state}")
+        {
+            Content = JsonContent.Create(oAuthCompleteRegistrationDto)
+        };
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -618,9 +629,10 @@ public sealed class AuthSystemTest : IClassFixture<TestWebApplicationFactory>
         }).CreateClient();
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_OAUTH_REGISTRATION_URL + $"?code={code}&state={state}");
-        var json = new StringContent(JsonSerializer.Serialize(oAuthCompleteRegistrationDto), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_OAUTH_REGISTRATION_URL + $"?code={code}&state={state}")
+        {
+            Content = JsonContent.Create(oAuthCompleteRegistrationDto)
+        };
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);

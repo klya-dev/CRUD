@@ -219,7 +219,7 @@ public sealed class AuthManager : IAuthManager
         return ServiceResult.Success();
     }
 
-    public async Task<ServiceResult> SendVerificationCodePhoneNumberAsync(Guid userId, bool isTelegram, CancellationToken ct = default)
+    public async Task<ServiceResult> SendVerificationCodePhoneNumberAsync(Guid userId, MessageType messageType, CancellationToken ct = default)
     {
         // Пустой GUID
         if (userId == Guid.Empty)
@@ -235,7 +235,7 @@ public sealed class AuthManager : IAuthManager
             return ServiceResult.Fail(ErrorMessages.UserAlreadyConfirmedPhoneNumber);
 
         // Добавляем код подтверждения телефона в базу и отправляем СМС
-        var result = await _verificationPhoneNumberRequestManager.AddCodeToDatabaseAndSendSmsAsync(userId, userFromDb.PhoneNumber, userFromDb.LanguageCode, isTelegram, ct);
+        var result = await _verificationPhoneNumberRequestManager.AddCodeToDatabaseAndSendMessageAsync(userId, userFromDb.PhoneNumber, userFromDb.LanguageCode, messageType, ct);
 
         // Есть ошибка
         if (result.ErrorMessage != null)

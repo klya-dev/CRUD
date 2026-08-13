@@ -1,15 +1,21 @@
 ﻿using FluentValidation;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
+using System.Text.Json;
 
 namespace CRUD.Tests.IntegrationTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class PasswordChangerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly IPasswordChanger _passwordChanger;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ApplicationDbContext _db;
+    private readonly ITimeLimitedDataProtector _protector;
+    private readonly HybridCache _cache;
 
     public PasswordChangerIntegrationTest(TestWebApplicationFactory factory)
     {
@@ -21,6 +27,8 @@ public sealed class PasswordChangerIntegrationTest : IClassFixture<TestWebApplic
         _passwordChanger = scopedServices.GetRequiredService<IPasswordChanger>();
         _passwordHasher = scopedServices.GetRequiredService<IPasswordHasher>();
         _db = scopedServices.GetRequiredService<ApplicationDbContext>();
+        _protector = scopedServices.GetRequiredService<IDataProtectionProvider>().CreateProtector(ChangePasswordRequestManager.Purpose).ToTimeLimitedDataProtector();
+        _cache = scopedServices.GetRequiredService<HybridCache>();
     }
 
     [Theory]
@@ -148,8 +156,16 @@ public sealed class PasswordChangerIntegrationTest : IClassFixture<TestWebApplic
         // Добавляем пользователя в базу
         var user = await DI.CreateUserAsync(_db, hashedPassword: password, ct: TestContext.Current.CancellationToken);
 
-        // Добавляем токен в базу, чтобы возникла ошибка, что письмо уже отправлено
-        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        // Добавляем время отправки в кэш, чтобы возникла ошибка, что письмо уже отправлено
+        string cacheKey = $"{CacheKeys.RateLimitSendEmailPasswordChange}-{user.Id}";
+        var cacheOptions = new HybridCacheEntryOptions
+        {
+            Expiration = TimeSpan.FromMinutes(1),
+            LocalCacheExpiration = TimeSpan.FromMinutes(1)
+        };
+        await _cache.SetAsync(cacheKey, DateTime.UtcNow, cacheOptions, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Если L2 кэш не включен, то IMemoryCache лежит, я так полагаю, в разных местах, из-за этого, якобы кэш не добавляется, и метод внутри приложения не видит значение
 
         var changePasswordDto = new ChangePasswordDto()
         {
@@ -169,6 +185,9 @@ public sealed class PasswordChangerIntegrationTest : IClassFixture<TestWebApplic
         // Пароль и вправду не обновился
         var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
+
+        // Удаляем из кэша
+        await _cache.RemoveAsync(cacheKey, cancellationToken: TestContext.Current.CancellationToken);
     }
 
 
@@ -182,10 +201,11 @@ public sealed class PasswordChangerIntegrationTest : IClassFixture<TestWebApplic
         var userIdGuid = user.Id;
 
         // Добавляем токен в базу
-        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
+        var changePasswordPayload = DI.CreateChangePasswordPayload(userIdGuid);
+        var token = _protector.Protect(JsonSerializer.Serialize(changePasswordPayload));
 
         // Act
-        var result = await _passwordChanger.ChangePasswordAsync(changePasswordRequest.Token, ct: TestContext.Current.CancellationToken);
+        var result = await _passwordChanger.ChangePasswordAsync(token, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -193,7 +213,7 @@ public sealed class PasswordChangerIntegrationTest : IClassFixture<TestWebApplic
 
         // Пароль и вправду обновился
         var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
-        Assert.Equal(changePasswordRequest.HashedNewPassword, userFromDbAfterUpdate.HashedPassword);
+        Assert.Equal(changePasswordPayload.HashedNewPassword, userFromDbAfterUpdate.HashedPassword);
     }
 
     [Fact]
@@ -219,19 +239,21 @@ public sealed class PasswordChangerIntegrationTest : IClassFixture<TestWebApplic
 
         var userIdGuid = user.Id;
 
-        // Добавляем токен в базу
-        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, userIdGuid, expires: DateTime.UtcNow.AddDays(-1), ct: TestContext.Current.CancellationToken);
+        // Истёкший токен
+        var payload = DI.CreateChangePasswordPayload(userIdGuid);
+        string payloadJson = JsonSerializer.Serialize(payload);
+        string token = _protector.Protect(payloadJson, TimeSpan.FromMinutes(-60));
 
         // Act
-        var result = await _passwordChanger.ChangePasswordAsync(changePasswordRequest.Token, ct: TestContext.Current.CancellationToken);
+        var result = await _passwordChanger.ChangePasswordAsync(token, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
         Assert.Contains(ErrorMessages.InvalidToken, result.ErrorMessage);
     }
 
-    [Fact] // Такого пользователя не существует (т.к мы удалим пользователя). У токена не может быть несуществующего пользователя, поэтому токен автоматически удаляется
-    public async Task ChangePasswordAsyncByToken_WhenUserDeleted_ReturnsErrorMessage_InvalidToken()
+    [Fact] // Такого пользователя не существует
+    public async Task ChangePasswordAsyncByToken_WhenUserDeleted_ReturnsErrorMessage_UserNotFound()
     {
         // Arrange
         // Добавляем пользователя в базу
@@ -239,21 +261,21 @@ public sealed class PasswordChangerIntegrationTest : IClassFixture<TestWebApplic
 
         var userIdGuid = user.Id;
 
-        // Добавляем токен в базу
-        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
+        // Валидный токен
+        var payload = DI.CreateChangePasswordPayload(userIdGuid);
+        string payloadJson = JsonSerializer.Serialize(payload);
+        string token = _protector.Protect(payloadJson, TimeSpan.FromMinutes(1));
 
         // Удаляем пользователя
         _db.Users.Remove(user);
         await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Тут токен удаляется автоматически сам
-
         // Act
-        var result = await _passwordChanger.ChangePasswordAsync(changePasswordRequest.Token, ct: TestContext.Current.CancellationToken);
+        var result = await _passwordChanger.ChangePasswordAsync(token, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains(ErrorMessages.InvalidToken, result.ErrorMessage);
+        Assert.Contains(ErrorMessages.UserNotFound, result.ErrorMessage);
     }
 
 

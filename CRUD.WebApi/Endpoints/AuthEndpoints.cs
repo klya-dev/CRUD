@@ -97,7 +97,7 @@ public static class AuthEndpoints
             // Достаём из кэша или кэшируем
             var accessToken = await cache.GetOrCreateAsync(
                 $"{CacheKeys.OAuthAccessTokenMailRu}-{state}",
-                async ct => await oAuthMailRuProvider.GetAccessTokenAsync(code, state, ct),
+                async factoryCt => await oAuthMailRuProvider.GetAccessTokenAsync(code, state, factoryCt),
                 options, cancellationToken: ct);
 
             // Не удалось получить AccessToken
@@ -138,7 +138,7 @@ public static class AuthEndpoints
             // Достаём из кэша или кэшируем
             var accessToken = await cache.GetOrCreateAsync(
                 $"{CacheKeys.OAuthAccessTokenMailRu}-{state}",
-                async ct => await oAuthMailRuProvider.GetAccessTokenAsync(code, state, ct),
+                async factoryCt => await oAuthMailRuProvider.GetAccessTokenAsync(code, state, factoryCt),
                 options, cancellationToken: ct);
 
             // Не удалось получить AccessToken

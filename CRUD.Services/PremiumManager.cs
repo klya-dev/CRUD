@@ -53,7 +53,9 @@ public sealed class PremiumManager : IPremiumManager
             .Select(x => new
             {
                 Order = new { x.Status, x.PaymentStatus },
-                User = new { x.User!.Id, x.User.Email, x.User.LanguageCode, x.User.IsPremium, x.User.RowVersion }
+
+                // Пользователя может не существовать. Если не сущетсвует, то orderFromDb.User = null
+                User = x.User == null ? null : new { x.User.Id, x.User.Email, x.User.LanguageCode, x.User.IsPremium, x.User.RowVersion },
             })
             .FirstOrDefaultAsync(ct);
 

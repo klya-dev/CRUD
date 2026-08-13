@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace CRUD.Tests.UnitTests;
@@ -42,10 +43,9 @@ public sealed class TelegramIntegrationManagerUnitTest
             ok = true,
             result = new { request_id = "123" }
         };
-        var responseJson = JsonSerializer.Serialize(responseContent);
         var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson)
+            Content = JsonContent.Create(responseContent)
         };
 
         // Ответ в SendVerificationCodeTelegramAsync
@@ -54,10 +54,9 @@ public sealed class TelegramIntegrationManagerUnitTest
             ok = true,
             result = new { request_id = "123" }
         };
-        var responseJson2 = JsonSerializer.Serialize(responseContent2);
         var responseMessage2 = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson2)
+            Content = JsonContent.Create(responseContent2)
         };
 
         var queueStuff = new Queue<HttpResponseMessage>();
@@ -90,10 +89,9 @@ public sealed class TelegramIntegrationManagerUnitTest
             ok = false,
             error = "Some error"
         };
-        var responseJson = JsonSerializer.Serialize(responseContent);
         var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson)
+            Content = JsonContent.Create(responseContent)
         };
 
         _mockHttpMessageHandler
@@ -122,10 +120,9 @@ public sealed class TelegramIntegrationManagerUnitTest
             ok = false,
             error = "UNKNOWN_METHOD"
         };
-        var responseJson = JsonSerializer.Serialize(responseContent);
         var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson)
+            Content = JsonContent.Create(responseContent)
         };
 
         _mockHttpMessageHandler
@@ -154,10 +151,9 @@ public sealed class TelegramIntegrationManagerUnitTest
             ok = false,
             error = "ACCESS_TOKEN_INVALID"
         };
-        var responseJson = JsonSerializer.Serialize(responseContent);
         var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson)
+            Content = JsonContent.Create(responseContent)
         };
 
         _mockHttpMessageHandler
@@ -186,10 +182,9 @@ public sealed class TelegramIntegrationManagerUnitTest
             ok = false,
             error = "something"
         };
-        var responseJson = JsonSerializer.Serialize(responseContent);
         var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson)
+            Content = JsonContent.Create(responseContent)
         };
 
         _mockHttpMessageHandler
@@ -217,10 +212,9 @@ public sealed class TelegramIntegrationManagerUnitTest
             ok = true,
             error = "something"
         };
-        var responseJson = JsonSerializer.Serialize(responseContent);
         var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson)
+            Content = JsonContent.Create(responseContent)
         };
 
         _mockHttpMessageHandler

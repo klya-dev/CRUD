@@ -14,4 +14,14 @@ public sealed class MetricsOptions
     /// URL Prometheus'а с портом.
     /// </summary>
     public required string PrometheusURL { get; init; }
+
+    /// <summary>
+    /// Имя пользователя для авторизации.
+    /// </summary>
+    public required string User { get; init; }
+
+    /// <summary>
+    /// Пароль пользователя для авторизации.
+    /// </summary>
+    public required string Password { get; init; }
 }

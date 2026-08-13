@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRUD.Tests.UnitTests;
@@ -11,6 +12,7 @@ public sealed class PasswordChangerUnitTest
     private readonly Mock<IValidator<SetPasswordDto>> _mockSetPasswordDtoValidator;
     private readonly Mock<IChangePasswordRequestManager> _mockChangePasswordRequestManager;
     private readonly Mock<IPasswordHasher> _mockPasswordHasher;
+    private readonly Mock<IDataProtectionProvider> _mockProtectionProvider;
 
     public PasswordChangerUnitTest()
     {
@@ -21,8 +23,25 @@ public sealed class PasswordChangerUnitTest
         _mockSetPasswordDtoValidator = new();
         _mockChangePasswordRequestManager = new();
         _mockPasswordHasher = new();
+        _mockProtectionProvider = new();
 
-        _passwordChanger = new PasswordChanger(db, _mockChangePasswordDtoValidator.Object, _mockSetPasswordDtoValidator.Object, _mockChangePasswordRequestManager.Object, _mockPasswordHasher.Object);
+        var mockProtector = new Mock<IDataProtector>();
+
+        // Настраиваем методы защиты и расшифровки данных
+        mockProtector
+            .Setup(s => s.Protect(It.IsAny<byte[]>()))
+            .Returns((byte[] input) => input); // В тесте возвращаем массив как есть
+
+        mockProtector
+            .Setup(s => s.Unprotect(It.IsAny<byte[]>()))
+            .Returns((byte[] input) => input);
+
+        // Связываем провайдер с протектором
+        _mockProtectionProvider
+            .Setup(x => x.CreateProtector(It.IsAny<string>()))
+            .Returns(mockProtector.Object);
+
+        _passwordChanger = new PasswordChanger(db, _mockChangePasswordDtoValidator.Object, _mockSetPasswordDtoValidator.Object, _mockChangePasswordRequestManager.Object, _mockPasswordHasher.Object, _mockProtectionProvider.Object);
     }
 
     [Fact]

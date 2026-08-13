@@ -36,7 +36,6 @@ public static class UsersEndpoints
         })
             .WithSummary("Возвращает минимальные данные указанного пользователя.")
             .WithDescription("Возвратимые данные: Имя, Username, Код языка.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces<UserDto>((int)HttpStatusCode.OK);
 
@@ -58,7 +57,6 @@ public static class UsersEndpoints
         })
             .WithSummary("Получает аватарку указанного пользователя файлом.")
             .WithDescription("Размер файла может быть не более $AvatarManagerOptions.MaxFileSizeString$ МБ.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .ProducesProblem((int)HttpStatusCode.BadRequest)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);
@@ -81,7 +79,6 @@ public static class UsersEndpoints
         })
             .WithSummary("Получает аватарку указанного пользователя ссылкой.")
             .WithDescription("По умолчанию срок действия ссылки 1 час.")
-            .Produces((int)HttpStatusCode.Unauthorized)
             .ProducesProblem((int)HttpStatusCode.BadRequest)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Conflict);

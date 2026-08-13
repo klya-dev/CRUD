@@ -1,13 +1,16 @@
-﻿using Microsoft.AspNetCore.WebUtilities;
+﻿using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.WebUtilities;
 using System.Text.Json;
 
 namespace CRUD.Tests.SystemTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class ConfirmationsSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
     private readonly ITokenManager _tokenManager;
+    private readonly ITimeLimitedDataProtector _protector;
 
     public ConfirmationsSystemTest(TestWebApplicationFactory factory)
     {
@@ -18,6 +21,7 @@ public sealed class ConfirmationsSystemTest : IClassFixture<TestWebApplicationFa
         var scopedServices = scope.ServiceProvider;
         _db = scopedServices.GetRequiredService<ApplicationDbContext>();
         _tokenManager = scopedServices.GetRequiredService<ITokenManager>();
+        _protector = scopedServices.GetRequiredService<IDataProtectionProvider>().CreateProtector(ChangePasswordRequestManager.Purpose).ToTimeLimitedDataProtector();
     }
 
 
@@ -344,11 +348,13 @@ public sealed class ConfirmationsSystemTest : IClassFixture<TestWebApplicationFa
         var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
-        // Добавляем токен в базу
-        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
+        // Валидный токен
+        var payload = DI.CreateChangePasswordPayload(userIdGuid);
+        string payloadJson = JsonSerializer.Serialize(payload);
+        string token = _protector.Protect(payloadJson, TimeSpan.FromMinutes(1));
 
         // Запрос
-        var url = string.Format(TestConstants.CONFIRMATIONS_PASSWORD_TOKEN_URL, changePasswordRequest.Token);
+        var url = string.Format(TestConstants.CONFIRMATIONS_PASSWORD_TOKEN_URL, token);
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         TestConstants.AddIdempotencyKeyQuery(request);
 
@@ -363,7 +369,7 @@ public sealed class ConfirmationsSystemTest : IClassFixture<TestWebApplicationFa
         // Пароль и вправду обновился
         var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.NotNull(userFromDbAfterUpdate);
-        Assert.Equal(changePasswordRequest.HashedNewPassword, userFromDbAfterUpdate.HashedPassword);
+        Assert.Equal(payload.HashedNewPassword, userFromDbAfterUpdate.HashedPassword);
     }
 
     [Fact]
@@ -404,9 +410,10 @@ public sealed class ConfirmationsSystemTest : IClassFixture<TestWebApplicationFa
         var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
-        // Добавляем токен в базу
-        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, userIdGuid, expires: DateTime.UtcNow.AddDays(-1), ct: TestContext.Current.CancellationToken);
-        var token = changePasswordRequest.Token;
+        // Истёкший токен
+        var payload = DI.CreateChangePasswordPayload(userIdGuid);
+        string payloadJson = JsonSerializer.Serialize(payload);
+        string token = _protector.Protect(payloadJson, TimeSpan.FromMinutes(-60));
 
         // Запрос
         var url = string.Format(TestConstants.CONFIRMATIONS_PASSWORD_TOKEN_URL, token);
@@ -429,7 +436,7 @@ public sealed class ConfirmationsSystemTest : IClassFixture<TestWebApplicationFa
     }
 
     [Fact]
-    public async Task Get_Password_WhenUserDeleted_ReturnsInvalidToken()
+    public async Task Get_Password_WhenUserDeleted_ReturnsUserNotFound()
     {
         // Arrange
         var client = _factory.HttpClient;
@@ -438,9 +445,10 @@ public sealed class ConfirmationsSystemTest : IClassFixture<TestWebApplicationFa
         var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
         var userIdGuid = user.Id;
 
-        // Добавляем токен в базу
-        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, userIdGuid, ct: TestContext.Current.CancellationToken);
-        var token = changePasswordRequest.Token;
+        // Валидный токен
+        var payload = DI.CreateChangePasswordPayload(userIdGuid);
+        string payloadJson = JsonSerializer.Serialize(payload);
+        string token = _protector.Protect(payloadJson, TimeSpan.FromMinutes(1));
 
         // Удаляем пользователя
         _db.Users.Remove(user);
@@ -456,13 +464,13 @@ public sealed class ConfirmationsSystemTest : IClassFixture<TestWebApplicationFa
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, result.StatusCode);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, result.StatusCode);
         Assert.Equal("application/problem+json", result.Content.Headers.ContentType?.MediaType);
 
         // Читаем содержимое ответа
         await using var contentStream = await result.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken);
         using var jsonDocument = await JsonDocument.ParseAsync(contentStream, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(ErrorCodes.INVALID_TOKEN, jsonDocument.RootElement.GetProperty("code").GetString());
+        Assert.Equal(ErrorCodes.USER_NOT_FOUND, jsonDocument.RootElement.GetProperty("code").GetString());
     }
 }

@@ -1,5 +1,6 @@
 ﻿namespace CRUD.Tests.IntegrationTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class RevokeExpiredRefreshTokensBackgroundCoreIntegrationTest
 {
     private readonly RevokeExpiredRefreshTokensBackgroundCore _revokeExpiredRefreshTokensBackgroundCore;

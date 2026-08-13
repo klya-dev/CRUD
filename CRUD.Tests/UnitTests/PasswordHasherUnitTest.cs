@@ -1,10 +1,10 @@
-﻿namespace CRUD.Tests.IntegrationTests;
+﻿namespace CRUD.Tests.UnitTests;
 
-public sealed class PasswordHasherIntegrationTest
+public sealed class PasswordHasherUnitTest
 {
     private readonly PasswordHasher _passwordHasher;
 
-    public PasswordHasherIntegrationTest()
+    public PasswordHasherUnitTest()
     {
         _passwordHasher = new PasswordHasher();
     }

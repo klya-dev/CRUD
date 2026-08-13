@@ -1,13 +1,13 @@
 ﻿using CRUD.Models.Validators.Localization;
 
-namespace CRUD.Tests.IntegrationTests.Validators;
+namespace CRUD.Tests.UnitTests.Validators;
 
-public sealed class LoginDataValidatorTest
+public sealed class LoginDataValidatorUnitTest
 {
     private readonly ValidatorLocalizer _validatorsLocalizer;
     private readonly LoginDataDtoValidator _validator;
 
-    public LoginDataValidatorTest()
+    public LoginDataValidatorUnitTest()
     {
         _validatorsLocalizer = new ValidatorLocalizer();
         _validator = new LoginDataDtoValidator(_validatorsLocalizer);

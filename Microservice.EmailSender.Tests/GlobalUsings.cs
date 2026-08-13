@@ -22,3 +22,4 @@ global using Microservice.EmailSender.Services.Grpc;
 global using CRUD.Test.Shared;
 global using CRUD.Infrastructure.S3;
 global using CRUD.Shared;
+global using Microservice.EmailSender.Tests.Collections;

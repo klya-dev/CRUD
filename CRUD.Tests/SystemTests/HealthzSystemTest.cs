@@ -5,6 +5,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace CRUD.Tests.SystemTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class HealthzSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;

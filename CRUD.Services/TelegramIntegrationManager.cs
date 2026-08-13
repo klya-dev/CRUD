@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
@@ -50,8 +51,7 @@ public sealed class TelegramIntegrationManager : ITelegramIntegrationManager
             ttl = TimeToLive,
             request_id = requestId
         };
-        var json = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        request.Content = JsonContent.Create(body);
 
         // Отправляем запрос (код подтверждения)
         using var response = await httpClient.SendAsync(request, ct);
@@ -100,8 +100,7 @@ public sealed class TelegramIntegrationManager : ITelegramIntegrationManager
         {
             phone_number = "+" + phoneNumber
         };
-        var json = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        request.Content = JsonContent.Create(body);
 
         // Отправляем запрос
         using var response = await httpClient.SendAsync(request, ct);

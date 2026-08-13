@@ -1,13 +1,13 @@
 ﻿namespace CRUD.Tests.IntegrationTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class MapperExtensionsIntegrationTest
 {
     private readonly ApplicationDbContext _db;
 
     public MapperExtensionsIntegrationTest()
     {
-        ApplicationDbContext db = DbContextGenerator.GenerateDbContextTest();
-        _db = db;
+        _db = DbContextGenerator.GenerateDbContextTest();
     }
 
     [Fact]

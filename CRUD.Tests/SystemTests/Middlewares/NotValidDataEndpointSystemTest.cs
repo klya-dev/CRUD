@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Hosting;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class NotValidDataEndpointSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     // Тут я тестирую невалидные данные и авторизацию

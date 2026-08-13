@@ -53,7 +53,7 @@ public static class EmailLetters
     /// <param name="key">Ключ из <see cref="EmailLetters"/>.</param>
     /// <param name="email">Электронная почта получателя.</param>
     /// <param name="languageCode">Код языка.</param>
-    /// <param name="httpContextAccessor">Нужен для полученния URL приложения.</param>
+    /// <param name="baseUrl">Базовый URL.</param>
     /// <param name="args">Аргументы к письму. Например токен.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="key"/> или <paramref name="languageCode"/> равен <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">Если нет ни одного совпадения. Т.е. неизвестный ключ (письмо).</exception>
@@ -69,14 +69,14 @@ public static class EmailLetters
         return (key, languageCode) switch
         {
             (EmailConfirm, "ru") => new Letter(email, "Подтвердите адрес электронной почты", 
-                CreateHtmlBody("Подтвердите адрес электронной почты", $"Вашу почту необходимо подтвердить для сервиса \"{serviceName}\"", "Подтвердить", baseUrl + string.Format(EndpointUrls.ConfirmationsEmailByToken, args[0], idempotencyKey))),
+                CreateHtmlBody("Подтвердите адрес электронной почты", $"Вашу почту необходимо подтвердить для сервиса \"{serviceName}\"", "Подтвердить", baseUrl + string.Format(EndpointUrls.ConfirmationsEmailByToken, Uri.EscapeDataString(args[0]), idempotencyKey))),
             (EmailConfirm, _) => new Letter(email, "Confirm Email", 
-                CreateHtmlBody("Confirm Email", $"Your email needs to be provided for the \"{serviceName}\" service", "Confirm", baseUrl + string.Format(EndpointUrls.ConfirmationsEmailByToken, args[0], idempotencyKey))),
+                CreateHtmlBody("Confirm Email", $"Your email needs to be provided for the \"{serviceName}\" service", "Confirm", baseUrl + string.Format(EndpointUrls.ConfirmationsEmailByToken, Uri.EscapeDataString(args[0]), idempotencyKey))),
 
             (ChangePasswordRequest, "ru") => new Letter(email, "Подтвердите смену пароля",
-                CreateHtmlBody("Подтвердите смену пароля", $"Вам необходимо подтвердить смену пароля для сервиса \"{serviceName}\"", "Подтвердить", baseUrl + string.Format(EndpointUrls.ConfirmationsPasswordByToken, args[0], idempotencyKey))),
+                CreateHtmlBody("Подтвердите смену пароля", $"Вам необходимо подтвердить смену пароля для сервиса \"{serviceName}\"", "Подтвердить", baseUrl + string.Format(EndpointUrls.ConfirmationsPasswordByToken, Uri.EscapeDataString(args[0]), idempotencyKey))),
             (ChangePasswordRequest, _) => new Letter(email, "Confirm change password",
-                CreateHtmlBody("Confirm change password", $"You need to confirm the password change for the \"{serviceName}\" service", "Confirm", baseUrl + string.Format(EndpointUrls.ConfirmationsPasswordByToken, args[0], idempotencyKey))),
+                CreateHtmlBody("Confirm change password", $"You need to confirm the password change for the \"{serviceName}\" service", "Confirm", baseUrl + string.Format(EndpointUrls.ConfirmationsPasswordByToken, Uri.EscapeDataString(args[0]), idempotencyKey))),
 
             (InformGettingPremium, "ru") => new Letter(email, "Получение премиума",
                 CreateHtmlBody("Получение премиума", $"Поздравляем вас с получением премиума на сервисе \"{serviceName}\"")),

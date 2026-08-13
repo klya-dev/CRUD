@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace CRUD.Tests.UnitTests;
@@ -48,10 +49,9 @@ public sealed class OAuthMailRuProviderUnitTest
             token_endpoint_auth_methods_supported = new string[] { "client_secret_post", "client_secret_basic" },
             introspection_endpoint = "https://o2.mail.ru/api/v1/oauth2/token/introspect"
         };
-        var responseJson = JsonSerializer.Serialize(responseContent);
         var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson)
+            Content = JsonContent.Create(responseContent)
         };
 
         // Ответ AuthorizationEndpoint
@@ -124,10 +124,9 @@ public sealed class OAuthMailRuProviderUnitTest
             token_endpoint_auth_methods_supported = new string[] { "client_secret_post", "client_secret_basic" },
             introspection_endpoint = "https://o2.mail.ru/api/v1/oauth2/token/introspect"
         };
-        var responseJson = JsonSerializer.Serialize(responseContent);
         var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson)
+            Content = JsonContent.Create(responseContent)
         };
 
         // Ответ TokenEndpoint
@@ -138,10 +137,9 @@ public sealed class OAuthMailRuProviderUnitTest
             token_type = "Bearer",
             expires_in = 3600
         };
-        var responseJson2 = JsonSerializer.Serialize(responseContent2);
         var responseMessage2 = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson2)
+            Content = JsonContent.Create(responseContent2)
         };
 
         // Получение OpenIdConfiguration, TokenEndpoint
@@ -185,10 +183,9 @@ public sealed class OAuthMailRuProviderUnitTest
             token_endpoint_auth_methods_supported = new string[] { "client_secret_post", "client_secret_basic" },
             introspection_endpoint = "https://o2.mail.ru/api/v1/oauth2/token/introspect"
         };
-        var responseJson = JsonSerializer.Serialize(responseContent);
         var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson)
+            Content = JsonContent.Create(responseContent)
         };
 
         // Ответ UserInfoEndpoint
@@ -207,10 +204,9 @@ public sealed class OAuthMailRuProviderUnitTest
             email = "",
             email_verified = true,
         };
-        var responseJson2 = JsonSerializer.Serialize(responseContent2);
         var responseMessage2 = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson2)
+            Content = JsonContent.Create(responseContent2)
         };
 
         // Получение OpenIdConfiguration, UserInfoEndpoint

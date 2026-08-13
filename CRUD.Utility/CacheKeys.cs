@@ -28,4 +28,12 @@ public static class CacheKeys
     /// <c>Idempotency-idempotencyKey</c>
     /// </remarks>
     public const string Idempotency = "Idempotency";
+
+    /// <summary>
+    /// Время отправки последнего письма на смену пароля пользователя.
+    /// </summary>
+    /// <remarks>
+    /// <c>RateLimitSendEmailPasswordChange-userId</c>
+    /// </remarks>
+    public const string RateLimitSendEmailPasswordChange = "RateLimitSendEmailPasswordChange";
 }

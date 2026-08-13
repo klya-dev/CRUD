@@ -1,13 +1,12 @@
-﻿using CRUD;
-using CRUD.Models.Validators;
+﻿using CRUD.Models.Validators;
 
-namespace CRUD.Tests.IntegrationTests.Validators;
+namespace CRUD.Tests.UnitTests.Validators;
 
-public sealed class ChangePasswordDtoValidatorTest
+public sealed class ChangePasswordDtoValidatorUnitTest
 {
     private readonly ChangePasswordDtoValidator _validator;
 
-    public ChangePasswordDtoValidatorTest()
+    public ChangePasswordDtoValidatorUnitTest()
     {
         var validatorsLocalizer = new ValidatorLocalizer();
         _validator = new ChangePasswordDtoValidator(validatorsLocalizer);

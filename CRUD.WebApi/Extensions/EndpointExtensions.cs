@@ -29,4 +29,53 @@ public static class EndpointExtensions
     {
         return builder.AddEndpointFilter(new IdempotencyFilter(cacheTime));
     }
+
+    /// <summary>
+    /// Добавляет фильтр <see cref="CheckSafeListIpEndpointFilter"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>Сверяет IP-адрес с указанным белым списком.</para>
+    /// <para>Если IP-адреса нет в белом списке, то возвращается <see cref="StatusCodes.Status403Forbidden"/>.</para>
+    /// </remarks>
+    /// <param name="safeListIp">Белый список с IP-адресами / диапазонами.</param>
+    public static RouteHandlerBuilder WithSafeListIp(this RouteHandlerBuilder builder, IEnumerable<string> safeListIp)
+    {
+        return builder.AddEndpointFilterFactory((routeHandlerContext, next) =>
+        {
+            // Получаем DI контейнер
+            var services = routeHandlerContext.ApplicationServices;
+
+            // ActivatorUtilities сам подтянет ILogger из DI
+            var filter = ActivatorUtilities.CreateInstance<CheckSafeListIpEndpointFilter>(
+                services,
+                [safeListIp] // Передаём оставшиеся аргументы через object[]
+            );
+
+            // Можно явно
+            //var filter = new PaymentWebHookIpCheckEndpointFilter(
+            //    services.GetRequiredService<ILogger<PaymentWebHookIpCheckEndpointFilter>>(),
+            //    cidrs
+            //);
+
+            // Возвращаем контекст для выполнения фильтра
+            return async (invocationContext) => await filter.InvokeAsync(invocationContext, next);
+        });
+    }
+
+    /// <summary>
+    /// Добавляет фильтр <see cref="CheckSafeListIpEndpointFilter"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>Сверяет IP-адрес с указанной строкой, состоящей из безопасных IP-адресов / диапазонов.</para>
+    /// <para>Если IP-адреса нет в белом списке, то возвращается <see cref="StatusCodes.Status403Forbidden"/>.</para>
+    /// </remarks>
+    /// <param name="safeListIpString">Строка из безопасных IP-адресов / диапазонов.</param>
+    /// <param name="separator">Разделитель строки (IP-адресов / диапазонов).</param>
+    public static RouteHandlerBuilder WithSafeListIp(this RouteHandlerBuilder builder, string safeListIpString, char separator)
+    {
+        // Получаем список IP-адресов из строки
+        var safeListIp = safeListIpString.Split(separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        return builder.WithSafeListIp(safeListIp);
+    }
 }

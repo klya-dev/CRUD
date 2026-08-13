@@ -1,8 +1,6 @@
-﻿using CRUD;
+﻿namespace CRUD.Tests.UnitTests;
 
-namespace CRUD.Tests.IntegrationTests;
-
-public sealed class ApiErrorConstantsIntegrationTest
+public sealed class ApiErrorConstantsUnitTest
 {
     // Неотъемлемая часть эндпоинта, тщательно тестируем
     // Тут протестировали, значит в эндпоинтах не нужно тестировать "необработанную ошибку". Т.к всё равно сводится к методу Match

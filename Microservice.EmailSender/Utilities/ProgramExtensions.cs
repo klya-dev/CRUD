@@ -100,51 +100,11 @@ public static class ProgramExtensions
         var optionsMetricsSection = builder.Configuration.GetSection(MetricsOptions.SectionName);
         builder.Services.Configure<MetricsOptions>(optionsMetricsSection); // Заполняем MetricsOptions
 
-        var optionsClientsSection = builder.Configuration.GetSection(ClientsOptions.SectionName);
-        builder.Services.Configure<ClientsOptions>(optionsClientsSection); // Заполняем ClientsOptions
-
         var optionsAuthSection = builder.Configuration.GetSection(AuthOptions.SectionName);
         builder.Services.Configure<AuthOptions>(optionsAuthSection); // Заполняем AuthOptions
 
         var optionsSaveLogsToS3BackgroundServiceSection = builder.Configuration.GetSection(SaveLogsToS3BackgroundServiceOptions.SectionName);
         builder.Services.Configure<SaveLogsToS3BackgroundServiceOptions>(optionsSaveLogsToS3BackgroundServiceSection); // Заполняем SaveLogsToS3BackgroundServiceOptions
-    }
-
-    /// <summary>
-    /// Настраивает CORS.
-    /// </summary>
-    public static void ConfigureCors(this WebApplicationBuilder builder)
-    {
-        var metricsOptions = builder.Configuration.GetSection(MetricsOptions.SectionName).Get<MetricsOptions>()!;
-        var clientsOptions = builder.Configuration.GetSection(ClientsOptions.SectionName).Get<ClientsOptions>()!;
-
-        builder.Services.AddCors(options =>
-        {
-            options.AddDefaultPolicy(builder =>
-            {
-                // Разрешаем только нашему клиенту (WebApi)
-                builder.WithOrigins(clientsOptions.WebClientURLs)
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials(); // Разрешает отправку данных
-            });
-
-            options.AddPolicy(CorsPolicyNames.AllowAll, builder =>
-            {
-                builder.AllowAnyOrigin() // Принимаем запросы с любого адреса
-                       .AllowAnyMethod() // С любыми методами (GET, POST...)
-                       .AllowAnyHeader(); // С любыми заголовками
-            });
-
-            options.AddPolicy(CorsPolicyNames.Metrics, builder =>
-            {
-                // Разрешаем только нашему Prometheus серверу
-                builder.WithOrigins(metricsOptions.PrometheusURL)
-                    .WithMethods(HttpMethods.Get)
-                    .AllowAnyHeader()
-                    .AllowCredentials();
-            });
-        });
     }
 
     /// <summary>

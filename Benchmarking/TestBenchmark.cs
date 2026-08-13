@@ -1,4 +1,5 @@
-﻿using BenchmarkDotNet.Attributes;
+﻿using AngleSharp.Io;
+using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Reports;
@@ -18,6 +19,7 @@ using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
+using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -59,53 +61,54 @@ public partial class TestBenchmark
     [Benchmark(Baseline = true)]
     public void Method1()
     {
-        string fileName = "log-20250822.txt";
+        var myData = new { Name = "Иван", Age = 30 };
 
-        var removeStart = fileName.Remove(0, fileName.IndexOf('-') + 1); // Было log-20250822.txt, стало 20250822.txt
-        var sanitizedFileName = removeStart.Remove(removeStart.IndexOf('.')); // Было 20250822.txt, стало 20250822
-        var sanitizedFileDate = sanitizedFileName.Insert(4, ".").Insert(7, "."); // Было 20250822, стало 2025.08.22
-        if (DateTime.TryParseExact(sanitizedFileDate, "yyyy.MM.dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime fileDate))
+        using var request = new HttpRequestMessage(System.Net.Http.HttpMethod.Post, "https://example.com")
         {
-            if (fileDate.Date >= DateTime.Now.Date)
-                return;
-        }
+            Content = JsonContent.Create(myData)
+        };
     }
 
     [Benchmark]
     public void Method2()
     {
-        string fileName = "log-20250822.txt";
+        var myData = new { Name = "Иван", Age = 30 };
 
-        var startIndexOf = fileName.IndexOf('-');
-        var endIndexOf = fileName.LastIndexOf('.'); // LastIndexOf, если я вдруг поменяю формат, где будут ещё точки
-        var sanitizedFileName = fileName.Substring(startIndexOf + 1, fileName.Length - endIndexOf + startIndexOf + 1); // Было log-20250822.txt, стало 20250822
-        var sanitizedFileDate = sanitizedFileName.Insert(4, ".").Insert(7, "."); // Было 20250822, стало 2025.08.22
-        if (DateTime.TryParseExact(sanitizedFileDate, "yyyy.MM.dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime fileDate))
-        {
-            if (fileDate.Date >= DateTime.Now.Date)
-                return;
-        }
+        using var request = new HttpRequestMessage(System.Net.Http.HttpMethod.Post, "https://example.com");
+
+        var json = new StringContent(JsonSerializer.Serialize(myData), Encoding.UTF8, Application.Json);
+        request.Content = json;
     }
 
     [Benchmark]
     public void Method3()
     {
-        string fileName = "log-20250822.txt";
+        var myData = "{\"firstname\": \"имя\", \"username\": \"some\", \"languageCode\": \"ru\"}";
 
-        var sanitizedFileName = fileName.Substring(4, 8); // Было log-20250822.txt, стало 20250822
-        var sanitizedFileDate = sanitizedFileName.Insert(4, ".").Insert(7, "."); // Было 20250822, стало 2025.08.22
-        if (DateTime.TryParseExact(sanitizedFileDate, "yyyy.MM.dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime fileDate))
+        using var request = new HttpRequestMessage(System.Net.Http.HttpMethod.Post, "https://example.com")
         {
-            if (fileDate.Date >= DateTime.Now.Date)
-                return;
-        }
+            Content = JsonContent.Create(myData)
+        };
+    }
+
+    [Benchmark]
+    public void Method4()
+    {
+        var myData = "{\"firstname\": \"имя\", \"username\": \"some\", \"languageCode\": \"ru\"}";
+
+        using var request = new HttpRequestMessage(System.Net.Http.HttpMethod.Post, "https://example.com");
+
+        var json = new StringContent(myData, Encoding.UTF8, Application.Json);
+        request.Content = json;
     }
 
     /*
-     | Method  | Mean      | Ratio        | Gen0   | Allocated |
-     |-------- |----------:|-------------:|-------:|----------:|
-     | Method1 | 111.07 ns |     baseline | 0.0105 |     176 B |
-     | Method2 |  99.16 ns | 1.12x faster | 0.0076 |     128 B |
-     | Method3 |  96.01 ns | 1.16x faster | 0.0076 |     128 B |
+        | Method  | Mean      | Ratio        | Gen0   | Allocated |
+        |-------- |----------:|-------------:|-------:|----------:|
+        | Method1 |  69.77 ns |     baseline | 0.0224 |     376 B |
+        | Method2 | 192.85 ns | 2.76x slower | 0.0334 |     560 B |
+
+        | Method3 | 66.81 ns |     baseline | 0.0205 |     344 B |
+        | Method4 | 78.61 ns | 1.18x slower | 0.0262 |     440 B |
     */
 }

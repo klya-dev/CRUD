@@ -109,5 +109,9 @@
   },
   "Clients": {
     "WebClientURLs": [ "https://localhost:7217" ]
+  },
+  "Proxies": {
+    "RemoteProxyIps": [],
+    "ForwardLimit": 2
   }
 }

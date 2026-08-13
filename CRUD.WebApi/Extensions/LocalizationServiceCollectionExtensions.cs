@@ -38,7 +38,7 @@ public static class LocalizationServiceCollectionExtensions
 
         return services;
 
-        // Не забывать app.UseRequestLocalization();
+        // Обязательно app.UseRequestLocalization();
         // Чтобы язык сопоставлялся с заголовком "Accept-Language" в запросе
     }
 }

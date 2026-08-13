@@ -1,12 +1,12 @@
-﻿namespace CRUD.Tests.IntegrationTests;
+﻿namespace CRUD.Tests.UnitTests;
 
-public sealed class UserApiKeyManagerIntegrationTest
+public sealed class UserApiKeyManagerUnitTest
 {
     private const int ApiKeyLenght = 100;
 
     private readonly UserApiKeyManager _userApiKeyManager;
 
-    public UserApiKeyManagerIntegrationTest()
+    public UserApiKeyManagerUnitTest()
     {
         _userApiKeyManager = new UserApiKeyManager();
     }

@@ -4,6 +4,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Admin;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class AdminUsersRefreshTokensSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;

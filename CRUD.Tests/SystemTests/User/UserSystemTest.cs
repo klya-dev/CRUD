@@ -1,10 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.User;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class UserSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
@@ -110,9 +112,10 @@ public sealed class UserSystemTest : IClassFixture<TestWebApplicationFactory>
         };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Put, TestConstants.USER_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Put, TestConstants.USER_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
         TestConstants.AddIdempotencyKey(request);
 
@@ -151,9 +154,10 @@ public sealed class UserSystemTest : IClassFixture<TestWebApplicationFactory>
         };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Put, TestConstants.USER_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Put, TestConstants.USER_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager);
         TestConstants.AddIdempotencyKey(request);
 
@@ -193,9 +197,10 @@ public sealed class UserSystemTest : IClassFixture<TestWebApplicationFactory>
         var user = await DI.CreateUserAsync(_db, firstname: firstname, username: username, languageCode: languageCode, ct: TestContext.Current.CancellationToken);
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Put, TestConstants.USER_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Put, TestConstants.USER_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
         TestConstants.AddIdempotencyKey(request);
 
@@ -238,9 +243,10 @@ public sealed class UserSystemTest : IClassFixture<TestWebApplicationFactory>
         var user2 = await DI.CreateUserAsync(_db, username: username, email: "test", phoneNumber: "1234567", ct: TestContext.Current.CancellationToken);
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Put, TestConstants.USER_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Put, TestConstants.USER_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
         TestConstants.AddIdempotencyKey(request);
 
@@ -277,9 +283,10 @@ public sealed class UserSystemTest : IClassFixture<TestWebApplicationFactory>
         };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Delete, TestConstants.USER_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Delete, TestConstants.USER_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
         TestConstants.AddIdempotencyKey(request);
 
@@ -309,9 +316,10 @@ public sealed class UserSystemTest : IClassFixture<TestWebApplicationFactory>
         };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Delete, TestConstants.USER_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Delete, TestConstants.USER_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager);
         TestConstants.AddIdempotencyKey(request);
 
@@ -348,9 +356,10 @@ public sealed class UserSystemTest : IClassFixture<TestWebApplicationFactory>
         };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Delete, TestConstants.USER_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Delete, TestConstants.USER_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
         TestConstants.AddIdempotencyKey(request);
 

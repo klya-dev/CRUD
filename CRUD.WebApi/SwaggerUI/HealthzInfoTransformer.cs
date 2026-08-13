@@ -25,6 +25,7 @@ public sealed class HealthzInfoTransformer : IOpenApiDocumentTransformer
                             Responses = new OpenApiResponses()
                             {
                                 ["200"] = new OpenApiResponse() { Description = "OK" },
+                                ["401"] = new OpenApiResponse() { Description = "Unauthorize" },
                                 ["503"] = new OpenApiResponse() { Description = "Service Unavailable",
                                     Content = new Dictionary<string, OpenApiMediaType>()
                                     {

@@ -36,3 +36,5 @@ global using CRUD.Tests.TestImplementions;
 global using CRUD.Test.Shared;
 global using CRUD.Shared;
 global using CRUD.Infrastructure.S3;
+global using CRUD.Tests.Collections;
+global using CRUD.Tests.Fixtures;

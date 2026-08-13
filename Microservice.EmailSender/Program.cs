@@ -10,7 +10,6 @@ else
     builder.Logging.ClearProviders();
 
 builder.LoadOptions();
-builder.ConfigureCors();
 builder.ConfigureAuthentication();
 builder.ConfigureAuthorization();
 builder.ConfigureHealthChecks();
@@ -54,9 +53,10 @@ else if (app.Environment.IsProduction())
     app.UseHsts();
 }
 
+app.UseMiddleware<BasicAuthMetricsMiddleware>();
+
 //app.UseHttpsRedirection(); // ¬ большинстве случаев редирект не нужен, т.к приложение, обычно, стоит за обратным прокси, например, nginx, где уже настроенна переадресаци€
 app.UseRouting();
-app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -81,7 +81,7 @@ app.MapHealthChecks("/healthz", new Microsoft.AspNetCore.Diagnostics.HealthCheck
 #endregion
 
 #region Metrics
-app.MapPrometheusScrapingEndpoint().RequireCors(CorsPolicyNames.Metrics); // “елеметри€ (/metrics)
+app.MapPrometheusScrapingEndpoint(); // “елеметри€ (/metrics)
 #endregion
 
 #region robots.txt, favicon.ico

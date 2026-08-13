@@ -1,14 +1,13 @@
-﻿using CRUD;
-using CRUD.Models.Validators;
+﻿using CRUD.Models.Validators;
 using CRUD.Tests.Helpers;
 
-namespace CRUD.Tests.IntegrationTests.Validators.Publication;
+namespace CRUD.Tests.UnitTests.Validators.Publication;
 
-public sealed class CreatePublicationDtoValidatorTest
+public sealed class CreatePublicationDtoValidatorUnitTest
 {
     private readonly CreatePublicationDtoValidator _validator;
 
-    public CreatePublicationDtoValidatorTest()
+    public CreatePublicationDtoValidatorUnitTest()
     {
         var validatorsLocalizer = new ValidatorLocalizer();
         _validator = new CreatePublicationDtoValidator(validatorsLocalizer);

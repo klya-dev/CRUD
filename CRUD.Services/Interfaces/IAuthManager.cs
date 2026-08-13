@@ -262,12 +262,12 @@ public interface IAuthManager
     /// 
     /// </remarks>
     /// <param name="userId">Id пользователя.</param>
-    /// <param name="isTelegram">Отправить ли сообщение по Телеграму.</param>
+    /// <param name="messageType">Тип отправки сообщения.</param>
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="InvalidOperationException">Если <paramref name="userId"/> является <see cref="Guid.Empty"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
     /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"></see> результат сервиса.</returns>
-    Task<ServiceResult> SendVerificationCodePhoneNumberAsync(Guid userId, bool isTelegram, CancellationToken ct = default);
+    Task<ServiceResult> SendVerificationCodePhoneNumberAsync(Guid userId, MessageType messageType, CancellationToken ct = default);
 }

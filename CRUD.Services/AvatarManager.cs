@@ -149,7 +149,7 @@ public sealed class AvatarManager : IAvatarManager
                                 // Удаляем напрасно созданный файл аватарки
                                 // При каждом запросе создаётся новая аватарка, а при конфликте эту новую аватарку от второго запроса никто не удаляет, исправляем
                                 if (property.Name == nameof(User.AvatarURL))
-                                    await _s3Manager.DeleteObjectAsync(proposedValue!.ToString()!, ct: CancellationToken.None);
+                                    await _s3Manager.DeleteObjectAsync(proposedValue?.ToString() ?? string.Empty, ct: CancellationToken.None);
                             }
 
                             // Refresh original values to bypass next concurrency check

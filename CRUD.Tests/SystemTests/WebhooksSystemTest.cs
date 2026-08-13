@@ -2,12 +2,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Diagnostics.Metrics;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class WebhooksSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
@@ -66,9 +68,10 @@ public sealed class WebhooksSystemTest : IClassFixture<TestWebApplicationFactory
         };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.WEBHOOKS_PAYMENT_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.WEBHOOKS_PAYMENT_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         request.Headers.Add("X-Forwarded-For", ["127.0.0.1", "127.0.0.1"]); // Якобы 127.0.0.1 вместо первого отправителя
 
         // Act
@@ -123,9 +126,10 @@ public sealed class WebhooksSystemTest : IClassFixture<TestWebApplicationFactory
         };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.WEBHOOKS_PAYMENT_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.WEBHOOKS_PAYMENT_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         request.Headers.Add("X-Forwarded-For", ["127.0.0.1", "127.0.0.1"]); // Якобы 127.0.0.1 вместо первого отправителя
 
         // Act

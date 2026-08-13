@@ -1,16 +1,20 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.User;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class UserPasswordSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly ApplicationDbContext _db;
     private readonly ITokenManager _tokenManager;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly HybridCache _cache;
 
     public UserPasswordSystemTest(TestWebApplicationFactory factory)
     {
@@ -22,6 +26,7 @@ public sealed class UserPasswordSystemTest : IClassFixture<TestWebApplicationFac
         _db = scopedServices.GetRequiredService<ApplicationDbContext>();
         _tokenManager = scopedServices.GetRequiredService<ITokenManager>();
         _passwordHasher = scopedServices.GetRequiredService<IPasswordHasher>();
+        _cache = scopedServices.GetRequiredService<HybridCache>();
     }
 
     [Theory]
@@ -43,9 +48,10 @@ public sealed class UserPasswordSystemTest : IClassFixture<TestWebApplicationFac
         };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PASSWORD_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PASSWORD_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         // Act
@@ -77,9 +83,10 @@ public sealed class UserPasswordSystemTest : IClassFixture<TestWebApplicationFac
         };
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PASSWORD_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PASSWORD_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager);
 
         // Act
@@ -116,9 +123,10 @@ public sealed class UserPasswordSystemTest : IClassFixture<TestWebApplicationFac
         var user = await DI.CreateUserAsync(_db, hashedPassword: password + "SOMETHING_WRONG", ct: TestContext.Current.CancellationToken);
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PASSWORD_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PASSWORD_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
@@ -160,13 +168,22 @@ public sealed class UserPasswordSystemTest : IClassFixture<TestWebApplicationFac
         // Добавляем пользователя в базу
         var user = await DI.CreateUserAsync(_db, hashedPassword: password, ct: TestContext.Current.CancellationToken);
 
-        // Добавляем токен в базу, чтобы возникла ошибка, что письмо уже отправлено
-        var changePasswordRequest = await DI.CreateChangePasswordRequestAsync(_db, user.Id, ct: TestContext.Current.CancellationToken);
+        // Добавляем время отправки в кэш, чтобы возникла ошибка, что письмо уже отправлено
+        string cacheKey = $"{CacheKeys.RateLimitSendEmailPasswordChange}-{user.Id}";
+        var cacheOptions = new HybridCacheEntryOptions
+        {
+            Expiration = TimeSpan.FromMinutes(1),
+            LocalCacheExpiration = TimeSpan.FromMinutes(1)
+        };
+        await _cache.SetAsync(cacheKey, DateTime.UtcNow, cacheOptions, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Если L2 кэш не включен, то IMemoryCache лежит, я так полагаю, в разных местах, из-за этого, якобы кэш не добавляется, и метод внутри приложения не видит значение
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PASSWORD_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.USER_PASSWORD_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
         TestConstants.AddBearerToken(request, _tokenManager, userId: user.Id.ToString());
 
         var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
@@ -188,5 +205,8 @@ public sealed class UserPasswordSystemTest : IClassFixture<TestWebApplicationFac
         // Пароль и вправду не обновился
         var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == user.Id, TestContext.Current.CancellationToken);
         Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
+
+        // Удаляем из кэша
+        await _cache.RemoveAsync(cacheKey, cancellationToken: TestContext.Current.CancellationToken);
     }
 }

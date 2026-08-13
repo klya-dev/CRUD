@@ -1,16 +1,15 @@
-﻿using CRUD;
-using CRUD.Models.Validators;
+﻿using CRUD.Models.Validators;
 using CRUD.Models.Validators.Localization;
 using CRUD.Tests.Helpers;
 
-namespace CRUD.Tests.IntegrationTests.Validators;
+namespace CRUD.Tests.UnitTests.Validators;
 
-public sealed class ClientApiCreatePublicationDtoValidatorTest
+public sealed class ClientApiCreatePublicationDtoValidatorUnitTest
 {
     private readonly ValidatorLocalizer _validatorsLocalizer;
     private readonly ClientApiCreatePublicationDtoValidator _validator;
 
-    public ClientApiCreatePublicationDtoValidatorTest()
+    public ClientApiCreatePublicationDtoValidatorUnitTest()
     {
         _validatorsLocalizer = new ValidatorLocalizer();
         _validator = new ClientApiCreatePublicationDtoValidator(_validatorsLocalizer);

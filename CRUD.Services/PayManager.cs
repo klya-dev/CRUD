@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using System.Globalization;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Xml.Linq;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Services;
@@ -73,8 +75,7 @@ public sealed class PayManager : IPayManager
             description = $"Заказ №{orderNumber}",
             capture = true, // Мне не нужно подтверждать платёж, сразу списание
         };
-        var json = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        request.Content = JsonContent.Create(body);
 
         // Отправляем запрос (платёж)
         using var response = await httpClient.SendAsync(request, ct);

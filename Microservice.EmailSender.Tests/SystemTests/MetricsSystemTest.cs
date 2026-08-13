@@ -1,14 +1,18 @@
 ﻿using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.Metrics;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
-using System.Diagnostics.Metrics;
+using System.Net.Http.Headers;
+using System.Text;
 
 namespace Microservice.EmailSender.Tests.SystemTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class MetricsSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly IMeterFactory _meterFactory;
+    private readonly IOptions<Options.MetricsOptions> _metricsOptions;
 
     public MetricsSystemTest(TestWebApplicationFactory factory)
     {
@@ -17,6 +21,7 @@ public sealed class MetricsSystemTest : IClassFixture<TestWebApplicationFactory>
         var scope = _factory.Services.CreateScope();
         var scopedServices = scope.ServiceProvider;
         _meterFactory = scopedServices.GetRequiredService<IMeterFactory>();
+        _metricsOptions = scopedServices.GetRequiredService<IOptions<Options.MetricsOptions>>();
     }
 
     [Fact]
@@ -28,6 +33,7 @@ public sealed class MetricsSystemTest : IClassFixture<TestWebApplicationFactory>
 
         // Запрос
         var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.METRICS_URL);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_metricsOptions.Value.User}:{_metricsOptions.Value.Password}")));
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);

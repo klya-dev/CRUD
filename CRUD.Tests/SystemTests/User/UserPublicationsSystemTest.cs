@@ -3,6 +3,7 @@ using System.Text.Json;
 
 namespace CRUD.Tests.SystemTests.User;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class UserPublicationsSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;

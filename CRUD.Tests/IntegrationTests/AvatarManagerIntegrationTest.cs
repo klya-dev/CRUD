@@ -2,6 +2,7 @@
 
 namespace CRUD.Tests.IntegrationTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class AvatarManagerIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     // Перед запуском нужно убедиться, что все тестовые файлы из папки "test_files" загружены на S3

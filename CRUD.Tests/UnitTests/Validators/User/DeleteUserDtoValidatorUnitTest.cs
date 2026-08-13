@@ -1,13 +1,12 @@
-﻿using CRUD;
-using CRUD.Models.Validators;
+﻿using CRUD.Models.Validators;
 
-namespace CRUD.Tests.IntegrationTests.Validators.User;
+namespace CRUD.Tests.UnitTests.Validators.User;
 
-public sealed class DeleteUserDtoValidatorTest
+public sealed class DeleteUserDtoValidatorUnitTest
 {
     private readonly DeleteUserDtoValidator _validator;
 
-    public DeleteUserDtoValidatorTest()
+    public DeleteUserDtoValidatorUnitTest()
     {
         var validatorsLocalizer = new ValidatorLocalizer();
         _validator = new DeleteUserDtoValidator(validatorsLocalizer);

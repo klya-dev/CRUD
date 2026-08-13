@@ -12,8 +12,6 @@ namespace CRUD.Tests.Helpers;
 /// <list type="bullet">
 /// <item>Среда <c>Production</c>.</item>
 /// <item>Конфигурация из файла <c>testsettings.json</c>.</item>
-/// <item>
-/// </item>
 /// </list>
 /// </remarks>
 public sealed class TestWebApplicationFactory : WebApplicationFactory<IApiMarker>, IAsyncLifetime

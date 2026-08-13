@@ -49,9 +49,10 @@ public sealed class OAuthHelperUnitTest
     {
         // Arrange
         var url = "https://filin.mail.ru/pic?d=LHWIAVI9Bmqq-UAzSRq6yA1J_o-rvlv1PSR85MXdulxodK9yOvgAj89nM5bITfA~&name=%D1%84%D0%B0%D0%BD%D1%82%D0%BE%D0%BC+%D0%B0%D1%81%D1%81%D1%81%D0%B8%D0%BD";
+        using var httpClient = new HttpClient();
 
         // Act
-        var result = await OAuthHelper.DownloadPictureAsync(url);
+        var result = await OAuthHelper.DownloadPictureAsync(httpClient, url);
 
         // Assert
         Assert.NotNull(result);

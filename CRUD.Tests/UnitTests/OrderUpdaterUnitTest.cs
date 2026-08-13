@@ -1,19 +1,15 @@
-﻿using CRUD.Services;
-using CRUD.Services.Interfaces;
-using CRUD.Tests.Helpers;
-using FluentValidation;
+﻿namespace CRUD.Tests.UnitTests;
 
-namespace CRUD.Tests.UnitTests;
-
+[Collection(nameof(GlobalDbContainerCollection))]
 public sealed class OrderUpdaterUnitTest
 {
     private readonly OrderUpdater _orderUpdater;
     private readonly ApplicationDbContext _db;
     private readonly Mock<IOrderIssuer> _mockOrderIssuer;
 
-    public OrderUpdaterUnitTest()
+    public OrderUpdaterUnitTest(DbContainerFixture fixture)
     {
-        var db = DbContextGenerator.GenerateDbContextTestInMemory();
+        var db = DbContextGenerator.GenerateDbContextTestContainer(fixture.DbOptions);
         _db = db;
 
         _mockOrderIssuer = new();

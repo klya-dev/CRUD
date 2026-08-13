@@ -57,23 +57,25 @@ public static class OAuthHelper
     }
 
     /// <summary>
-    /// Скачивает изображение по указанному Url.
+    /// Скачивает изображение по указанному Url с помощью указанного <see cref="HttpClient"/>.
     /// </summary>
     /// <remarks>
     /// Метод получает поток байт изображения и копирует в созданный <see cref="MemoryStream"/> и возвращает его.
     /// </remarks>
+    /// <param name="httpClient"><see cref="HttpClient"/> для скачивания картинки по <paramref name="url"/>.</param>
     /// <param name="url">Url изображения.</param>
     /// <returns>Возвращает <see cref="Stream"/> изображения.</returns>
-    public static async Task<Stream> DownloadPictureAsync(string url)
+    public static async Task<Stream> DownloadPictureAsync(HttpClient httpClient, string url)
     {
-        using var httpClient = new HttpClient();
-
         // Получаем поток байт изображения
-        var stream = await httpClient.GetStreamAsync(url);
+        using var stream = await httpClient.GetStreamAsync(url);
 
         // Копируем в MemoryStream
         var memoryStream = new MemoryStream();
         await stream.CopyToAsync(memoryStream);
+
+        // Сбрасываем позицию в начало, чтобы поток можно было прочитать
+        memoryStream.Position = 0;
 
         return memoryStream;
     }

@@ -15,13 +15,19 @@ public sealed class PublicationManagerUnitTest
     private readonly Mock<IValidator<UpdatePublicationFullDto>> _mockUpdatePublicationFullDtoValidator;
     private readonly Mock<IValidator<CreatePublicationDto>> _mockCreatePublicationDtoValidator;
     private readonly Mock<IHtmlHelper> _mockHtmlHelper;
-    private readonly Mock<HybridCache> _mockHybridCache;
+    private readonly HybridCache _realHybridCache; // Замокать HybridCache нельзя, поэтому используем реальный кэш, но только локальный (без подключения распределённого)
     private readonly PublicationManager _publicationManager;
 
     public PublicationManagerUnitTest()
     {
         var db = DbContextGenerator.GenerateDbContextTestInMemory();
         _db = db;
+
+        // Реальный HybridCache (он будет работать в памяти)
+        var services = new ServiceCollection();
+        services.AddHybridCache();
+        var serviceProvider = services.BuildServiceProvider();
+        _realHybridCache = serviceProvider.GetRequiredService<HybridCache>();
 
         _mockGetPublicationsDtoValidator = new();
         _mockGetPaginatedListDtoValidator = new();
@@ -30,7 +36,6 @@ public sealed class PublicationManagerUnitTest
         _mockUpdatePublicationFullDtoValidator = new();
         _mockCreatePublicationDtoValidator = new();
         _mockHtmlHelper = new();
-        _mockHybridCache = new();
 
         _publicationManager = new PublicationManager(
             db,
@@ -41,7 +46,7 @@ public sealed class PublicationManagerUnitTest
             _mockUpdatePublicationFullDtoValidator.Object,
             _mockCreatePublicationDtoValidator.Object,
             _mockHtmlHelper.Object,
-            _mockHybridCache.Object
+            _realHybridCache
         );
     }
 

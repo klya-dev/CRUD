@@ -1,11 +1,13 @@
 ﻿using CRUD.Models.Domains;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class ClientApiSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
@@ -48,9 +50,10 @@ public sealed class ClientApiSystemTest : IClassFixture<TestWebApplicationFactor
         var publicationFromDbBeforeCreatePublication = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Title == title && x.Content == content, TestContext.Current.CancellationToken);
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.CLIENT_API_PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.CLIENT_API_PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -109,9 +112,10 @@ public sealed class ClientApiSystemTest : IClassFixture<TestWebApplicationFactor
         var publicationFromDbBeforeCreatePublication = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Title == title && x.Content == content, TestContext.Current.CancellationToken);
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.CLIENT_API_PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.CLIENT_API_PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -157,9 +161,10 @@ public sealed class ClientApiSystemTest : IClassFixture<TestWebApplicationFactor
         var publicationFromDbBeforeCreatePublication = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Title == title && x.Content == content, TestContext.Current.CancellationToken);
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.CLIENT_API_PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.CLIENT_API_PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -205,9 +210,10 @@ public sealed class ClientApiSystemTest : IClassFixture<TestWebApplicationFactor
         var publicationFromDbBeforeCreatePublication = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Title == title && x.Content == content, TestContext.Current.CancellationToken);
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.CLIENT_API_PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.CLIENT_API_PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -253,9 +259,10 @@ public sealed class ClientApiSystemTest : IClassFixture<TestWebApplicationFactor
         var publicationFromDbBeforeCreatePublication = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Title == title && x.Content == content, TestContext.Current.CancellationToken);
 
         // Запрос
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.CLIENT_API_PUBLICATIONS_URL);
-        var json = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, Application.Json);
-        request.Content = json;
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.CLIENT_API_PUBLICATIONS_URL)
+        {
+            Content = JsonContent.Create(data)
+        };
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);

@@ -1,5 +1,6 @@
 ﻿namespace Microservice.EmailSender.Tests.IntegrationTests;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class EmailSenderBackgroundCoreIntegrationTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly WebApplicationFactory<IApiMarker> _factory;

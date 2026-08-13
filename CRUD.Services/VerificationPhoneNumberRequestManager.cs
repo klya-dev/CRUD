@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 
 namespace CRUD.Services;
 
@@ -23,7 +22,7 @@ public sealed class VerificationPhoneNumberRequestManager : IVerificationPhoneNu
         _smsSender = smsSender;
     }
 
-    public async Task<ServiceResult> AddCodeToDatabaseAndSendSmsAsync(Guid userId, string phoneNumber, string languageCode, bool isTelegram = true, CancellationToken ct = default)
+    public async Task<ServiceResult> AddCodeToDatabaseAndSendMessageAsync(Guid userId, string phoneNumber, string languageCode, MessageType messageType = MessageType.Telegram, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(phoneNumber);
         ArgumentNullException.ThrowIfNull(languageCode);
@@ -64,15 +63,22 @@ public sealed class VerificationPhoneNumberRequestManager : IVerificationPhoneNu
         await _db.VerificationPhoneNumberRequests.AddAsync(verificationPhoneNumberRequest, ct);
 
         // Отправляем код (Телеграм или СМС)
-        if (isTelegram)
-            await _telegramIntegrationManager.SendVerificationCodeTelegramAsync(phoneNumber, code, ct);
-        else
+        switch (messageType)
         {
-            // Данные сообщения
-            var message = PhoneMessages.GetMessage(PhoneMessages.VerificatePhoneNumber, languageCode, _httpContextAccessor.GetBaseUrl(), code);
+            case MessageType.Sms:
+                // Данные сообщения
+                var message = PhoneMessages.GetMessage(PhoneMessages.VerificatePhoneNumber, languageCode, _httpContextAccessor.GetBaseUrl(), code);
 
-            // Отправляем код
-            await _smsSender.SendSmsAsync(phoneNumber, message, ct);
+                // Отправляем код
+                await _smsSender.SendSmsAsync(phoneNumber, message, ct);
+                break;
+
+            case MessageType.Telegram:
+                await _telegramIntegrationManager.SendVerificationCodeTelegramAsync(phoneNumber, code, ct);
+                break;
+
+            default:
+                break;
         }
 
         await _db.SaveChangesAsync(CancellationToken.None); // Есть уж отправили код, то и сохраняем без отмены

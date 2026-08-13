@@ -10,6 +10,8 @@ public static class WebHooksEndpoints
     /// </summary>
     public static void Map(WebApplication app)
     {
+        var safeListIp = app.Configuration.GetSection(PayManagerOptions.SectionName).Get<PayManagerOptions>()!.SafeListIp;
+
         var webHooksMap = app.MapGroup("/webhooks")
             .WithTags(EndpointTags.WebHooks, EndpointTags.AllEndpointsForBusiness);
         // По документации нужно отправить Ok (200 статус), NoContent тут не подойдёт
@@ -26,7 +28,7 @@ public static class WebHooksEndpoints
             return TypedResults.Extensions.Problem(result, localizer);
         })
             .AllowAnonymous()
-            .AddEndpointFilter<PaymentWebHookIpCheckEndpointFilter>()
+            .WithSafeListIp(safeListIp, ';')
             .WithSummary("Вебхук оплаты.")
             .WithDescription("Допустимые события: payment.succeeded.")
             .ProducesProblem((int)HttpStatusCode.BadRequest)

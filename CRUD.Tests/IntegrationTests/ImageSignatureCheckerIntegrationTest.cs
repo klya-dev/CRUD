@@ -1,19 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc.Testing;
+﻿namespace CRUD.Tests.IntegrationTests;
 
-namespace CRUD.Tests.IntegrationTests;
-
-public sealed class ImageSignatureCheckerIntegrationTest : IClassFixture<TestWebApplicationFactory>
+[Collection(nameof(IntegrationsTestCollection))]
+public sealed class ImageSignatureCheckerIntegrationTest
 {
-    private readonly WebApplicationFactory<IApiMarker> _factory;
-    private readonly IImageSingnatureChecker _imageSingnatureChecker;
+    private readonly ImageSingnatureChecker _imageSingnatureChecker;
 
-    public ImageSignatureCheckerIntegrationTest(TestWebApplicationFactory factory)
+    public ImageSignatureCheckerIntegrationTest()
     {
-        _factory = factory.WithWebHostBuilder(configuration => configuration.WithTestHttpContextAccessor());
-
-        var scope = _factory.Services.CreateScope();
-        var scopedServices = scope.ServiceProvider;
-        _imageSingnatureChecker = scopedServices.GetRequiredService<IImageSingnatureChecker>();
+        _imageSingnatureChecker = new ImageSingnatureChecker();
     }
 
     [Theory]

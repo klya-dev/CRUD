@@ -1,18 +1,21 @@
-﻿using CRUD.Utility.Options;
-using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class RateLimiterSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
     private readonly HttpClient _client;
     private readonly ApplicationDbContext _db;
     private readonly ITokenManager _tokenManager;
+    private readonly IOptions<Utility.Options.MetricsOptions> _metricsOptions;
 
     public RateLimiterSystemTest(TestWebApplicationFactory factory)
     {
@@ -51,16 +54,16 @@ public sealed class RateLimiterSystemTest : IClassFixture<TestWebApplicationFact
         var scopedServices = scope.ServiceProvider;
         _db = scopedServices.GetRequiredService<ApplicationDbContext>();
         _tokenManager = scopedServices.GetRequiredService<ITokenManager>();
+        _metricsOptions = scopedServices.GetRequiredService<IOptions<Utility.Options.MetricsOptions>>();
     }
 
     [Fact]
     public async Task Post_Login_Global_ReturnsTooManyRequests()
     {
         // Arrange
-
         // Тело запроса
         LoginDataDto loginData = new() { Username = "noob", Password = "123"};
-        var json = new StringContent(JsonSerializer.Serialize(loginData), Encoding.UTF8, Application.Json);
+        var json = JsonContent.Create(loginData);
 
         // Act
         // 1 запрос
@@ -259,11 +262,13 @@ public sealed class RateLimiterSystemTest : IClassFixture<TestWebApplicationFact
         // Act
         // 1 запрос
         var request = new HttpRequestMessage(HttpMethod.Get, TestConstants.METRICS_URL);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_metricsOptions.Value.User}:{_metricsOptions.Value.Password}")));
         request.Headers.Add("Accept-Language", "ru");
         using var result1 = await _client.SendAsync(request, TestContext.Current.CancellationToken);
 
         // 2 запрос
         var request2 = new HttpRequestMessage(HttpMethod.Get, TestConstants.METRICS_URL);
+        request2.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_metricsOptions.Value.User}:{_metricsOptions.Value.Password}")));
         request2.Headers.Add("Accept-Language", "ru");
         using var result2 = await _client.SendAsync(request2, TestContext.Current.CancellationToken);
 

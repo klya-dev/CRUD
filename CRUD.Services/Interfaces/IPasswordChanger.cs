@@ -73,10 +73,6 @@ public interface IPasswordChanger
     /// <term>Если <paramref name="token"/> <see langword="null"/></term>
     /// <description>исключение <see cref="ArgumentNullException"/>.</description>
     /// </item>
-    /// <item>
-    /// <term>Если возник конфликт параллельности</term>
-    /// <description>исключение <see cref="DbUpdateConcurrencyException"/> | <see cref="DbUpdateException"/>.</description>
-    /// </item>
     /// </list>
     /// 
     /// Возможные ошибки сервиса:
@@ -96,8 +92,6 @@ public interface IPasswordChanger
     /// <param name="ct">Токен отмены.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="token"/> <see langword="null"/>.</exception>
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
-    /// <exception cref="DbUpdateConcurrencyException">Если возник конфликт параллельности.</exception>
-    /// <exception cref="DbUpdateException">Если возник конфликт параллельности.</exception>
     /// <returns><see cref="ServiceResult"/> результат сервиса.</returns>
     Task<ServiceResult> ChangePasswordAsync(string token, CancellationToken ct = default);
 

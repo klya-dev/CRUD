@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.TestHost;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 
+[Collection(nameof(IntegrationsTestCollection))]
 public sealed class GlobalExceptionHandlerSystemTest : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
@@ -30,13 +32,14 @@ public sealed class GlobalExceptionHandlerSystemTest : IClassFixture<TestWebAppl
         }).CreateClient();
 
         // Arrange
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL);
-        request.Headers.Add("Accept-Language", "ru");
-
         // Тело запроса
         var loginData = new LoginDataDto() { Username = "user", Password = "pass" };
-        var json = new StringContent(JsonSerializer.Serialize(loginData), Encoding.UTF8, Application.Json);
-        request.Content = json;
+
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL)
+        {
+            Content = JsonContent.Create(loginData)
+        };
+        request.Headers.Add("Accept-Language", "ru");
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -69,13 +72,14 @@ public sealed class GlobalExceptionHandlerSystemTest : IClassFixture<TestWebAppl
         }).CreateClient();
 
         // Arrange
-        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL);
-        request.Headers.Add("Accept-Language", "ru");
-
         // Тело запроса
         var loginData = new LoginDataDto() { Username = "user", Password = "pass" };
-        var json = new StringContent(JsonSerializer.Serialize(loginData), Encoding.UTF8, Application.Json);
-        request.Content = json;
+
+        var request = new HttpRequestMessage(HttpMethod.Post, TestConstants.AUTH_LOGIN_URL)
+        {
+            Content = JsonContent.Create(loginData)
+        };
+        request.Headers.Add("Accept-Language", "ru");
 
         // Act
         using var result = await client.SendAsync(request, TestContext.Current.CancellationToken);

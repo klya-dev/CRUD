@@ -1,0 +1,13 @@
+[
+  {
+    "outputFileName": "wwwroot/main.min.js",
+    "inputFiles": [
+      "wwwroot/main.js"
+    ],
+    "minify": {
+      "enabled": true,
+      "renameLocals": true
+    },
+    "sourceMap": false
+  }
+]

@@ -1,8 +1,6 @@
-﻿using CRUD.Services;
+﻿namespace CRUD.Tests.UnitTests;
 
-namespace CRUD.Tests.IntegrationTests;
-
-public sealed class HtmlHelperIntegrationTest
+public sealed class HtmlHelperUnitTest
 {
     private readonly HtmlHelper _htmlHelper;
 
@@ -25,20 +23,20 @@ public sealed class HtmlHelperIntegrationTest
     // Их очищенные результаты
     private readonly string[] sanitizedHtmls =
     [
-        "<a href=\"https://example.com\">Подпишись на мои соцсети</a>",
+        "<a href=\"https://example.com\" rel=\"noopener noreferrer nofollow\" target=\"_blank\">Подпишись на мои соцсети</a>",
         "",
-        "<img>",
-        "<a>Click me</a>",
+        "<img src=\"x\" loading=\"lazy\">",
+        "<a rel=\"noopener noreferrer nofollow\" target=\"_blank\">Click me</a>",
         "",
         "<p>Testing <b>bold</b> content</p>",
-        "<a href=\"https://example.com\">Link</a>",
+        "<a href=\"https://example.com\" rel=\"noopener noreferrer nofollow\" target=\"_blank\">Link</a>",
         "",
         "",
         "<p><b>Safe content</b></p>",
         "",
     ];
 
-    public HtmlHelperIntegrationTest()
+    public HtmlHelperUnitTest()
     {
         _htmlHelper = new HtmlHelper();
     }

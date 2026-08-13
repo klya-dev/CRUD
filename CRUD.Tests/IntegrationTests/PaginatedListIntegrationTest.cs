@@ -1,21 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
+﻿namespace CRUD.Tests.IntegrationTests;
 
-namespace CRUD.Tests.IntegrationTests;
-
-public sealed class PaginatedListIntegrationTest : IClassFixture<TestWebApplicationFactory>
+[Collection(nameof(IntegrationsTestCollection))]
+public sealed class PaginatedListIntegrationTest
 {
-    private readonly WebApplicationFactory<IApiMarker> _factory;
     private readonly ApplicationDbContext _db;
 
-    public PaginatedListIntegrationTest(TestWebApplicationFactory factory)
+    public PaginatedListIntegrationTest()
     {
-        _factory = factory.WithWebHostBuilder(configuration => configuration.WithTestHttpContextAccessor());
-        TestWebApplicationFactory.RecreateDatabase();
-
-        var scope = _factory.Services.CreateScope();
-        var scopedServices = scope.ServiceProvider;
-        _db = scopedServices.GetRequiredService<ApplicationDbContext>();
+        _db = DbContextGenerator.GenerateDbContextTest();
     }
 
     [Fact] // Корректные данные

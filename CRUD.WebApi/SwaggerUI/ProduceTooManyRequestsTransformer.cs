@@ -4,7 +4,7 @@ using Microsoft.OpenApi;
 namespace CRUD.WebApi.SwaggerUI;
 
 /// <summary>
-/// Добавляет всем эндпоинтам возможный ответ (Produce) <see cref="HttpStatusCode.TooManyRequests"/>.
+/// Добавляет всем конечным точкам возможный ответ (Produce) <see cref="HttpStatusCode.TooManyRequests"/>.
 /// </summary>
 /// <remarks>
 /// <see href="https://stackoverflow.com/questions/78539730/set-the-same-produces-response-for-all-minimal-api-endpoints"/>

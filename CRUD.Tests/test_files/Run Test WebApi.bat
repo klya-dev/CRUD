@@ -2,7 +2,7 @@
 setlocal
 
 :: --- НАСТРОЙКИ ---
-set "APP_DIR=E:\Projects\Web\CRUD\CRUD.WebApi\bin\Debug\net9.0"
+set "APP_DIR=E:\Projects\Web\CRUD\CRUD.WebApi\bin\Debug\net10.0"
 set "EXE_NAME=CRUD.WebApi.exe
 set "TEST_CONFIG_SRC=E:\Projects\Web\CRUD\CRUD.Tests\testsettings.json"
 set "SECRETS_SRC=C:\Users\Admin\AppData\Roaming\Microsoft\UserSecrets\adb0ac74-b0b1-4c42-98b6-690286bf402e\secrets.json"

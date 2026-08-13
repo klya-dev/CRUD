@@ -448,7 +448,7 @@ public sealed class PublicationManager : IPublicationManager
         // Есть ли хоть одна публикация с таким Id от этого пользователя
         return _cache.GetOrCreateAsync(
             $"{CacheKeys.IsAuthorThisPublication}-{userId}:{publicationId}",
-            async ct => await _db.Publications.AnyAsync(x => x.AuthorId == userId && x.Id == publicationId, ct),
+            async factoryCt => await _db.Publications.AnyAsync(x => x.AuthorId == userId && x.Id == publicationId, factoryCt),
             options, cancellationToken: ct);
     }
 }

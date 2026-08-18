@@ -13,24 +13,41 @@
     <script src="/lib/signalr.min.js"></script>
     <script src="/lib/signalr-protocol-msgpack.min.js"></script>
     <script>
-        var connection = new signalR.HubConnectionBuilder()
-            .withUrl("https://localhost:7260/notificationHub", { withCredentials: false, accessTokenFactory: () => sessionStorage.getItem("accessToken") })
-            .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol()) // Поддержка MessagePack протокола (MessagePack протокол быстрее, чем Json)
-            .withStatefulReconnect() // Если какие-то перебои, то сервер и клиент буферизирует данные и можно переподключится
-            .build();
+        let connection;
+        function startSignalRConnection() {
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl(server + "/notificationHub", { withCredentials: false, accessTokenFactory: () => sessionStorage.getItem("accessToken") })
+                .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol()) // Поддержка MessagePack протокола (MessagePack протокол быстрее, чем Json)
+                .withStatefulReconnect() // Если какие-то перебои, то сервер и клиент буферизирует данные и можно переподключится
+                .build();
 
-        // Клиент получил уведомление от сервера
-        connection.on("ReceiveNotification", async function (notification) {
-            // Так как в SignalR я использую MessagePack протокол вместо Json, нужно использовать PascalCased имена (точно так же как в C#) | https://learn.microsoft.com/ru-ru/aspnet/core/signalr/messagepackhubprotocol?view=aspnetcore-10.0
-            document.getElementById("new_notification").innerHTML += `<br>Уведомление: ${notification.Title}. ${notification.Content} (${notification.Id}) <input type="button" onclick="UsefulNotificationButtonClick('${notification.Id}')" value="Уведомление полезное" /> <input type="button" onclick="ReadNotificationButtonClick('${notification.Id}')" value="Я прочитал уведомление" />`;
-        });
+            // Клиент получил уведомление от сервера
+            connection.on("ReceiveNotification", async function (notification) {
+                // Так как в SignalR я использую MessagePack протокол вместо Json, нужно использовать PascalCased имена (точно так же как в C#) | https://learn.microsoft.com/ru-ru/aspnet/core/signalr/messagepackhubprotocol?view=aspnetcore-10.0
+                document.getElementById("new_notification").innerHTML += `<br>Уведомление: ${notification.Title}. ${notification.Content} (${notification.Id}) <input type="button" onclick="UsefulNotificationButtonClick('${notification.Id}')" value="Уведомление полезное" /> <input type="button" onclick="ReadNotificationButtonClick('${notification.Id}')" value="Я прочитал уведомление" />`;
+            });
 
-        // Запуск соединения
-        connection.start().then(function () {
-            console.log("start")
-        }).catch(function (err) {
-            return console.error(err.toString());
-        });
+            // Запуск соединения
+            connection.start().then(function () {
+                console.log("start")
+            }).catch(function (err) {
+                return console.error(err.toString());
+            });
+        }
+
+        // Получаем Url нашего API
+        let server = "";
+        fetch('/api/url')
+            .then(res => {
+                if (!res.ok) throw new Error(res.status);
+                return res.json();
+            })
+            .then(data => {
+                server = data; // Записываем данные в глобальную переменную
+
+                startSignalRConnection();
+            })
+            .catch(err => console.error('Ошибка конфигурации:', err));
     </script>
 
     <script>
@@ -44,7 +61,7 @@
         // Нажатие кнопки "Я прочитал уведомление". Отправка запроса на сервер
         async function ReadNotificationButtonClick(notificationId) {
             // Отправляем запрос на установление статуса "прочитано"
-            const response = await fetch(`https://localhost:7260/v1/user/notifications/${notificationId}/read`, {
+            const response = await fetch(server + `/v1/user/notifications/${notificationId}/read`, {
                 method: "PUT",
                 headers: { "Authorization": "Bearer " + sessionStorage.getItem("accessToken"), "Idempotency-Key": crypto.randomUUID() }
             });
@@ -58,7 +75,7 @@
         // Нажатие кнопки "Загрузить все уведомления"
         document.getElementById("showAllNotificationButton").addEventListener("click", async function (event) {
             // Получаем все уведомления
-            const response = await fetch("https://localhost:7260/v1/user/notifications?count=10", {
+            const response = await fetch(server + "/v1/user/notifications?count=10", {
                 method: "GET",
                 headers: { "Accept": "application/json", "Authorization": "Bearer " + sessionStorage.getItem("accessToken") }
             });

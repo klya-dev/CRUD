@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Выйти</title>
+</head>
+<body>
+    <script src="main.js"></script>
+
+    <script>
+        sessionStorage.removeItem(accessToken);
+        sessionStorage.removeItem(tokenUsername);
+
+        window.location.href = '/index.html';
+    </script>
+</body>
+</html>

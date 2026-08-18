@@ -7,16 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BuildBundlerMinifier2022" Version="2.9.11" />
+    <!--<PackageReference Include="BuildBundlerMinifier2022" Version="2.9.11" /> отключил минификацию, т.к есть проблемы с пересборкой (в том числе в Docker) -->
+	<!-- Пощупать мне хватило этого расширения, обычно в проде делают минификацию где-нибудь в CI/CD сторонними инструментами -->
+	<!-- bundleconfig.json тоже в этой шайке, сейчас этот файл просто есть, ничего не делает без BuildBundlerMinifier2022 -->
     <PackageReference Include="stbychkov.AutoLoggerMessage" Version="1.0.15" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Update="wwwroot\best.html">
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-    <Content Update="wwwroot\about.html">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>

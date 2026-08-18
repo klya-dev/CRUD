@@ -7,4 +7,12 @@ var app = builder.Build();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+app.MapGet("/api/url", (IConfiguration configuration) =>
+{
+    var apiUrl = configuration["ApiBaseUrl"];
+
+    // Возвращаем в формате JSON
+    return Results.Ok(apiUrl);
+});
+
 app.Run();

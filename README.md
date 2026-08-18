@@ -95,31 +95,31 @@
 
 Простенькая схема взаимодействия:
 <p align="center">
- <img src="Scheme.jpg" alt="qr"/>
+ <img src="images/Scheme.jpg" alt="qr"/>
 </p>
 
 Что означают проекты в решении:
 <p align="center">
- <img src="Mean Projects.jpg" alt="qr"/>
+ <img src="images/Mean Projects.jpg" alt="qr"/>
 </p>
 
 Пример ответа на запрос авторизации админа:
 <p align="center">
- <img src="Swagger Response.jpg" alt="qr"/>
+ <img src="images/Swagger Response.jpg" alt="qr"/>
 </p>
 
 Scalar-документация:
 <p align="center">
- <img src="Scalar.jpg" alt="qr"/>
+ <img src="images/Scalar.jpg" alt="qr"/>
 </p>
 
 Запущенные приложения:
 WebApi:
 <p align="center">
- <img src="WebApi Console.jpg" alt="qr"/>
+ <img src="images/WebApi Console.jpg" alt="qr"/>
 </p>
 
 EmailSender:
 <p align="center">
- <img src="EmailSender Console.jpg" alt="qr"/>
+ <img src="images/EmailSender Console.jpg" alt="qr"/>
 </p>

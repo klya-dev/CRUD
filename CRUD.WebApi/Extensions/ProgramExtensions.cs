@@ -777,6 +777,10 @@ public static class ProgramExtensions
                 }
 
                 options.HttpHandler = handler;
+
+                // В разработке разрешаем использовать http (без TLS)
+                if (builder.Environment.IsDevelopment())
+                    options.UnsafeUseInsecureChannelCallCredentials = true;
             })
             .AddCallCredentials(async (context, metadata, serviceProvider) => // Аутентификация и авторизация
             {

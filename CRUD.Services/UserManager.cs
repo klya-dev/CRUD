@@ -484,7 +484,7 @@ public sealed class UserManager : IUserManager
 
         var user = new User()
         {
-            Firstname = "Klya",
+            Firstname = "Admin",
             Username = "admin",
             HashedPassword = _passwordHasher.GenerateHashedPassword("123"),
             LanguageCode = "ru",
@@ -493,6 +493,8 @@ public sealed class UserManager : IUserManager
             AvatarURL = _avatarManagerOptions.DefaultAvatarPath,
             Email = "admin@mail.ru",
             PhoneNumber = "1234567890",
+            IsEmailConfirm = true,
+            IsPhoneNumberConfirm = true
         };
 
         await _db.Users.AddAsync(user, ct);

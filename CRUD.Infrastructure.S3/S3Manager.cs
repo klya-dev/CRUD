@@ -29,7 +29,7 @@ public sealed class S3Manager : IS3Manager
             ForcePathStyle = true,
             //AuthenticationRegion = "ru-central-1",
             //RegionEndpoint = Amazon.RegionEndpoint.EUCentral1,
-            RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED, // Иначе постоянно будет злоебучая ошибка XAmzContentSHA256Mismatch, которая спратяна в самом, ни капли информативном, экземпляре исключения (Amazon.Runtime.Internal.HttpErrorResponseException)
+            RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED, // Иначе постоянно будет злоебучая ошибка XAmzContentSHA256Mismatch, которая спрятана в самом, ни капли информативном, экземпляре исключения (Amazon.Runtime.Internal.HttpErrorResponseException)
             ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED
         };
 

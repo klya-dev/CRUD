@@ -26,7 +26,7 @@ public sealed class PostConfigureJwtBearerOptions : IPostConfigureOptions<JwtBea
     {
         // Если бы у меня была конфигурация "/.well-known/openid-configuration", то там было бы поле "jwks_uri", и указав options.MetadataAddress = "https://localhost:7260/.well-known/openid-configuration", всё бы удачно спарсилось в OpenIdConnectConfiguration,
         // но приходится свой Retriever прописывать, чтобы пропарсить jwks.json
-        var configurationManager = new ConfigurationManager<JsonWebKeySet>(_authOptions.JwksUrl, new JwksRetriever(), new HttpDocumentRetriever());
+        var configurationManager = new ConfigurationManager<JsonWebKeySet>(_authOptions.JwksUrl, new JwksRetriever(), new HttpDocumentRetriever() { RequireHttps = false}); // Разрешаем делать запрос на HTTP протокол без TLS
 
         options.TokenValidationParameters = new TokenValidationParameters
         {

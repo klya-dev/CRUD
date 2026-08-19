@@ -13,7 +13,7 @@
 	<NoWarn>$(NoWarn);1573</NoWarn> <!-- Отключает предупреждения об отсутствии совпадающего тега param. Например, это относится к this ILogger (метод расширения), ну а где-то я и правда забыл -->
 
 	<PackageOutputPath>..\nugets</PackageOutputPath>
-  	<PackageVersion>1.0.3</PackageVersion>
+  	<PackageVersion>1.1.0</PackageVersion>
   </PropertyGroup>	
 	
   <ItemGroup>

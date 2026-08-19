@@ -27,9 +27,18 @@ public sealed class PremiumInformator : IPremiumInformator
 
         // Получаем строку подключения и разбиваем на части Hostname и Port
         var connectionString = configuration.GetConnectionString("RabbitMqConnection") ?? string.Empty;
-        var parts = connectionString.Split(':');
-        Hostname = parts[0];
-        Port = parts.Length > 1 ? int.Parse(parts[1]) : 5672; // Если часть одна, то используем дефолтный порт
+
+        // Пытаемся пропарсить строку подключения
+        if (ConnectionParser.TryCreateUri(connectionString, out Uri? uri, "amqp", 5672))
+        {
+            Hostname = uri.Host;
+            Port = uri.Port;
+        }
+        else
+        {
+            Hostname = "localhost";
+            Port = 5672;
+        }
     }
 
     public async Task InformateAsync(string email, string languageCode, CancellationToken ct = default)

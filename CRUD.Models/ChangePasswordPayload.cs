@@ -3,7 +3,7 @@
 /// <summary>
 /// Полезная нагрузка токена на смену пароля.
 /// </summary>
-public record class ChangePasswordPayload
+public record ChangePasswordPayload
 {
     /// <summary>
     /// Хэш нового пароля.

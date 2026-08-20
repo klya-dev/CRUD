@@ -70,7 +70,7 @@
 - Наследование (`TPT`), `один-к-одному`, `один-ко-многим`, `многие-ко-многим`.
 - Обработка конфликтов параллельности (гонки) внутри сервисов.
 - Проецирование нужных данных, `AsNoTracking`, `ExecuteUpdateAsync`, `ExecuteDeleteAsync`.
-- Отдельный локальный `nuget`-пакет для `S3` интеграции, т. к. написанный функционал используется, как в монолите, так и в микросервисе, с целью избежания повторюшкиного кода.
+- Отдельный локальный `NuGet`-пакет для `S3` интеграции, т. к. написанный функционал используется, как в монолите, так и в микросервисе, с целью избежания повторюшкиного кода.
 - Постраничные списки (`PaginatedList`).
 - Хэширование паролей, создание API-ключей для премиум пользователей.
 - Использование `DataProtection` для смены пароля + кэширование и `RateLimiter`.
@@ -93,33 +93,62 @@
 
 Истории коммитов нет т. к. для разработки использовался локальный репозиторий, некоторые коммиты пришлось бы скрывать, а мне лень всё разбирать.
 
+## Запуск
+- Скачать исходный код.
+- Создать в корне папку `nugets`.
+- Вызвать упаковку для `CRUD.Shared` и `CRUD.Infrastructure.S3`. Они упакуются в папку `nugets` и будут использоваться, как локальные `NuGet`-пакеты. Команда для упаковки `dotnet pack -c Release`.
+- Заменить заглушки в файле `docker-compose.yml` на реальные значения `SmsSender`, `TelegramIntegration`, `PayManager`, `OAuthMailRu`, `SmtpServer`.
+<b>Либо</b> оставить, как есть, но некоторые функции не будут работать, такие как, отправка СМС и электронных писем, покупка премиума, авторизация через `OAuth Mail Ru`, верификационные коды `Telegram`.<br><u>Без указания</u> реального `SmtpServer` микросервис `EmailSender` даже не запустится.<br>
+<i>[Подробнее про внешние сервисы в разделе выше](#внешние-сервисы)</i>
+- Команда для запуска: `docker compose up --build`.
+
+### Сервисы из docker-compose
+| Название | Образ | Адрес | Назначение |
+|---|---|---|---|
+| `crud.webapi-1` | CRUD.WebApi | http://localhost:8080/openapi/index.html?url=/openapi/v1.json или `/scalar` | Основное Restful API. Swagger/Scalar. Админ: `admin`, `123` |
+| `crud.webapplication-1`| CRUD.WebApplication | http://localhost:8082 | Небольшой малофункциональный сайт для теста SignalR уведомлений и загрузки публикаций (необходима авторизация для страницы "Уведомления"). |
+| `crud.emailsender-1`| Microservice.EmailSender | http://localhost:8081 - HTTP2 (gRPC), http://localhost:8083 - HTTP1 (метрики) | Микросервис отправки электронных писем через gRPC или RabbitMQ. |
+| `mysql-1`| mysql:8.0.25 | http://localhost:3306 | База данных MySQL. |
+| `mysql_ui`| phpmyadmin:latest | http://localhost:8086 | UI базы данных MySQL (PHPMyAdmin). Вход: `root`, `password`. |
+| `minio-1`| minio/minio:latest | http://localhost:9000 - API, http://localhost:9001 - UI | S3 хранилище, используется для хранения аватарок, логов. Вход: `minioadmin`, `minioadmin`. |
+| `redis-1`| valkey/valkey:alpine | http://localhost:6379 | Распределённый кэш, используется в связке с HybridCache, кэширует идемпотентные ключи и различные токены. |
+| `rabbitmq-1`| rabbitmq:management-alpine | http://localhost:5672 - API, http://localhost:15672 - UI | Брокер сообщений, используется для добавления электронных писем в очередь. |
+| `prometheus-1`| prom/prometheus:latest | http://localhost:9090 | Сбор метрик WebApi и EmailSender. Конфиг в папке `configs`. |
+ 
+- Перейти в `S3 UI` (http://localhost:9001) (`minioadmin`, `minioadmin`) и создать бакет `crud-backet`. Создать папку `archive` и загрузить в неё дефолтную аватарку (путь в репозитории: `/images/default.png`), чтобы сервис `WebApi` мог взять её и проинициализовать папку аватарок (`avatars`) при запуске.<br><i>Идея заключалась, в том, чтобы сервис брал данные из "архива", поэтому нужно этот архив создать.</i>
+- Перезапустить `WebApi` для инициализации своих `S3`-папок.
+- Можно запускать API (http://localhost:8080/openapi/index.html?url=/openapi/v1.json) и щупать всё и вся.<br> <b>Админ:</b> `admin`, `123`.<br>Конечная точка авторизации: `/login`, группа `Auth`.
+
+Запущенный Docker без заглушек:
+<p align="center"><img src="images/Docker Compose.png" alt="Docker Compose"/></p>
+
 Простенькая схема взаимодействия:
 <p align="center">
- <img src="images/Scheme.jpg" alt="qr"/>
+ <img src="images/Scheme.jpg" alt="Scheme"/>
 </p>
 
 Что означают проекты в решении:
 <p align="center">
- <img src="images/Mean Projects.jpg" alt="qr"/>
+ <img src="images/Mean Projects.jpg" alt="Mean Projects"/>
 </p>
 
 Пример ответа на запрос авторизации админа:
 <p align="center">
- <img src="images/Swagger Response.jpg" alt="qr"/>
+ <img src="images/Swagger Response.jpg" alt="Swagger Response"/>
 </p>
 
 Scalar-документация:
 <p align="center">
- <img src="images/Scalar.jpg" alt="qr"/>
+ <img src="images/Scalar.jpg" alt="Scalar"/>
 </p>
 
-Запущенные приложения:
+Запущенные приложения:<br>
 WebApi:
 <p align="center">
- <img src="images/WebApi Console.jpg" alt="qr"/>
+ <img src="images/WebApi Console.jpg" alt="WebApi Console"/>
 </p>
 
 EmailSender:
 <p align="center">
- <img src="images/EmailSender Console.jpg" alt="qr"/>
+ <img src="images/EmailSender Console.jpg" alt="EmailSender Console"/>
 </p>

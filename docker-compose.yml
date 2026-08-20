@@ -1,0 +1,205 @@
+services:
+  # Web API
+  crud.webapi:
+    build:
+      context: .
+      dockerfile: CRUD.WebApi/Dockerfile
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "localhost:host-gateway" # Чтобы S3 Presigned Link'и работали в браузере
+    volumes:
+      - ./configs:/configs:ro
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=crud_db;Uid=root;Pwd=password;
+      - ConnectionStrings__RedisConnection=redis:6379
+      - ConnectionStrings__RabbitMqConnection=amqp://guest:guest@rabbitmq:5672
+      - Kestrel__Endpoints__Https__Url=http://+:8080
+      - Kestrel__Endpoints__Https__Protocols=Http1
+      - EmailSender__ServiceURL=http://crud.emailsender:8081
+      - EmailSender__UseUnixDomainSocketGRPC=false
+      - Auth__PrivateKeyPath=/configs/private_key.pem
+      - Auth__PublicKeyPath=/configs/public_key.pem
+      - Auth__Issuer=http://localhost:8080
+      - AuthWebApi__Audience=http://localhost:8080
+      - AuthEmailSender__Audience=http://localhost:8081
+      - Metrics__PrometheusURL=http://prometheus:9090
+      - Metrics__User=test
+      - Metrics__Password=123
+      - Clients__WebClientURLs__0=http://localhost:8082
+      - Clients__WebClientURLs__1=http://crud.webapplication:8082
+      - S3__AccessKey=minioadmin
+      - S3__SecretKey=minioadmin
+      - S3__BucketName=crud-backet
+      - S3__ServiceURL=http://localhost:9000 # Если minio:9000, то на клиенте ошибка сигнатуры SignatureDoesNotMatch в Presigned Link'ах
+
+      # ЗАГЛУШКИ
+      - SmsSender__ServiceURL=https://gate.smsaero.ru/v2/
+      - SmsSender__Email=test@test.ru
+      - SmsSender__ApiKey=test
+      - SmsSender__Sign=test
+      - TelegramIntegration__ServiceURL=https://gatewayapi.telegram.org
+      - TelegramIntegration__ApiKey=test
+      - PayManager__ServiceURL=https://api.yookassa.ru/v3/
+      - PayManager__ShopId=123
+      - PayManager__ApiKey=test
+      - PayManager__SafeListIp=::1
+      - OAuthMailRu__ClientId=test
+      - OAuthMailRu__ClientSecret=test
+      - OAuthMailRu__RedirectUri=http://localhost:8080
+      - OAuthMailRu__OpenIdConfigurationUrl=https://account.mail.ru/.well-known/openid-configuration
+    depends_on:
+      mysql:
+        condition: service_healthy # Бывает база не успевает инициализироваться, а приложение уже хочет миграции применить
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+      minio:
+        condition: service_started
+    networks:
+      - app-net
+
+  # Web Application
+  crud.webapplication:
+    build:
+      context: .
+      dockerfile: CRUD.WebApplication/Dockerfile
+    ports:
+      - "8082:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ApiBaseUrl=http://localhost:8080 # Базовый путь до API, используется в JS
+    depends_on:
+      - crud.webapi
+      - crud.emailsender
+    networks:
+      - app-net
+
+  # Email Sender Microservice
+  crud.emailsender:
+    build:
+      context: .
+      dockerfile: Microservice.EmailSender/Dockerfile
+    ports:
+      - "8081:8081"
+      - "8083:8083"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8081
+      - Kestrel__Endpoints__Https__Url=http://+:8081
+      - Kestrel__Endpoints__Https__Protocols=Http2
+      - Kestrel__Endpoints__Http__Url=http://+:8083
+      - Kestrel__Endpoints__Http__Protocols=Http1
+      - Program__UseUnixDomainSocketGRPC=false
+      - ConnectionStrings__RabbitMqConnection=amqp://guest:guest@rabbitmq:5672
+      - Auth__Issuer=http://localhost:8080
+      - Auth__Audience=http://localhost:8081
+      - Auth__JwksUrl=http://crud.webapi:8080/.well-known/jwks.json
+      - Metrics__PrometheusURL=http://prometheus:9090
+      - Metrics__User=test
+      - Metrics__Password=123
+      - S3__AccessKey=minioadmin
+      - S3__SecretKey=minioadmin
+      - S3__BucketName=crud-backet
+      - S3__ServiceURL=http://localhost:9000
+      
+      # ЗАГЛУШКИ
+      - SmtpServer__Host=smtp.mail.ru # ЗАГЛУШКА
+      - SmtpServer__Port=2525 # ЗАГЛУШКА
+      - SmtpServer__AuthPassword=test # ЗАГЛУШКА
+      - SmtpServer__Name=test # ЗАГЛУШКА
+      - SmtpServer__Email=test@test.ru # ЗАГЛУШКА
+    depends_on:
+      - rabbitmq
+      - crud.webapi
+      - minio
+    networks:
+      - app-net
+
+  # MySQL
+  mysql:
+    image: mysql:8.0.25
+    restart: always
+    environment:
+      MYSQL_DATABASE: crud_db
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-net
+
+  # PHP My Admin
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: mysql_ui
+    restart: always
+    links:
+      - mysql
+    ports:
+      - "8086:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      ARBITRARY: 1
+    networks:
+      - app-net
+ 
+  # S3 (MinIO)
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000" # API
+      - "9001:9001" # UI
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - app-net
+  
+  # Redis
+  redis:
+    image: valkey/valkey:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - app-net
+  
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672" # Management UI
+    networks:
+      - app-net
+  
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - app-net
+
+volumes:
+  mysql_data:
+  minio_data:
+  
+networks:
+  app-net:
+    driver: bridge

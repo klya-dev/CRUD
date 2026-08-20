@@ -97,7 +97,7 @@
 - Скачать исходный код.
 - Создать в корне папку `nugets`.
 - Вызвать упаковку для `CRUD.Shared` и `CRUD.Infrastructure.S3`. Они упакуются в папку `nugets` и будут использоваться, как локальные `NuGet`-пакеты. Команда для упаковки `dotnet pack -c Release`.
-- Заменить заглушки в файле `docker-compose.yml` на реальные значения `SmsSender`, `TelegramIntegration`, `PayManager`, `OAuthMailRu`, `SmtpServer`.
+- Заменить заглушки в файле `docker-compose.yml` на реальные значения `SmsSender`, `TelegramIntegration`, `PayManager`, `OAuthMailRu`, `SmtpServer`.<br>
 <b>Либо</b> оставить, как есть, но некоторые функции не будут работать, такие как, отправка СМС и электронных писем, покупка премиума, авторизация через `OAuth Mail Ru`, верификационные коды `Telegram`.<br><u>Без указания</u> реального `SmtpServer` микросервис `EmailSender` даже не запустится.<br>
 <i>[Подробнее про внешние сервисы в разделе выше](#внешние-сервисы)</i>
 - Команда для запуска: `docker compose up --build`.

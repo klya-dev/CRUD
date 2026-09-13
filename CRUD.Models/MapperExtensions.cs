@@ -94,17 +94,18 @@ public static partial class MapperExtensions
     /// </remarks>
     /// <param name="publication">Публикация.</param>
     /// <param name="authorFirstname">Имя автора.</param>
+    /// <param name="withoutTicks">Удалить ли из даты все тики <see cref="ToWithoutTicks(DateTime)"/>.</param>
     /// <exception cref="ArgumentNullException">Если <paramref name="publication"/> <see langword="null"/>.</exception>
     /// <returns>DTO-модель публикации.</returns>
-    public static PublicationDto ToPublicationDto(this Publication publication, string? authorFirstname)
+    public static PublicationDto ToPublicationDto(this Publication publication, string? authorFirstname, bool withoutTicks = true)
     {
         ArgumentNullException.ThrowIfNull(publication);
 
         return new PublicationDto
         {
             Id = publication.Id,
-            CreatedAt = publication.CreatedAt.ToWithoutTicks(),
-            EditedAt = publication.EditedAt?.ToWithoutTicks(),
+            CreatedAt = withoutTicks ? publication.CreatedAt.ToWithoutTicks() : publication.CreatedAt,
+            EditedAt = withoutTicks ? publication.EditedAt?.ToWithoutTicks() : publication.EditedAt,
             Title = publication.Title,
             Content = publication.Content,
             AuthorId = publication.AuthorId,
@@ -344,10 +345,29 @@ public static partial class MapperExtensions
     /// <summary>
     /// Возвращает <see cref="DateTime"/> без тиков (миллисекунд, микросекунд, наносекунд).
     /// </summary>
+    /// <remarks>
+    /// <para>В C# <see cref="DateTime"/> - 7 знаков после запятой.</para>
+    /// <para>А в MySQL datetime - 6 знаков после запятой.</para>
+    /// <para>Часто клиенту в качестве ответа отправляется <see cref="DateTime"/> без тиков вовсе.</para>
+    /// </remarks>
     /// <param name="dateTime"><see cref="DateTime"/>.</param>
     public static DateTime ToWithoutTicks(this DateTime dateTime)
     {
         return dateTime.AddTicks(-(dateTime.Ticks % TimeSpan.TicksPerSecond));
+    }
+
+    /// <summary>
+    /// Возвращает <see cref="DateTime"/> без последнего тика (без наносекунд).
+    /// </summary>
+    /// <remarks>
+    /// <para>В C# <see cref="DateTime"/> - 7 знаков после запятой.</para>
+    /// <para>А в MySQL datetime - 6 знаков после запятой.</para>
+    /// <para>Часто для корректного сравнения нужно удалить один знак у C# <see cref="DateTime"/>.</para>
+    /// </remarks>
+    /// <param name="dateTime"><see cref="DateTime"/>.</param>
+    public static DateTime ToWithoutLastTick(this DateTime dateTime)
+    {
+        return dateTime.AddTicks(-(dateTime.Ticks % 10));
     }
 
     /// <summary>

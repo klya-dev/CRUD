@@ -38,3 +38,4 @@ global using CRUD.Shared;
 global using CRUD.Infrastructure.S3;
 global using CRUD.Tests.Collections;
 global using CRUD.Tests.Fixtures;
+global using Microsoft.AspNetCore.Mvc.Testing;

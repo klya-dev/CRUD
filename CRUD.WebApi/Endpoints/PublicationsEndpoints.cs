@@ -72,6 +72,31 @@ public static class PublicationsEndpoints
             .WithDescription("Возвратимые данные: Публикации, Номер страницы, Количество страниц, Есть ли предыдущая страница, Есть ли следующая страница.")
             .Produces<PaginatedListDto<PublicationDto>>((int)HttpStatusCode.OK);
 
+        publicationsMap.MapGet("/cursor", async Task<Results<ValidationProblem, JsonHttpResult<CursorPaginatedListDto<PublicationDto>>>> ([FromQuery] DateTime? nextDate, [FromQuery] Guid? nextId, [FromQuery] int limit, [FromQuery] string? searchString, [FromQuery] string? sortBy, IPublicationManager publicationManager, IValidator<GetCursorPaginatedListDto> validator, IResourceLocalizer localizer, CancellationToken ct) =>
+        {
+            var getCursorPaginatedListDto = new GetCursorPaginatedListDto()
+            {
+                Date = nextDate,
+                LastId = nextId,
+                Limit = limit,
+            };
+
+            // Валидация модели
+            var validationResult = await validator.ValidateAsync(getCursorPaginatedListDto, ct);
+            if (!validationResult.IsValid)
+                return TypedResults.Extensions.ValidationProblem(validationResult, localizer);
+
+            // Вызов сервиса
+            var result = await publicationManager.GetCursorBasedPublicationsDtoAsync(nextDate, nextId, limit, searchString, sortBy ?? SortByVariables.date, ct);
+
+            return TypedResults.Json(result);
+        })
+            .AllowAnonymous()
+            .WithSummary("Возвращает постраничный список публикаций на основе курсора.")
+            .WithDescription("Для следующей итерации нужно указать: Дату (nextDate) - nextDate из прошлого ответа, Курсор - nextId из прошлого ответа (nextId)." +
+            "\nСортировки author_publications_count и author_publications_count_desc не поддерживаются.")
+            .Produces<CursorPaginatedListDto<PublicationDto>>((int)HttpStatusCode.OK);
+
         // v2
         publicationsMap.MapGet("/", ([FromQuery] int count) =>
         {

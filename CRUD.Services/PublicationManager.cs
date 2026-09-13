@@ -8,6 +8,7 @@ public sealed class PublicationManager : IPublicationManager
     private readonly ApplicationDbContext _db;
     private readonly IValidator<GetPublicationsDto> _getPublicationsDtoValidator;
     private readonly IValidator<GetPaginatedListDto> _getPaginatedListDtoValidator;
+    private readonly IValidator<GetCursorPaginatedListDto> _getCursorPaginatedListDtoValidator;
     private readonly IValidator<GetAuthorsDto> _getAuthorsDtoValidator;
     private readonly IValidator<UpdatePublicationDto> _updatePublicationDtoValidator;
     private readonly IValidator<UpdatePublicationFullDto> _updatePublicationFullDtoValidator;
@@ -19,6 +20,7 @@ public sealed class PublicationManager : IPublicationManager
         ApplicationDbContext db,
         IValidator<GetPublicationsDto> getPublicationsDtoValidator,
         IValidator<GetPaginatedListDto> getPaginatedListDtoValidator,
+        IValidator<GetCursorPaginatedListDto> getCursorPaginatedListDtoValidator,
         IValidator<GetAuthorsDto> getAuthorsDtoValidator,
         IValidator<UpdatePublicationDto> updatePublicationDtoValidator,
         IValidator<UpdatePublicationFullDto> updatePublicationFullDtoValidator,
@@ -29,6 +31,7 @@ public sealed class PublicationManager : IPublicationManager
         _db = db;
         _getPublicationsDtoValidator = getPublicationsDtoValidator;
         _getPaginatedListDtoValidator = getPaginatedListDtoValidator;
+        _getCursorPaginatedListDtoValidator = getCursorPaginatedListDtoValidator;
         _getAuthorsDtoValidator = getAuthorsDtoValidator;
         _updatePublicationDtoValidator = updatePublicationDtoValidator;
         _updatePublicationFullDtoValidator = updatePublicationFullDtoValidator;
@@ -111,6 +114,98 @@ public sealed class PublicationManager : IPublicationManager
 
         // Преобразовываем в DTO и возвращаем
         return paginatedList.ToPaginatedListDto();
+    }
+
+    public async Task<CursorPaginatedListDto<PublicationDto>> GetCursorBasedPublicationsDtoAsync(DateTime? date = null, Guid? lastId = null, int limit = 10, string? searchString = null, string sortBy = SortByVariables.date_desc, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(sortBy);
+
+        var getCursorPaginatedListDto = new GetCursorPaginatedListDto()
+        {
+            Date = date,
+            LastId = lastId,
+            Limit = limit,
+        };
+
+        // Валидация модели
+        var validationResult = await _getCursorPaginatedListDtoValidator.ValidateAsync(getCursorPaginatedListDto, ct);
+        if (!validationResult.IsValid)
+            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(GetPaginatedListDto), validationResult.Errors));
+
+        // Создаём запрос, но пока не выполняем: Публикации из базы
+        var publications = _db.Publications.AsNoTracking();
+
+        // Если строка поиска состоит из символов пробела ("   ")
+        if (searchString != null && searchString.IsWhiteSpace()) // То возвращаем пустой постраничный список
+            return CursorPaginatedListDto<PublicationDto>.Empty(limit, searchString, sortBy);
+
+        // Получаем очищенную строку поиска
+        searchString = SearchStringValidator.GetSanitizedSearchString(searchString);
+
+        // Если очищенная строка поиска не null
+        if (searchString != null)
+            publications = publications
+                .Where(x => x.Id.ToString().Contains(searchString) // То добавляем в запрос поиск совпадений по Id или Title или Content или AuthorFirstname
+                    || x.Title.Contains(searchString)
+                    || x.Content.Contains(searchString)
+                    || x.User!.Firstname.Contains(searchString)); // EF сам подтянет зависимость
+
+        // Если дата и последний Id публикации (курсор) указаны
+        if (date != null && lastId != null)
+        {
+            // Для разных вариантов сортировок разные Where
+            publications = sortBy.ToLower() switch
+            {
+                SortByVariables.date => publications.Where(x => x.CreatedAt > date || (x.CreatedAt == date && x.Id >= lastId)),
+                SortByVariables.date_desc => publications.Where(x => x.CreatedAt < date || (x.CreatedAt == date && x.Id <= lastId)),
+                _ => publications.Where(x => x.CreatedAt < date || (x.CreatedAt == date && x.Id <= lastId)) // По умолчанию сортируем от новой к старой
+
+                // author_publications_count и author_publications_count_desc - не поддерживаю
+            };
+        }
+        // date_desc - Отбираем те элементы, у которых дата меньше указанной
+        // Либо те, у которых дата совпадает с указанной, и курсор совпадает с указанным, если не совпадает, берём другой элемент, у которого курсор меньше
+
+        // Например, указали сегодняшнюю дату и курсор, если дата меньше: ответ НЕТ, т.к есть ещё статьи на сегодняшнюю дату
+        // Дата точно совпадает с указанной и курсор тоже, тогда отбираем этот элемент - дата и курсор с точностью совпали
+        // Если дата совпала, а курсор нет, значит берём тот, что меньше. Те Id, которые больше - нас не интересуют, т.к они уже были отображены ранее, благодаря сортировке ниже .ThenByDescending(x => x.Id)
+
+        // Сопоставляем сортировку через OrderBy / OrderByDescending для детерминированности
+        publications = sortBy.ToLower() switch
+        {
+            SortByVariables.date => publications.OrderBy(x => x.CreatedAt).ThenBy(x => x.Id),
+            SortByVariables.date_desc => publications.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id),
+            // author_publications_count и author_publications_count_desc - не поддерживаются, т.к слишком усложнять метод не хочу, для практики хватит
+            // Нужно было бы добавлять в Where ещё несколько условий, добавлять if для ветвления сортировки (выше которые) и т.д
+            _ => publications.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id), // По умолчанию сортируем по дате от новой к старой
+        };
+
+        // Преобразуем в DTO на стороне базы
+        var publicationDtos = await publications
+            .Take(limit + 1) // Для определения следующего курсора
+            .Select(x => x.ToPublicationDto(x.User!.Firstname, withoutTicks: false)) // EF сам подтянет зависимость
+            .ToListAsync(ct);
+
+        // Есть ли следующие элементы и определяем следующий курсор
+        bool hasMore = publicationDtos.Count > limit;
+        Guid? nextCursor = hasMore ? publicationDtos[^1].Id : null; // Последний элемент
+        DateTime? nextDate = hasMore ? publicationDtos[^1].CreatedAt : null;
+
+        // Удаляем из итогового списка последний элемент, он нужен был, чтобы определить есть ли элементы дальше
+        if (hasMore)
+            publicationDtos.RemoveAt(publicationDtos.Count - 1);
+
+        // Возвращаем ответ
+        return new CursorPaginatedListDto<PublicationDto>
+        {
+            Items = publicationDtos,
+            NextId = nextCursor,
+            NextDate = nextDate,
+            Limit = limit,
+            SearchString = searchString,
+            SortBy = sortBy,
+            HasMore = hasMore
+        };
     }
 
     public async Task<ServiceResult<IEnumerable<PublicationDto>>> GetPublicationsDtoAsync(int count, Guid authorId, CancellationToken ct = default)

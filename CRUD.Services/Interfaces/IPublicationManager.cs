@@ -1,6 +1,4 @@
-﻿using CRUD.Models.Dtos;
-
-namespace CRUD.Services.Interfaces;
+﻿namespace CRUD.Services.Interfaces;
 
 /// <summary>
 /// Основной сервис для работы с публикациями.
@@ -61,6 +59,33 @@ public interface IPublicationManager
     /// <exception cref="OperationCanceledException">Если операция отменена.</exception>
     /// <returns><see cref="PaginatedListDto{PublicationDto}"/>, постраничный список DTO-моделей публикаций.</returns>
     Task<PaginatedListDto<PublicationDto>> GetPublicationsDtoAsync(int pageIndex, int pageSize, string? searchString = null, string sortBy = SortByVariables.date, CancellationToken ct = default);
+
+    /// <summary>
+    /// Получает на основе курсора постраничный список DTO-моделей публикаций по указанным данным.
+    /// </summary>
+    /// <remarks>
+    /// <para><paramref name="searchString"/> проходит очистку через <see cref="SearchStringValidator"/>.</para>
+    /// 
+    /// Возможные исключения:
+    /// <list type="bullet">
+    /// <item>
+    /// <term>Если <paramref name="sortBy"/> <see langword="null"/></term>
+    /// <description>исключение <see cref="ArgumentNullException"/>.</description>
+    /// </item>
+    /// <item>
+    /// <term>Если <see cref="GetCursorPaginatedListDto"/> невалиден</term>
+    /// <description>исключение <see cref="InvalidOperationException"/>.</description>
+    /// </item>
+    /// </list>
+    /// </remarks>
+    /// <param name="date">Дата для следующего шага, включительная. (из прошлого ответа).</param>
+    /// <param name="lastId">Id курсора для следующего шага, включительный. (из прошлого ответа).</param>
+    /// <param name="limit">Количество элементов для возврата.</param>
+    /// <param name="searchString">Строка поиска.</param>
+    /// <param name="sortBy">Варианты сортировки из <see cref="SortByVariables"/>.</param>
+    /// <param name="ct">Токен отмены.</param>
+    /// <returns><see cref="CursorPaginatedListDto{PublicationDto}"/>, постраничный список DTO-моделей публикаций.</returns>
+    Task<CursorPaginatedListDto<PublicationDto>> GetCursorBasedPublicationsDtoAsync(DateTime? date = null, Guid? lastId = null, int limit = 10, string? searchString = null, string sortBy = SortByVariables.date_desc, CancellationToken ct = default);
 
     /// <summary>
     /// Получает указанное количество публикаций указанного автора в базе и преобразует в <see cref="PublicationDto"/>.

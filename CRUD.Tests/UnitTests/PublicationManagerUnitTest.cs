@@ -10,6 +10,7 @@ public sealed class PublicationManagerUnitTest
 
     private readonly Mock<IValidator<GetPublicationsDto>> _mockGetPublicationsDtoValidator;
     private readonly Mock<IValidator<GetPaginatedListDto>> _mockGetPaginatedListDtoValidator;
+    private readonly Mock<IValidator<GetCursorPaginatedListDto>> _mockGetCursorPaginatedListDtoValidator;
     private readonly Mock<IValidator<GetAuthorsDto>> _mockGetAuthorsDtoValidator;
     private readonly Mock<IValidator<UpdatePublicationDto>> _mockUpdatePublicationDtoValidator;
     private readonly Mock<IValidator<UpdatePublicationFullDto>> _mockUpdatePublicationFullDtoValidator;
@@ -31,6 +32,7 @@ public sealed class PublicationManagerUnitTest
 
         _mockGetPublicationsDtoValidator = new();
         _mockGetPaginatedListDtoValidator = new();
+        _mockGetCursorPaginatedListDtoValidator = new();
         _mockGetAuthorsDtoValidator = new();
         _mockUpdatePublicationDtoValidator = new();
         _mockUpdatePublicationFullDtoValidator = new();
@@ -41,6 +43,7 @@ public sealed class PublicationManagerUnitTest
             db,
             _mockGetPublicationsDtoValidator.Object,
             _mockGetPaginatedListDtoValidator.Object,
+            _mockGetCursorPaginatedListDtoValidator.Object,
             _mockGetAuthorsDtoValidator.Object,
             _mockUpdatePublicationDtoValidator.Object,
             _mockUpdatePublicationFullDtoValidator.Object,

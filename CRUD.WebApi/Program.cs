@@ -97,6 +97,7 @@ builder.Services.AddScoped<IValidator<CreateNotificationDto>, CreateNotification
 builder.Services.AddScoped<IValidator<CreateNotificationSelectedUsersDto>, CreateNotificationSelectedUsersDtoValidator>();
 builder.Services.AddScoped<IValidator<GetUserNotificationsDto>, GetUserNotificationsDtoValidator>();
 builder.Services.AddScoped<IValidator<GetPaginatedListDto>, GetPaginatedListDtoValidator>();
+builder.Services.AddScoped<IValidator<GetCursorPaginatedListDto>, GetCursorPaginatedListDtoValidator>();
 builder.Services.AddScoped<IValidator<OAuthCompleteRegistrationDto>, OAuthCompleteRegistrationDtoValidator>();
 
 builder.Services.AddScoped<IClientApiManager, ClientApiManager>();

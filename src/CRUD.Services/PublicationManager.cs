@@ -1,0 +1,549 @@
+﻿using Microsoft.Extensions.Caching.Hybrid;
+
+namespace CRUD.Services;
+
+/// <inheritdoc cref="IPublicationManager"/>
+public sealed class PublicationManager : IPublicationManager
+{
+    private readonly ApplicationDbContext _db;
+    private readonly IValidator<GetPublicationsDto> _getPublicationsDtoValidator;
+    private readonly IValidator<GetPaginatedListDto> _getPaginatedListDtoValidator;
+    private readonly IValidator<GetCursorPaginatedListDto> _getCursorPaginatedListDtoValidator;
+    private readonly IValidator<GetAuthorsDto> _getAuthorsDtoValidator;
+    private readonly IValidator<UpdatePublicationDto> _updatePublicationDtoValidator;
+    private readonly IValidator<UpdatePublicationFullDto> _updatePublicationFullDtoValidator;
+    private readonly IValidator<CreatePublicationDto> _createPublicationDtoValidator;
+    private readonly IHtmlHelper _htmlHelper;
+    private readonly HybridCache _cache;
+
+    public PublicationManager(
+        ApplicationDbContext db,
+        IValidator<GetPublicationsDto> getPublicationsDtoValidator,
+        IValidator<GetPaginatedListDto> getPaginatedListDtoValidator,
+        IValidator<GetCursorPaginatedListDto> getCursorPaginatedListDtoValidator,
+        IValidator<GetAuthorsDto> getAuthorsDtoValidator,
+        IValidator<UpdatePublicationDto> updatePublicationDtoValidator,
+        IValidator<UpdatePublicationFullDto> updatePublicationFullDtoValidator,
+        IValidator<CreatePublicationDto> createPublicationDtoValidator,
+        IHtmlHelper htmlHelper,
+        HybridCache cache)
+    {
+        _db = db;
+        _getPublicationsDtoValidator = getPublicationsDtoValidator;
+        _getPaginatedListDtoValidator = getPaginatedListDtoValidator;
+        _getCursorPaginatedListDtoValidator = getCursorPaginatedListDtoValidator;
+        _getAuthorsDtoValidator = getAuthorsDtoValidator;
+        _updatePublicationDtoValidator = updatePublicationDtoValidator;
+        _updatePublicationFullDtoValidator = updatePublicationFullDtoValidator;
+        _createPublicationDtoValidator = createPublicationDtoValidator;
+        _htmlHelper = htmlHelper;
+        _cache = cache;
+    }
+
+    public async Task<IEnumerable<PublicationDto>> GetPublicationsDtoAsync(int count, CancellationToken ct = default)
+    {
+        var getPublicationsDto = new GetPublicationsDto()
+        { 
+            Count = count
+        };
+
+        // Валидация модели
+        var validationResult = await _getPublicationsDtoValidator.ValidateAsync(getPublicationsDto, ct);
+        if (!validationResult.IsValid) // Эндпоинт должен предоставить валидные данные
+            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(GetPublicationsDto), validationResult.Errors));
+
+        // Достаём публикации и сразу преобразуем в DTO на стороне базы
+        var publications = await _db.Publications.AsNoTracking()
+            .OrderBy(x => x.CreatedAt)
+            .Take(count)
+            .Select(x => x.ToPublicationDto(x.User!.Firstname)) // EF сам подтянет зависимость
+            .ToListAsync(ct);
+
+        return publications;
+    }
+
+    public async Task<PaginatedListDto<PublicationDto>> GetPublicationsDtoAsync(int pageIndex, int pageSize, string? searchString = null, string sortBy = SortByVariables.date_desc, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(sortBy);
+
+        var getPaginatedListDto = new GetPaginatedListDto()
+        {
+            PageIndex = pageIndex,
+            PageSize = pageSize
+        };
+
+        // Валидация номера и размера страницы
+        var validationResult = await _getPaginatedListDtoValidator.ValidateAsync(getPaginatedListDto, ct);
+        if (!validationResult.IsValid) // Эндпоинт должен предоставить валидные данные
+            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(GetPaginatedListDto), validationResult.Errors));
+
+        // Создаём запрос, но пока не выполняем: Публикации из базы
+        var publications = _db.Publications.AsNoTracking();
+
+        // Если строка поиска состоит из символов пробела ("   ")
+        if (searchString != null && searchString.IsWhiteSpace()) // То возвращаем пустой постраничный список
+            return PaginatedList<PublicationDto>.Empty(pageIndex, pageSize, searchString, sortBy).ToPaginatedListDto();
+
+        // Получаем очищенную строку поиска
+        searchString = SearchStringValidator.GetSanitizedSearchString(searchString);
+
+        // Если очищенная строка поиска не null
+        if (searchString != null)
+            publications = publications
+                .Where(x => x.Id.ToString().Contains(searchString) // То добавляем в запрос поиск совпадений по Id или Title или Content или AuthorFirstname
+                    || x.Title.Contains(searchString)
+                    || x.Content.Contains(searchString)
+                    || x.User!.Firstname.Contains(searchString)); // EF сам подтянет зависимость
+
+        // Сопоставляем сортировку
+        publications = sortBy.ToLower() switch
+        {
+            SortByVariables.date => publications.OrderBy(x => x.CreatedAt),
+            SortByVariables.date_desc => publications.OrderByDescending(x => x.CreatedAt),
+            SortByVariables.author_publications_count => publications.OrderBy(x => x.User!.Publications!.Count).ThenBy(x => x.CreatedAt), // По количеству публикаций автора и дополнительно по дате через ThenBy
+            SortByVariables.author_publications_count_desc => publications.OrderByDescending(x => x.User!.Publications!.Count).ThenByDescending(x => x.CreatedAt),
+            _ => publications.OrderByDescending(x => x.CreatedAt), // Если нет подходящего варианта сортировки, то сортируем от новой к старой
+        };
+
+        // Преобразуем в DTO на стороне базы
+        var publicationDtos = publications
+                .Select(x => x.ToPublicationDto(x.User!.Firstname)); // EF сам подтянет зависимость
+
+        // Создаём постраничный список публикаций
+        var paginatedList = await PaginatedList<PublicationDto>.CreateAsync(publicationDtos, pageIndex, pageSize, searchString, sortBy, ct);
+
+        // Преобразовываем в DTO и возвращаем
+        return paginatedList.ToPaginatedListDto();
+    }
+
+    public async Task<CursorPaginatedListDto<PublicationDto>> GetCursorBasedPublicationsDtoAsync(DateTime? date = null, Guid? lastId = null, int limit = 10, string? searchString = null, string sortBy = SortByVariables.date_desc, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(sortBy);
+
+        var getCursorPaginatedListDto = new GetCursorPaginatedListDto()
+        {
+            Date = date,
+            LastId = lastId,
+            Limit = limit,
+        };
+
+        // Валидация модели
+        var validationResult = await _getCursorPaginatedListDtoValidator.ValidateAsync(getCursorPaginatedListDto, ct);
+        if (!validationResult.IsValid)
+            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(GetPaginatedListDto), validationResult.Errors));
+
+        // Создаём запрос, но пока не выполняем: Публикации из базы
+        var publications = _db.Publications.AsNoTracking();
+
+        // Если строка поиска состоит из символов пробела ("   ")
+        if (searchString != null && searchString.IsWhiteSpace()) // То возвращаем пустой постраничный список
+            return CursorPaginatedListDto<PublicationDto>.Empty(limit, searchString, sortBy);
+
+        // Получаем очищенную строку поиска
+        searchString = SearchStringValidator.GetSanitizedSearchString(searchString);
+
+        // Если очищенная строка поиска не null
+        if (searchString != null)
+            publications = publications
+                .Where(x => x.Id.ToString().Contains(searchString) // То добавляем в запрос поиск совпадений по Id или Title или Content или AuthorFirstname
+                    || x.Title.Contains(searchString)
+                    || x.Content.Contains(searchString)
+                    || x.User!.Firstname.Contains(searchString)); // EF сам подтянет зависимость
+
+        // Если дата и последний Id публикации (курсор) указаны
+        if (date != null && lastId != null)
+        {
+            // Для разных вариантов сортировок разные Where
+            publications = sortBy.ToLower() switch
+            {
+                SortByVariables.date => publications.Where(x => x.CreatedAt > date || (x.CreatedAt == date && x.Id >= lastId)),
+                SortByVariables.date_desc => publications.Where(x => x.CreatedAt < date || (x.CreatedAt == date && x.Id <= lastId)),
+                _ => publications.Where(x => x.CreatedAt < date || (x.CreatedAt == date && x.Id <= lastId)) // По умолчанию сортируем от новой к старой
+
+                // author_publications_count и author_publications_count_desc - не поддерживаю
+            };
+        }
+        // date_desc - Отбираем те элементы, у которых дата меньше указанной
+        // Либо те, у которых дата совпадает с указанной, и курсор совпадает с указанным, если не совпадает, берём другой элемент, у которого курсор меньше
+
+        // Например, указали сегодняшнюю дату и курсор, если дата меньше: ответ НЕТ, т.к есть ещё статьи на сегодняшнюю дату
+        // Дата точно совпадает с указанной и курсор тоже, тогда отбираем этот элемент - дата и курсор с точностью совпали
+        // Если дата совпала, а курсор нет, значит берём тот, что меньше. Те Id, которые больше - нас не интересуют, т.к они уже были отображены ранее, благодаря сортировке ниже .ThenByDescending(x => x.Id)
+
+        // Сопоставляем сортировку через OrderBy / OrderByDescending для детерминированности
+        publications = sortBy.ToLower() switch
+        {
+            SortByVariables.date => publications.OrderBy(x => x.CreatedAt).ThenBy(x => x.Id),
+            SortByVariables.date_desc => publications.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id),
+            // author_publications_count и author_publications_count_desc - не поддерживаются, т.к слишком усложнять метод не хочу, для практики хватит
+            // Нужно было бы добавлять в Where ещё несколько условий, добавлять if для ветвления сортировки (выше которые) и т.д
+            _ => publications.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id), // По умолчанию сортируем по дате от новой к старой
+        };
+
+        // Преобразуем в DTO на стороне базы
+        var publicationDtos = await publications
+            .Take(limit + 1) // Для определения следующего курсора
+            .Select(x => x.ToPublicationDto(x.User!.Firstname, withoutTicks: false)) // EF сам подтянет зависимость
+            .ToListAsync(ct);
+
+        // Есть ли следующие элементы и определяем следующий курсор
+        bool hasMore = publicationDtos.Count > limit;
+        Guid? nextCursor = hasMore ? publicationDtos[^1].Id : null; // Последний элемент
+        DateTime? nextDate = hasMore ? publicationDtos[^1].CreatedAt : null;
+
+        // Удаляем из итогового списка последний элемент, он нужен был, чтобы определить есть ли элементы дальше
+        if (hasMore)
+            publicationDtos.RemoveAt(publicationDtos.Count - 1);
+
+        // Возвращаем ответ
+        return new CursorPaginatedListDto<PublicationDto>
+        {
+            Items = publicationDtos,
+            NextId = nextCursor,
+            NextDate = nextDate,
+            Limit = limit,
+            SearchString = searchString,
+            SortBy = sortBy,
+            HasMore = hasMore
+        };
+    }
+
+    public async Task<ServiceResult<IEnumerable<PublicationDto>>> GetPublicationsDtoAsync(int count, Guid authorId, CancellationToken ct = default)
+    {
+        // Пустой GUID
+        if (authorId == Guid.Empty)
+            throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
+
+        var getPublicationsDto = new GetPublicationsDto()
+        {
+            Count = count
+        };
+
+        // Валидация модели
+        var validationResult = await _getPublicationsDtoValidator.ValidateAsync(getPublicationsDto, ct);
+        if (!validationResult.IsValid)
+            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(GetPublicationsDto), validationResult.Errors));
+
+        // Автор не найден
+        // Если писать Include в случае не найденного автора, EF всё равно будет пытаться прогрузить - лишние запросы
+        var userExists = await _db.Users.AnyAsync(x => x.Id == authorId, ct);
+        if (!userExists)
+            return ServiceResult<IEnumerable<PublicationDto>>.Fail(ErrorMessages.AuthorNotFound);
+
+        // Достаём публикации и преобразуем в DTO на стороне базы
+        var publications = await _db.Publications.AsNoTracking()
+            .Where(x => x.AuthorId == authorId)
+            .OrderBy(x => x.CreatedAt)
+            .Take(count)
+            .Select(x => x.ToPublicationDto(x.User!.Firstname)) // EF сам подтянет зависимость
+            .ToListAsync(ct);
+
+        // Нет ни одной публикации
+        if (publications.Count <= 0)
+            return ServiceResult<IEnumerable<PublicationDto>>.Success([]); // Возвращаем пустую коллекцию
+
+        return ServiceResult<IEnumerable<PublicationDto>>.Success(publications);
+    }
+
+    public async Task<ServiceResult<PublicationDto>> GetPublicationDtoAsync(Guid publicationId, CancellationToken ct = default)
+    {
+        // Пустой GUID
+        if (publicationId == Guid.Empty)
+            throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
+
+        // Публикация не найдена
+        var publicationFromDb = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationId, ct);
+        if (publicationFromDb == null)
+            return ServiceResult<PublicationDto>.Fail(ErrorMessages.PublicationNotFound);
+
+        // Ищем автора
+        var userFromDb = await _db.Users.AsNoTracking().Where(x => x.Id == publicationFromDb.AuthorId).Select(x => new { x.Firstname }).FirstOrDefaultAsync(ct);
+
+        var publicationDto = publicationFromDb.ToPublicationDto(userFromDb?.Firstname); // Если автор не найден, то будет написано "Автор удалён"
+
+        return ServiceResult<PublicationDto>.Success(publicationDto);
+    }
+
+    public async Task<ServiceResult<PublicationFullDto>> GetPublicationFullDtoAsync(Guid publicationId, CancellationToken ct = default)
+    {
+        // Пустой GUID
+        if (publicationId == Guid.Empty)
+            throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
+
+        // Публикация не найдена
+        var publicationFromDb = await _db.Publications.AsNoTracking().Include(x => x.User).FirstOrDefaultAsync(x => x.Id == publicationId, ct);
+        if (publicationFromDb == null)
+            return ServiceResult<PublicationFullDto>.Fail(ErrorMessages.PublicationNotFound);
+
+        // Создаём DTO
+        var publicationDto = publicationFromDb.ToPublicationFullDto(publicationFromDb.User);
+
+        return ServiceResult<PublicationFullDto>.Success(publicationDto);
+    }
+
+    public async Task<IEnumerable<AuthorDto>> GetAuthorsDtoAsync(int count, CancellationToken ct = default)
+    {
+        var getAuthorsDto = new GetAuthorsDto()
+        {
+            Count = count
+        };
+
+        // Валидация модели
+        var validationResult = await _getAuthorsDtoValidator.ValidateAsync(getAuthorsDto, ct);
+        if (!validationResult.IsValid)
+            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(GetAuthorsDto), validationResult.Errors));
+
+        // Достаём авторов и преобразуем в DTO
+        var authors = await _db.Users.AsNoTracking()
+            .Where(x => x.Publications!.Any())
+            .OrderBy(x => x.Username)
+            .Take(count)
+            .Select(x => x.ToAuthorDto(x.Publications!.Count)) // EF сам подтянет зависимость
+            .ToListAsync(ct);
+
+        // Нет ни одного автора
+        if (authors.Count <= 0)
+            return []; // Возвращаем пустую коллекцию
+
+        return authors;
+    }
+
+    public async Task<ServiceResult> UpdatePublicationAsync(Guid userId, UpdatePublicationDto updatePublicationDto, CancellationToken ct = default)
+    {
+        // Пустые данные
+        ArgumentNullException.ThrowIfNull(updatePublicationDto);
+
+        // Пустой GUID
+        if (userId == Guid.Empty)
+            throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
+
+        // Валидация модели
+        var validationResult = await _updatePublicationDtoValidator.ValidateAsync(updatePublicationDto, ct);
+        if (!validationResult.IsValid) // Эндпоинт должен предоставить валидные данные, это его ответственность, если исключение - значит разраб накосипорил, недотестил
+            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(UpdatePublicationDto), validationResult.Errors));
+
+        // Пользователь не найден (который пытается обновить)
+        var isExistsUser = await _db.Users.AsNoTracking().AnyAsync(x => x.Id == userId, ct);
+        if (!isExistsUser)
+            return ServiceResult.Fail(ErrorMessages.AuthorNotFound);
+
+        // Публикация не найдена
+        var publicationFromDb = await _db.Publications.Where(x => x.Id == updatePublicationDto.PublicationId).Select(x => new { x.AuthorId, x.Title, x.Content, x.RowVersion }).FirstOrDefaultAsync(ct);
+        if (publicationFromDb == null)
+            return ServiceResult.Fail(ErrorMessages.PublicationNotFound);
+
+        // Является ли пользователь автором этой публикации
+        if (userId != publicationFromDb.AuthorId)
+            return ServiceResult.Fail(ErrorMessages.UserIsNotAuthorOfThisPublication);
+
+        // Если заголовок не задали (null), то берём из базы
+        string title = updatePublicationDto.Title ?? publicationFromDb.Title;
+        string content = updatePublicationDto.Content ?? publicationFromDb.Content;
+
+        // Очистка Html от вредоносного кода
+        content = _htmlHelper.SanitizeHtml(content);
+
+        // Убираем лишние пробелы и отступы
+        content = content.ReplaceExtraSpacesAndNewLines();
+
+        // Не обнаружено изменений
+        if (publicationFromDb.Title == title &&
+           publicationFromDb.Content == content)
+            return ServiceResult.Fail(ErrorMessages.NoChangesDetected);
+
+        // Обновляем публикацию
+        var updatedRows = await _db.Publications.Where(x => x.Id == updatePublicationDto.PublicationId && x.RowVersion == publicationFromDb.RowVersion)
+            .ExecuteUpdateAsync(x =>
+                x.SetProperty(p => p.Title, title)
+                .SetProperty(p => p.Content, content)
+                .SetProperty(p => p.EditedAt, DateTime.UtcNow), ct);
+
+        // Найдено 0 строк (Where;MySQL:UseAffectedRows). Вероятно, из-за разных RowVersion - конфликт
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.ConcurrencyConflicts);
+
+        return ServiceResult.Success();
+    }
+
+    public async Task<ServiceResult> UpdatePublicationAsync(Guid publicationId, UpdatePublicationFullDto updatePublicationFullDto, CancellationToken ct = default)
+    {
+        // Пустые данные
+        ArgumentNullException.ThrowIfNull(updatePublicationFullDto);
+
+        // Пустой GUID
+        if (publicationId == Guid.Empty)
+            throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
+
+        // Валидация модели
+        var validationResult = await _updatePublicationFullDtoValidator.ValidateAsync(updatePublicationFullDto, ct);
+        if (!validationResult.IsValid) // Эндпоинт должен предоставить валидные данные, это его ответственность, если исключение - значит разраб накосипорил, недотестил
+            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(UpdatePublicationFullDto), validationResult.Errors));
+
+        // Публикация не найдена
+        var publicationFromDb = await _db.Publications.Where(x => x.Id == publicationId).Select(x => new { x.Title, x.Content, x.CreatedAt, x.RowVersion }).FirstOrDefaultAsync(ct);
+        if (publicationFromDb == null)
+            return ServiceResult.Fail(ErrorMessages.PublicationNotFound);
+
+        // Если заголовок не задали (null), то берём из базы
+        string title = updatePublicationFullDto.Title ?? publicationFromDb.Title;
+        string content = updatePublicationFullDto.Content ?? publicationFromDb.Content;
+
+        // Очистка Html от вредоносного кода
+        content = _htmlHelper.SanitizeHtml(content);
+
+        // Убираем лишние пробелы и отступы
+        content = content.ReplaceExtraSpacesAndNewLines();
+
+        // Если дату не удалось пропарсить (скорее всего она не задана), то берём из базы
+        DateTime date = DateTime.TryParse(updatePublicationFullDto.CreatedAt, out DateTime outDate) ? outDate : publicationFromDb.CreatedAt;
+
+        // Не обнаружено изменений
+        if (publicationFromDb.Title == title
+            && publicationFromDb.Content == content
+            && publicationFromDb.CreatedAt == date)
+            return ServiceResult.Fail(ErrorMessages.NoChangesDetected);
+
+        // Обновляем публикацию
+        var updatedRows = await _db.Publications.Where(x => x.Id == publicationId && x.RowVersion == publicationFromDb.RowVersion)
+            .ExecuteUpdateAsync(x =>
+                x.SetProperty(p => p.Title, title)
+                .SetProperty(p => p.Content, content)
+                .SetProperty(p => p.CreatedAt, date), ct);
+
+        // Найдено 0 строк (Where;MySQL:UseAffectedRows). Вероятно, из-за разных RowVersion - конфликт
+        if (updatedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.ConcurrencyConflicts);
+
+        return ServiceResult.Success();
+    }
+
+    public async Task<ServiceResult<PublicationDto>> CreatePublicationAsync(Guid userId, CreatePublicationDto createPublicationDto, CancellationToken ct = default)
+    {
+        // Пустые данные
+        ArgumentNullException.ThrowIfNull(createPublicationDto);
+
+        // Пустой GUID
+        if (userId == Guid.Empty)
+            throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
+
+        // Валидация модели
+        var validationResult = await _createPublicationDtoValidator.ValidateAsync(createPublicationDto, ct);
+        if (!validationResult.IsValid)
+            throw new InvalidOperationException(ErrorMessages.ModelIsNotValid(nameof(CreatePublicationDto), validationResult.Errors));
+
+        string content = createPublicationDto.Content;
+
+        // Очистка Html от вредоносного кода
+        content = _htmlHelper.SanitizeHtml(content);
+
+        // Убираем лишние пробелы и отступы
+        content = content.ReplaceExtraSpacesAndNewLines();
+
+        // Пользователь не найден (который пытается создать)
+        var userFromDb = await _db.Users.AsNoTracking().Where(x => x.Id == userId).Select(x => new { x.IsEmailConfirm, x.IsPhoneNumberConfirm, x.Firstname }).FirstOrDefaultAsync(ct);
+        if (userFromDb == null)
+            return ServiceResult<PublicationDto>.Fail(ErrorMessages.UserNotFound);
+
+        // У пользователя не подтверждена электронная почта
+        if (!userFromDb.IsEmailConfirm)
+            return ServiceResult<PublicationDto>.Fail(ErrorMessages.UserHasNotConfirmedEmail);
+
+        // У пользователя не подтверждён телефонный номер
+        if (!userFromDb.IsPhoneNumberConfirm)
+            return ServiceResult<PublicationDto>.Fail(ErrorMessages.UserHasNotConfirmedPhoneNumber);
+
+        var publication = new Publication
+        {
+            CreatedAt = DateTime.UtcNow,
+            Title = createPublicationDto.Title,
+            Content = content,
+            AuthorId = userId
+        };
+
+        await _db.Publications.AddAsync(publication, ct);
+        await _db.SaveChangesAsync(ct);
+
+        return ServiceResult<PublicationDto>.Success(publication.ToPublicationDto(userFromDb.Firstname));
+    }
+
+    public async Task<ServiceResult> DeletePublicationAsync(Guid userId, Guid publicationId, CancellationToken ct = default)
+    {
+        // Пустой GUID
+        if (userId == Guid.Empty || publicationId == Guid.Empty)
+            throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
+
+        // Пользователь не найден (который пытается удалить)
+        var isExistsUser = await _db.Users.AsNoTracking().AnyAsync(x => x.Id == userId, ct);
+        if (!isExistsUser)
+            return ServiceResult.Fail(ErrorMessages.UserNotFound);
+
+        // Публикация не найдена. Грузим только AuthorId
+        var publicationFromDb = await _db.Publications.Where(x => x.Id == publicationId).Select(x => new { x.AuthorId }).FirstOrDefaultAsync(ct);
+        if (publicationFromDb == null)
+            return ServiceResult.Fail(ErrorMessages.PublicationNotFound);
+
+        // Является ли пользователь автором этой публикации
+        if (userId != publicationFromDb.AuthorId)
+            return ServiceResult.Fail(ErrorMessages.UserIsNotAuthorOfThisPublication);
+
+        // Удаляем публикацию
+        await _db.Publications.Where(x => x.Id == publicationId)
+            .ExecuteDeleteAsync(ct);
+
+        return ServiceResult.Success();
+    }
+
+    public async Task<ServiceResult> DeletePublicationAsync(Guid publicationId, CancellationToken ct = default)
+    {
+        // Пустой GUID
+        if (publicationId == Guid.Empty)
+            throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
+
+        // Удаляем публикацию
+        var deletedRows = await _db.Publications.Where(x => x.Id == publicationId)
+            .ExecuteDeleteAsync(ct);
+
+        // Публикация не найдена
+        if (deletedRows == 0)
+            return ServiceResult.Fail(ErrorMessages.PublicationNotFound);
+
+        return ServiceResult.Success();
+    }
+
+    public async Task<ServiceResult> DeletePublicationsAsync(Guid userId, CancellationToken ct = default)
+    {
+        // Пустой GUID
+        if (userId == Guid.Empty)
+            throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
+
+        // Пользователь не найден (публикации, которого нужно удалить)
+        var isExistsUser = await _db.Users.AsNoTracking().AnyAsync(x => x.Id == userId, ct);
+        if (!isExistsUser)
+            return ServiceResult.Fail(ErrorMessages.UserNotFound);
+
+        // Удаляем публикации автора
+        await _db.Publications.Where(x => x.AuthorId == userId)
+            .ExecuteDeleteAsync(ct);
+
+        return ServiceResult.Success();
+    }
+
+    public ValueTask<bool> IsAuthorThisPublicationAsync(Guid userId, Guid publicationId, CancellationToken ct = default)
+    {
+        // Закэшированно, что такой-то пользователь не является автором такой-то публикации
+        // Нет функционала передать публикацию другому автору
+        // И если автор удалён ничего плохого не случится
+
+        var options = new HybridCacheEntryOptions
+        {
+            Expiration = TimeSpan.FromMinutes(30),
+            LocalCacheExpiration = TimeSpan.FromMinutes(30)
+        };
+
+        // Есть ли хоть одна публикация с таким Id от этого пользователя
+        return _cache.GetOrCreateAsync(
+            $"{CacheKeys.IsAuthorThisPublication}-{userId}:{publicationId}",
+            async factoryCt => await _db.Publications.AnyAsync(x => x.AuthorId == userId && x.Id == publicationId, factoryCt),
+            options, cancellationToken: ct);
+    }
+}

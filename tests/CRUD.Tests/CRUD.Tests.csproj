@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+	<OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable> <!-- Подавляем предупреждения связанные с nullable -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+  	<UserSecretsId>adb0ac74-b0b1-4c42-98b6-690286bf402e</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="10.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="10.6.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="OpenTelemetry.Exporter.InMemory" Version="1.15.3" />
+    <PackageReference Include="System.Linq.Async" Version="7.0.1" />
+    <PackageReference Include="Testcontainers.MySql" Version="4.13.0" />
+    <PackageReference Include="xunit.v3" Version="4.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CRUD.Services\CRUD.Services.csproj" />
+    <ProjectReference Include="..\CRUD.Test.Shared\CRUD.Test.Shared.csproj" />
+    <ProjectReference Include="..\..\src\CRUD.WebApi\CRUD.WebApi.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="testsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="xunit.runner.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

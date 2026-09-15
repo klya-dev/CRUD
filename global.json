@@ -1,0 +1,9 @@
+{
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
+    // Указываем явно MTP, чтобы не использовать устаревший VSTest.
+    // С версии 4.0.0 xUnit (v3) перешёл на вторую версию MTP,
+    // если явно не указать будет ошибка "Testing with VSTest target is no longer supported by Microsoft.Testing.Platform on .NET 10 SDK and later."
+    // при попытке выполнить dotnet test.
+  }
+}

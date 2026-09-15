@@ -4,13 +4,13 @@ WORKDIR /src
 # CRUD.WebApplication не использует локальные nuget пакеты, поэтому NuGet.config не нужен
 
 # Копируем файл проекта
-COPY CRUD.WebApplication/CRUD.WebApplication.csproj CRUD.WebApplication/
+COPY src/CRUD.WebApplication/CRUD.WebApplication.csproj CRUD.WebApplication/
 
 # Восстанавливаем зависимости/пакеты
 RUN dotnet restore CRUD.WebApplication/CRUD.WebApplication.csproj
 
 # Копируем только нужные для проекта папки
-COPY CRUD.WebApplication/ CRUD.WebApplication/
+COPY src/CRUD.WebApplication/ CRUD.WebApplication/
 
 # Компилируем и публикуем приложение
 RUN dotnet publish CRUD.WebApplication/CRUD.WebApplication.csproj -c Release -o /app --no-restore

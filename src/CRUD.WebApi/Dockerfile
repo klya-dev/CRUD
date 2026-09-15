@@ -9,21 +9,21 @@ COPY nugets/ ./nugets/
 # Папка с конфигами (prometheus.yml, private_key.pem, public_key.pem, NuGet.config) через volume
 
 # Копируем файлы проектов
-COPY CRUD.Models/CRUD.Models.csproj CRUD.Models/
-COPY CRUD.Utility/CRUD.Utility.csproj CRUD.Utility/
-COPY CRUD.DataAccess/CRUD.DataAccess.csproj CRUD.DataAccess/
-COPY CRUD.Services/CRUD.Services.csproj CRUD.Services/
-COPY CRUD.WebApi/CRUD.WebApi.csproj CRUD.WebApi/
+COPY src/CRUD.Models/CRUD.Models.csproj CRUD.Models/
+COPY src/CRUD.Utility/CRUD.Utility.csproj CRUD.Utility/
+COPY src/CRUD.DataAccess/CRUD.DataAccess.csproj CRUD.DataAccess/
+COPY src/CRUD.Services/CRUD.Services.csproj CRUD.Services/
+COPY src/CRUD.WebApi/CRUD.WebApi.csproj CRUD.WebApi/
 
 # Восстанавливаем зависимости/пакеты
 RUN dotnet restore CRUD.WebApi/CRUD.WebApi.csproj
 
 # Копируем только нужные для проекта папки
-COPY CRUD.Models/ CRUD.Models/
-COPY CRUD.Utility/ CRUD.Utility/
-COPY CRUD.DataAccess/ CRUD.DataAccess/
-COPY CRUD.Services/ CRUD.Services/
-COPY CRUD.WebApi/ CRUD.WebApi/
+COPY src/CRUD.Models/ CRUD.Models/
+COPY src/CRUD.Utility/ CRUD.Utility/
+COPY src/CRUD.DataAccess/ CRUD.DataAccess/
+COPY src/CRUD.Services/ CRUD.Services/
+COPY src/CRUD.WebApi/ CRUD.WebApi/
 
 # Компилируем и публикуем приложение
 RUN dotnet publish CRUD.WebApi/CRUD.WebApi.csproj -c Release -o /app --no-restore

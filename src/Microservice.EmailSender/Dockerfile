@@ -9,13 +9,13 @@ COPY nugets/ ./nugets/
 # Папка с конфигами (prometheus.yml, private_key.pem, public_key.pem, NuGet.config) через volume
 
 # Копируем файл проекта
-COPY Microservice.EmailSender/Microservice.EmailSender.csproj Microservice.EmailSender/
+COPY src/Microservice.EmailSender/Microservice.EmailSender.csproj Microservice.EmailSender/
 
 # Восстанавливаем зависимости/пакеты
 RUN dotnet restore Microservice.EmailSender/Microservice.EmailSender.csproj
 
 # Копируем только нужные для проекта папки
-COPY Microservice.EmailSender/ Microservice.EmailSender/
+COPY src/Microservice.EmailSender/ Microservice.EmailSender/
 
 # Компилируем и публикуем приложение
 RUN dotnet publish Microservice.EmailSender/Microservice.EmailSender.csproj -c Release -o /app --no-restore

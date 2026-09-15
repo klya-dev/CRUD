@@ -5,7 +5,7 @@
 **/bin
 **/obj
 **/*.user
-**/*.sln # Главное, чтобы восстановление было конкретизировано "RUN dotnet restore CRUD.WebApi/CRUD.WebApi.csproj"
+**/*.sln # Главное, чтобы восстановление было конкретизировано "RUN dotnet restore src/CRUD.WebApi/CRUD.WebApi.csproj"
 
 # Хоть копирование в докер файлах у меня точечное (Не COPY . ., а только то, что нужно), всё равно нужно указать мусор, т.к, иначе он скопируется в docker daemon, а потом проигнорируется, а можем сейчас проигнорировать
 # Файлы
@@ -15,13 +15,8 @@
 docker-compose.yml
 LICENSE.txt
 README.md
-Как выложил.txt
 
 # Папки
-Benchmarking/
-CRUD.Infrastructure.S3.Tests/
-CRUD.Test.Shared/
-CRUD.Tests/
+tests/
 docs/
 images/
-Microservice.EmailSender.Tests/

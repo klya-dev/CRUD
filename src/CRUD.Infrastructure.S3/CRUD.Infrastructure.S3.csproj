@@ -11,7 +11,7 @@
   	<GenerateDocumentationFile>true</GenerateDocumentationFile>
   	<NoWarn>$(NoWarn);1591</NoWarn> <!-- Отключает предупреждения об отсутствии документации для всех публичных членов -->
 
-	<PackageOutputPath>..\nugets</PackageOutputPath>
+	<PackageOutputPath>..\..\nugets</PackageOutputPath>
   	<PackageVersion>2.1.3</PackageVersion>
   </PropertyGroup>
 

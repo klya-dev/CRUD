@@ -51,8 +51,8 @@
   },
   "AppHost": "localhost:7260",
   "Auth": {
-    "PrivateKeyPath": "E:\\Projects\\Web\\CRUD\\CRUD.Tests\\test_files\\private_test_key.pem", // Тестовые ключи
-    "PublicKeyPath": "E:\\Projects\\Web\\CRUD\\CRUD.Tests\\test_files\\public_test_key.pem",
+    "PrivateKeyPath": "E:\\Projects\\Web\\CRUD\\tests\\CRUD.Tests\\test_files\\private_test_key.pem", // Тестовые ключи
+    "PublicKeyPath": "E:\\Projects\\Web\\CRUD\\tests\\CRUD.Tests\\test_files\\public_test_key.pem",
     "KeyId": "key-v1",
     "Issuer": "https://localhost:7260"
   },

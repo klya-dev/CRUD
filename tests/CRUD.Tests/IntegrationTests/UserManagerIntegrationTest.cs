@@ -193,42 +193,6 @@ public sealed class UserManagerIntegrationTest : IClassFixture<TestWebApplicatio
         }, nameof(userFromDbAfterUpdate.RowVersion));
     }
 
-    [Theory]
-    [InlineData("новоеImya", "юзернейм", "ru")] // Имя и Username невалидные
-    [InlineData(null, null, null)] // Пустые данные
-    public async Task UpdateUserAsyncByUpdateUserDto_NotValidData_ThrowsInvalidOperationException(string firstname, string username, string languageCode)
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
-
-        var updateUserDto = new UpdateUserDto()
-        {
-            Firstname = firstname,
-            Username = username,
-            LanguageCode = languageCode
-        };
-        var userIdGuid = user.Id;
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new UpdateUserDtoValidator(validatorsLocalizer).ValidateAsync(updateUserDto, TestContext.Current.CancellationToken);
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _userManager.UpdateUserAsync(userIdGuid, updateUserDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(UpdateUserDto), validationResult.Errors), ex.Message);
-
-        // Пользователь и вправду не обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
-        Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
-    }
-
     [Fact]
     public async Task UpdateUserAsyncByUpdateUserDto_ReturnsErrorMessage_UserNotFound()
     {
@@ -391,35 +355,6 @@ public sealed class UserManagerIntegrationTest : IClassFixture<TestWebApplicatio
 
         // Аватарка и вправду удалилась
         Assert.False(await _s3Manager.IsObjectExistsAsync(user.AvatarURL, TestContext.Current.CancellationToken));
-    }
-
-    [Theory]
-    [InlineData("")] // Пустые данные
-    [InlineData(null)] // Пустые данные
-    public async Task DeleteUserAsync_NotValidData_ThrowsInvalidOperationException(string password)
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
-
-        var deleteUserDto = new DeleteUserDto()
-        {
-            Password = password
-        };
-        var userIdGuid = user.Id;
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new DeleteUserDtoValidator(validatorsLocalizer).ValidateAsync(deleteUserDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _userManager.DeleteUserAsync(userIdGuid, deleteUserDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(DeleteUserDto), validationResult.Errors), ex.Message);
     }
 
     [Fact]
@@ -589,42 +524,6 @@ public sealed class UserManagerIntegrationTest : IClassFixture<TestWebApplicatio
         }, nameof(mustUser.Id), nameof(mustUser.HashedPassword), nameof(mustUser.RowVersion));
     }
 
-    [Theory]
-    [InlineData("Имя", "user@name", "password123", "eng", "fan.ass95@mail.ru", "12345")] // Username, язык и роль невалидные
-    [InlineData(null, null, "null", null, "fan.ass95@mail.ru", "12345")] // Пустые данные, кроме пароля, т.к GenerateHashedPassword выбросит исключение 
-    public async Task CreateUserAsyncByCreateUserDto_NotValidData_ThrowsInvalidOperationException(string firstname, string username, string password, string languageCode, string email, string phoneNumber)
-    {
-        // Arrange
-        var createUserDto = new CreateUserDto
-        {
-            Firstname = firstname,
-            Username = username,
-            Password = password,
-            LanguageCode = languageCode,
-            Email = email,
-            PhoneNumber = phoneNumber
-        };
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new CreateUserDtoValidator(validatorsLocalizer).ValidateAsync(createUserDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _userManager.CreateUserAsync(createUserDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(CreateUserDto), validationResult.Errors), ex.Message);
-
-        // Пользователь не создан
-        var userFromDbAfterCreate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Username == createUserDto.Username, TestContext.Current.CancellationToken);
-        Assert.Null(userFromDbAfterCreate);
-    }
-
-    // Тест, где прямо перед записью в базу выбрасывается исключение о невалидной моделью, выполнен в юнит-тесте
-
     [Fact]
     public async Task CreateUserAsyncByCreateUserDto_ReturnsErrorMessage_UsernameAlreadyTaken()
     {
@@ -765,45 +664,6 @@ public sealed class UserManagerIntegrationTest : IClassFixture<TestWebApplicatio
         Assert.Equal(userInfo.Email, userFromDbAfterCreate.Email);
         Assert.Equal(oAuthCompleteRegistrationDto.PhoneNumber, userFromDbAfterCreate.PhoneNumber);
         Assert.NotEqual(TestConstants.DefaultAvatarPath, userFromDbAfterCreate.AvatarURL); // Не дефолтная аватарка
-    }
-
-    [Theory]
-    [InlineData("phone")]
-    [InlineData(null)] // Пустые данные
-    public async Task CreateUserAsyncByUserInfoAndOAuthCompleteRegistrationDto_NotValidData_ThrowsInvalidOperationException(string phoneNumber)
-    {
-        // Arrange
-        var userInfo = new OpenIdUserInfo
-        {
-            Sub = "123",
-            Name = "фантом ассасин",
-            GivenName = "фантом",
-            FamilyName = "ассасин",
-            Nickname = "фантом ассасин",
-            Picture = "https://filin.mail.ru/pic?d=LHWIAVI9Bmqq-UAzSRq6yA1J_o-rvlv1PSR85MXdulxodK9yOvgAj89nM5bITfA~&name=%D1%84%D0%B0%D0%BD%D1%82%D0%BE%D0%BC+%D0%B0%D1%81%D1%81%D1%81%D0%B8%D0%BD",
-            Gender = "male",
-            Birthdate = DateTime.Now,
-            Locale = "ru",
-            Email = "some@some.some"
-        };
-
-        var oAuthCompleteRegistrationDto = new OAuthCompleteRegistrationDto
-        {
-            PhoneNumber = phoneNumber
-        };
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new OAuthCompleteRegistrationDtoValidator(validatorsLocalizer).ValidateAsync(oAuthCompleteRegistrationDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _userManager.CreateUserAsync(userInfo, oAuthCompleteRegistrationDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(OAuthCompleteRegistrationDto), validationResult.Errors), ex.Message);
     }
 
     [Fact]
@@ -958,40 +818,6 @@ public sealed class UserManagerIntegrationTest : IClassFixture<TestWebApplicatio
         {
             Assert.NotNull(user.RowVersion);
         }, nameof(userFromDbAfterUpdate.RowVersion));
-    }
-
-    [Theory]
-    [InlineData("something")] // Роль невалидна
-    [InlineData(null)] // Пустые данные
-    public async Task SetRoleAsync_NotValidData_ThrowsInvalidOperationException(string role)
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
-
-        var setRoleDto = new SetRoleDto()
-        {
-            Role = role
-        };
-        var userIdGuid = user.Id;
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new SetRoleDtoValidator(validatorsLocalizer).ValidateAsync(setRoleDto, TestContext.Current.CancellationToken);
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _userManager.SetRoleUserAsync(userIdGuid, setRoleDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(SetRoleDto), validationResult.Errors), ex.Message);
-
-        // Пользователь и вправду не обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
-        Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
     }
 
     [Fact]

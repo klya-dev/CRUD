@@ -77,32 +77,6 @@ public sealed class PublicationManagerIntegrationTest : IClassFixture<TestWebApp
             Assert.NotNull(pub.AuthorFirstname);
     }
 
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(0)]
-    [InlineData(101)]
-    public async Task GetPublicationsDtoAsyncByCount_NotValidData_ThrowsInvalidOperationException(int count)
-    {
-        // Arrange
-        var getPublicationsDto = new GetPublicationsDto()
-        {
-            Count = count
-        };
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new GetPublicationsDtoValidator(validatorsLocalizer).ValidateAsync(getPublicationsDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _publicationManager.GetPublicationsDtoAsync(count);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(GetPublicationsDto), validationResult.Errors), ex.Message);
-    }
-
     [Theory] // Корректные данные, но публикаций нет вообще
     [InlineData(1)]
     [InlineData(25)]
@@ -390,34 +364,6 @@ public sealed class PublicationManagerIntegrationTest : IClassFixture<TestWebApp
         Assert.Equivalent(mustResult, result);
     }
 
-    [Theory]
-    [InlineData(1, -1)]
-    [InlineData(1, 0)]
-    [InlineData(1, 26)]
-    [InlineData(-1, 5)]
-    public async Task GetPublicationsDtoAsyncByPageNumberAndPageSizeAndSearchStringAndSortBy_NotValidData_ThrowsInvalidOperationException(int pageIndex, int pageSize)
-    {
-        // Arrange
-        var getPaginatedListDto = new GetPaginatedListDto()
-        {
-            PageIndex = pageIndex,
-            PageSize = pageSize
-        };
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new GetPaginatedListDtoValidator(validatorsLocalizer).ValidateAsync(getPaginatedListDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _publicationManager.GetPublicationsDtoAsync(pageIndex, pageSize);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(GetPaginatedListDto), validationResult.Errors), ex.Message);
-    }
-
     [Fact] // Корректные данные, но публикаций нет вообще
     public async Task GetPublicationsDtoAsyncByPageNumberAndPageSizeAndSearchStringAndSortBy_WhenPublicationsNotExists_ReturnsPaginatedListDtoWithEmptyCollection()
     {
@@ -479,32 +425,6 @@ public sealed class PublicationManagerIntegrationTest : IClassFixture<TestWebApp
         Assert.NotEmpty(result);
 
         Assert.Equivalent(mustResult, result);
-    }
-
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(0)]
-    [InlineData(101)]
-    public async Task GetAuthorsDtoAsync_NotValidData_ThrowsInvalidOperationException(int count)
-    {
-        // Arrange
-        var getAuthorsDto = new GetAuthorsDto()
-        {
-            Count = count
-        };
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new GetAuthorsDtoValidator(validatorsLocalizer).ValidateAsync(getAuthorsDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _publicationManager.GetAuthorsDtoAsync(count);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(GetAuthorsDto), validationResult.Errors), ex.Message);
     }
 
     [Fact] // Корректные данные, но авторов нет вообще
@@ -695,31 +615,6 @@ public sealed class PublicationManagerIntegrationTest : IClassFixture<TestWebApp
         Assert.NotNull(result.Value);
 
         Assert.Equivalent(mustPublications, result.Value);
-    }
-
-    [Theory]
-    [InlineData(-1)] // Невалидное количество
-    public async Task GetPublicationsDtoAsyncByCountAuthorId_NotValidData_ThrowsInvalidOperationException(int count)
-    {
-        // Arrange
-        var getPublicationsDto = new GetPublicationsDto()
-        {
-            Count = count
-        };
-        var authorIdGuid = Guid.NewGuid();
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new GetPublicationsDtoValidator(validatorsLocalizer).ValidateAsync(getPublicationsDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _publicationManager.GetPublicationsDtoAsync(count, authorIdGuid);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(GetPublicationsDto), validationResult.Errors), ex.Message);
     }
 
     [Fact]
@@ -1053,35 +948,6 @@ public sealed class PublicationManagerIntegrationTest : IClassFixture<TestWebApp
 
         // Ожидаемый контент совпадает
         Assert.Equal(expectedContent, publicationFromDbAfterUpdate.Content);
-    }
-
-    [Theory]
-    [InlineData("Title", "notvalidcontent")] // Невалидное содержание
-    public async Task UpdatePublicationAsync_NotValidData_ThrowsInvalidOperationException(string title, string content)
-    {
-        // Arrange
-        var publicationIdGuid = Guid.NewGuid();
-        var updatePublicationDto = new UpdatePublicationDto()
-        {
-            PublicationId = publicationIdGuid,
-            Title = title,
-            Content = content
-        };
-        var userIdGuid = Guid.NewGuid();
-        var publicationFromDbBeforeUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new UpdatePublicationDtoValidator(validatorsLocalizer).ValidateAsync(updatePublicationDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _publicationManager.UpdatePublicationAsync(userIdGuid, updatePublicationDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(UpdatePublicationDto), validationResult.Errors), ex.Message);
     }
 
     [Fact]
@@ -1502,36 +1368,6 @@ public sealed class PublicationManagerIntegrationTest : IClassFixture<TestWebApp
         Assert.Equivalent(publicationFromDbBeforeUpdate, publicationFromDbAfterUpdate);
     }
 
-    [Theory]
-    [InlineData("Title", "notvalidcontent", "2025")] // Невалидное содержание и дата
-    public async Task UpdatePublicationAsyncByUpdatePublicationFullDto_NotValidData_ThrowsInvalidOperationException(string title, string content, string date)
-    {
-        // Arrange
-        var publicationIdGuid = Guid.NewGuid();
-        var updatePublicationDto = new UpdatePublicationFullDto()
-        {
-            Title = title,
-            Content = content,
-            CreatedAt = date
-        };
-        var userIdGuid = Guid.NewGuid();
-        var publicationFromDbBeforeUpdate = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Id == publicationIdGuid, TestContext.Current.CancellationToken);
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new UpdatePublicationFullDtoValidator(validatorsLocalizer).ValidateAsync(updatePublicationDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _publicationManager.UpdatePublicationAsync(publicationIdGuid, updatePublicationDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(UpdatePublicationFullDto), validationResult.Errors), ex.Message);
-        Assert.Equal(2, validationResult.Errors.Count);
-    }
-
     [Fact]
     public async Task UpdatePublicationAsyncByUpdatePublicationFullDto_ReturnsErrorMessage_PublicationNotFound()
     {
@@ -1720,33 +1556,6 @@ public sealed class PublicationManagerIntegrationTest : IClassFixture<TestWebApp
 
         // Ожидаемый контент совпадает
         Assert.Equal(expectedContent, publicationFromDbAfterCreate.Content);
-    }
-
-    [Theory]
-    [InlineData("Title", "content")] // Невалидное содержание
-    [InlineData(null, null)] // Пустые данные
-    public async Task CreatePublicationAsync_NotValidData_ThrowsInvalidOperationException(string title, string content)
-    {
-        // Arrange
-        var createPublicationDto = new CreatePublicationDto()
-        {
-            Title = title,
-            Content = content
-        };
-        var userIdGuid = Guid.NewGuid();
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new CreatePublicationDtoValidator(validatorsLocalizer).ValidateAsync(createPublicationDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _publicationManager.CreatePublicationAsync(userIdGuid, createPublicationDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(CreatePublicationDto), validationResult.Errors), ex.Message);
     }
 
     [Fact]

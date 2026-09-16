@@ -6,7 +6,7 @@
 // Чтобы запустить тест +приложение должно быть запущено:
 // k6.exe в папке Portable
 // k6 run publications.js
-// k6 run "E:\Projects\Web\CRUD\CRUD.Tests\LoadTests\publications.js"
+// k6 run "E:\Projects\Web\CRUD\tests\CRUD.Tests\LoadTests\publications.js"
 
 import http from 'k6/http';
 import { sleep, check } from 'k6';

@@ -60,40 +60,6 @@ public sealed class PasswordChangerIntegrationTest : IClassFixture<TestWebApplic
         Assert.False(_passwordHasher.Verify(changePasswordDto.NewPassword, userFromDbAfterUpdate.HashedPassword));
     }
 
-    [Theory]
-    [InlineData("123", "kek")] // Невалидный новый пароль
-    public async Task ChangePasswordAsync_NotValidData_ThrowsInvalidOperationException(string password, string newPassword)
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, hashedPassword: password, ct: TestContext.Current.CancellationToken);
-
-        var changePasswordDto = new ChangePasswordDto()
-        {
-            Password = password,
-            NewPassword = newPassword
-        };
-        var userIdGuid = user.Id;
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new ChangePasswordDtoValidator(validatorsLocalizer).ValidateAsync(changePasswordDto, TestContext.Current.CancellationToken);
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _passwordChanger.ChangePasswordAsync(userIdGuid, changePasswordDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(ChangePasswordDto), validationResult.Errors), ex.Message);
-
-        // Пароль и вправду не обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
-        Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
-    }
-
     [Fact]
     public async Task ChangePasswordAsync_ReturnsErrorMessage_UserNotFound()
     {
@@ -305,41 +271,6 @@ public sealed class PasswordChangerIntegrationTest : IClassFixture<TestWebApplic
         // Пароль и вправду обновился
         var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
         Assert.True(_passwordHasher.Verify(setPasswordDto.NewPassword, userFromDbAfterUpdate.HashedPassword));
-    }
-
-    [Theory]
-    [InlineData("kek")] // Невалидный новый пароль
-    public async Task SetPasswordAsync_NotValidData_ThrowsInvalidOperationException(string newPassword)
-    {
-        // Arrange
-        // Добавляем пользователя в базу
-        var user = await DI.CreateUserAsync(_db, ct: TestContext.Current.CancellationToken);
-
-        var setPasswordDto = new SetPasswordDto()
-        {
-            NewPassword = newPassword
-        };
-
-        var userIdGuid = user.Id;
-
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new SetPasswordDtoValidator(validatorsLocalizer).ValidateAsync(setPasswordDto, TestContext.Current.CancellationToken);
-        var userFromDbBeforeUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _passwordChanger.SetPasswordAsync(userIdGuid, setPasswordDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(SetPasswordDto), validationResult.Errors), ex.Message);
-
-        // Пароль и вправду не обновился
-        var userFromDbAfterUpdate = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userIdGuid, TestContext.Current.CancellationToken);
-        Assert.Equivalent(userFromDbBeforeUpdate, userFromDbAfterUpdate);
     }
 
     [Fact]

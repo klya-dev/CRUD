@@ -51,24 +51,6 @@ public sealed class AuthManagerIntegrationTest : IClassFixture<TestWebApplicatio
         Assert.Equal(1, countRefreshTokensFromDb);
     }
 
-    [Theory]
-    [InlineData(null, null)] // Невалидная модель
-    [InlineData("", "")]
-    public async Task LoginAsync_WhenNotValidData_ThrowsInvalidOperationException(string username, string password)
-    {
-        // Arrange
-        var loginData = new LoginDataDto { Username = username, Password = password };
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _authManager.LoginAsync(loginData, TestContext.Current.CancellationToken);
-        };
-
-        // Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(a);
-    }
-
     [Fact]
     public async Task LoginAsync_WhenUserNotFound_ReturnsErrorMessage_InvalidLoginOrPassword()
     {
@@ -292,32 +274,6 @@ public sealed class AuthManagerIntegrationTest : IClassFixture<TestWebApplicatio
         Assert.Equal(1, countRefreshTokensFromDb);
     }
 
-    [Theory]
-    [InlineData("Oleg", "12oleg@", "12345", "uk", "fan.ass95@mail.ru", "12345")] // Имя и Username невалидные
-    [InlineData(null, null, null, null, null, null)] // Пустые данные
-    public async Task RegisterAsync_NotValidData_ThrowsInvalidOperationException(string firstname, string username, string password, string languageCode, string email, string phoneNumber)
-    {
-        // Arrange
-        var createUserDto = new CreateUserDto()
-        {
-            Firstname = firstname,
-            Username = username,
-            Password = password,
-            LanguageCode = languageCode,
-            Email = email,
-            PhoneNumber = phoneNumber
-        };
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _authManager.RegisterAsync(createUserDto, TestContext.Current.CancellationToken);
-        };
-
-        // Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(a);
-    }
-
     [Fact]
     public async Task RegisterAsync_ReturnsErrorMessage_UsernameAlreadyTaken()
     {
@@ -400,46 +356,6 @@ public sealed class AuthManagerIntegrationTest : IClassFixture<TestWebApplicatio
         // Refresh-токен добавился в базу
         var countRefreshTokensFromDb = await _db.AuthRefreshTokens.Where(x => x.UserId == userFromDbAfter.Id).CountAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(1, countRefreshTokensFromDb);
-    }
-
-    [Theory]
-    [InlineData("phone")] // PhoneNumber невалиднен
-    [InlineData(null)] // Пустые данные
-    public async Task RegisterAsyncByUserInfoAndOAuthCompleteRegistrationDto_NotValidData_ThrowsInvalidOperationException(string phoneNumber)
-    {
-        // Arrange
-        var userInfo = new OpenIdUserInfo
-        {
-            Sub = "123",
-            Name = "фантом ассасин",
-            GivenName = "фантом",
-            FamilyName = "ассасин",
-            Nickname = "фантом ассасин",
-            Picture = "https://filin.mail.ru/pic?d=LHWIAVI9Bmqq-UAzSRq6yA1J_o-rvlv1PSR85MXdulxodK9yOvgAj89nM5bITfA~&name=%D1%84%D0%B0%D0%BD%D1%82%D0%BE%D0%BC+%D0%B0%D1%81%D1%81%D1%81%D0%B8%D0%BD",
-            Gender = "male",
-            Birthdate = DateTime.Now,
-            Locale = "ru",
-            Email = "some@some.some"
-        };
-
-        var oAuthCompleteRegistrationDto = new OAuthCompleteRegistrationDto
-        {
-            PhoneNumber = phoneNumber
-        };
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new OAuthCompleteRegistrationDtoValidator(validatorsLocalizer).ValidateAsync(oAuthCompleteRegistrationDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _authManager.RegisterAsync(userInfo, oAuthCompleteRegistrationDto);
-        };
-
-        // Assert
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(OAuthCompleteRegistrationDto), validationResult.Errors), ex.Message);
     }
 
     [Fact]

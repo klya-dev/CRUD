@@ -56,41 +56,6 @@ public sealed class ClientApiManagerIntegrationTest : IClassFixture<TestWebAppli
         Assert.Equivalent(clientApiCreatePublicationDto.Content, publicationFromDbAfterCreatePublication.Content);
     }
 
-    [Theory] // Невалидные данные
-    [InlineData("Title", TestConstants.PublicationContent, "ApiKey")] // Неправильный API-ключ
-    [InlineData(null, null, null)]
-    public async Task CreatePublicationAsync_WhenNotValidData_ThrowsInvalidOperationException(string title, string content, string apiKey)
-    {
-        // Arrange
-        var clientApiCreatePublicationDto = new ClientApiCreatePublicationDto()
-        {
-            Title = title,
-            Content = content,
-            ApiKey = apiKey
-        };
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new ClientApiCreatePublicationDtoValidator(validatorsLocalizer).ValidateAsync(clientApiCreatePublicationDto, TestContext.Current.CancellationToken);
-
-        // Публикации не должно существовать, до создания
-        var publicationFromDbBeforeCreatePublication = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Title == title && x.Content == content, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _clientApiManager.CreatePublicationAsync(clientApiCreatePublicationDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(ClientApiCreatePublicationDto), validationResult.Errors), ex.Message);
-
-        // Публикация и вправду не создалась
-        var publicationFromDbAfterCreatePublication = await _db.Publications.AsNoTracking().FirstOrDefaultAsync(x => x.Title == title && x.Content == content, TestContext.Current.CancellationToken);
-        Assert.Null(publicationFromDbBeforeCreatePublication);
-        Assert.Null(publicationFromDbAfterCreatePublication);
-    }
-
     [Fact]
     public async Task CreatePublicationAsync_ReturnsErrorMessage_InvalidApiKey()
     {

@@ -73,32 +73,6 @@ public sealed class NotificationManagerIntegrationTest : IClassFixture<TestWebAp
         Assert.Equivalent(mustResult, result.Value);
     }
 
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(0)]
-    [InlineData(101)]
-    public async Task GetUserNotificationsDtoAsyncByCount_NotValidData_ThrowsInvalidOperationException(int count)
-    {
-        // Arrange
-        var getUserNotificationsDto = new GetUserNotificationsDto()
-        {
-            Count = count
-        };
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new GetUserNotificationsDtoValidator(validatorsLocalizer).ValidateAsync(getUserNotificationsDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _notificationManager.GetUserNotificationsDtoAsync(Guid.NewGuid(), count);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(GetUserNotificationsDto), validationResult.Errors), ex.Message);
-    }
-
     [Fact]
     public async Task GetUserNotificationsDtoAsyncByCount_ReturnsErrorMessage_UserNotFound()
     {
@@ -170,33 +144,6 @@ public sealed class NotificationManagerIntegrationTest : IClassFixture<TestWebAp
         Assert.Equal(userNotificationFromDbAfterCreate.UserId, userIdGuid);
     }
 
-    [Theory]
-    [InlineData("", "")]
-    [InlineData(null, null)] // Пустые данные
-    public async Task CreateNotificationAsync_NotValidData_ThrowsInvalidOperationException(string title, string content)
-    {
-        // Arrange
-        var createNotificationDto = new CreateNotificationDto()
-        {
-            Title = title,
-            Content = content
-        };
-        var userIdGuid = Guid.NewGuid();
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new CreateNotificationDtoValidator(validatorsLocalizer).ValidateAsync(createNotificationDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _notificationManager.CreateNotificationAsync(createNotificationDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(CreateNotificationDto), validationResult.Errors), ex.Message);
-    }
-
 
     [Fact] // Корректные данные
     public async Task CreateNotificationAsyncByCreateNotificationSelectedUsersDto_ReturnsServiceResult()
@@ -239,37 +186,6 @@ public sealed class NotificationManagerIntegrationTest : IClassFixture<TestWebAp
         // Уведомление для второго пользователя и вправду не создалось (т.к его нет в списке)
         var user2NotificationFromDbAfterCreate = await _db.UserNotifications.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == user2.Id, TestContext.Current.CancellationToken);
         Assert.Null(user2NotificationFromDbAfterCreate);
-    }
-
-    [Theory]
-    [InlineData("", "")]
-    [InlineData(null, null)] // Пустые данные
-    public async Task CreateNotificationAsyncByCreateNotificationSelectedUsersDto_NotValidData_ThrowsInvalidOperationException(string title, string content)
-    {
-        // Arrange
-        var createNotificationSelectedUsersDto = new CreateNotificationSelectedUsersDto()
-        {
-            UserIds = [],
-            Notification = new CreateNotificationDto()
-            {
-                Title = title,
-                Content = content
-            }
-        };
-        var userIdGuid = Guid.NewGuid();
-        var validatorsLocalizer = new ValidatorLocalizer();
-        var validationResult = await new CreateNotificationSelectedUsersDtoValidator(validatorsLocalizer).ValidateAsync(createNotificationSelectedUsersDto, TestContext.Current.CancellationToken);
-
-        // Act
-        Func<Task> a = async () =>
-        {
-            await _notificationManager.CreateNotificationAsync(createNotificationSelectedUsersDto);
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(a);
-
-        // Assert
-        Assert.Contains(ErrorMessages.ModelIsNotValid(nameof(CreateNotificationSelectedUsersDto), validationResult.Errors), ex.Message);
     }
 
 

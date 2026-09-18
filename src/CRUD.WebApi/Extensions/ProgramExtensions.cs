@@ -51,6 +51,13 @@ public static class ProgramExtensions
             options.Limits.Http2.KeepAlivePingDelay = TimeSpan.FromSeconds(30); // Если сервер не получает никаких запросов от клиента в течение 30 секунд, он отправляет клиенту keep-alive пакет для проверки соединения (каждые 30 секунд неактивности отправляются пинги)
             options.Limits.Http2.KeepAlivePingTimeout = TimeSpan.FromMinutes(1); // Если клиент не отвечает на keep-alive или вообще ничего не отправляет в течении минуты - соединение разрывается (закрывает соединение, если в течении минуты не получен ответ)
         });
+
+        builder.Services.Configure<HostOptions>(options =>
+        {
+            // Если возникло необработанное исключение в BackgroundService (ExecuteAsync), то по дефолту приложение падает
+            // Даже, если исключение выбросилось не во время "поднятия" приложения, а вообще в любое время, например через час, приложение просто обрубается (при BackgroundServiceExceptionBehavior.StopHost - дефолт)
+            options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore; // Игнорируем исключения (логирование остаётся) в фоновых сервисах и продолжаем работу приложения
+        });
     }
 
     /// <summary>

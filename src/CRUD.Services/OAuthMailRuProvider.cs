@@ -14,7 +14,7 @@ public sealed partial class OAuthMailRuProvider : IOAuthMailRuProvider
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<OAuthMailRuProvider> _logger;
-    private readonly IMemoryCache _cache; // Хочу хранить только в памяти, а не в Redis. HybridCache и DistributedCache не подойдёт
+    private readonly IMemoryCache _cache; // Хочу хранить только в памяти, а не в Redis. HybridCache и DistributedCache не подойдут
 
     public OAuthMailRuProvider(IOptions<OAuthMailRuOptions> options, IHttpClientFactory httpClientFactory, ILogger<OAuthMailRuProvider> logger, IMemoryCache cache)
     {
@@ -86,7 +86,7 @@ public sealed partial class OAuthMailRuProvider : IOAuthMailRuProvider
 
     public async Task<string?> GetAccessTokenAsync(string code, string state, CancellationToken ct = default)
     {
-        // Если ли предоставленная строка состояния в кэше
+        // Есть ли предоставленная строка состояния в кэше
         if (!_cache.TryGetValue(state, out string? verifierCode))
         {
             _logger.LogError("Не удалось получить AccessToken MailRu по причине: \"Предоставленная строка состояния не найдена в кэше\" (state: \"{state}\").", state);

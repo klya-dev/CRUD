@@ -343,7 +343,7 @@ public static class ProgramExtensions
         // Подключение Redis к HybridCache
         builder.Services.AddStackExchangeRedisCache(options =>
         {
-            options.InstanceName = "localHybrid";
+            options.InstanceName = "localHybrid"; // Каждый ключ в кэше будет начинаться с этого префикса + полезно, если ферма приложений
 
             options.ConfigurationOptions = new StackExchange.Redis.ConfigurationOptions()
             {

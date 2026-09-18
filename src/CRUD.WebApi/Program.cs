@@ -194,8 +194,9 @@ app.UseOutputCache(); // Обязательно после UseCors и UseRouting
 // Пропускаем ли инициализаторы
 if (!programOptions.SkipInitializers)
 {
-    await InitializeDatabaseAsync();
-    await InitializeS3EcosystemAsync();
+    await app.InitializeDatabaseAsync();
+    await app.InitializeS3EcosystemAsync();
+    app.LogProxyStatus(app.Configuration);
 }
 
 var apiVersionSet = app.NewApiVersionSet()
@@ -246,32 +247,4 @@ app.MapShortCircuit(404, "robots.txt", "favicon.ico"); // Т.к у меня нет этих фа
 // (https://andrewlock.net/exploring-the-dotnet-8-preview-short-circuit-routing | https://learn.microsoft.com/ru-ru/aspnet/core/fundamentals/routing?view=aspnetcore-9.0#short-circuit-middleware-after-routing)
 #endregion
 
-// Уведомление о отсутствии удалённого прокси сервера
-var proxyIps = builder.Configuration.GetSection(ProxiesOptions.SectionName).Get<ProxiesOptions>()!.RemoteProxyIps;
-if (proxyIps.Length == 0)
-    app.Logger.LogInformation("Удалённые прокси сервера не указаны, в качестве доверенного прокси используется локальный диапазон IP-адресов.");
-
-app.Logger.LogInformation("Приложение запущено.");
-
 await app.RunAsync();
-
-
-async Task InitializeDatabaseAsync(CancellationToken ct = default)
-{
-    await using var scope = app.Services.CreateAsyncScope();
-    var dbInitializer = scope.ServiceProvider.GetRequiredService<IDbInitializer>();
-    await dbInitializer.InitializeAsync(ct);
-
-    var userManager = scope.ServiceProvider.GetRequiredService<IUserManager>();
-    await userManager.CreateAdminUserAsync(ct);
-
-    var productManager = scope.ServiceProvider.GetRequiredService<IProductManager>();
-    await productManager.AddProductsToDbAsync(ct);
-}
-
-async Task InitializeS3EcosystemAsync(CancellationToken ct = default)
-{
-    await using var scope = app.Services.CreateAsyncScope();
-    var s3Initializer = scope.ServiceProvider.GetRequiredService<IS3Initializer>();
-    await s3Initializer.InitializeAsync(ct);
-}

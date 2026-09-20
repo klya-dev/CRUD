@@ -43,7 +43,7 @@ public static class PipelineMiddlewareExtensions
         app.UseMiddleware<BasicAuthMetricsMiddleware>();
 
         //app.UseHttpsRedirection(); // Если не закомментировать, то ЮКасса не будет работать с Tuna (307 статус код). Приложение получает запрос от Tuna, а в ответ присылает редирект на https, но Tuna не умеет в редиректы
-        app.UseReadyStaticFilesAndDirectoryBrowser();
+        app.UseCustomStaticFilesAndDirectoryBrowser();
         app.UseRouting();
         app.UseRequestTimeouts();
         app.UseCors();

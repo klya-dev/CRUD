@@ -166,7 +166,7 @@ public sealed class PasswordChangerIntegrationTest : IClassFixture<TestWebApplic
 
         var userIdGuid = user.Id;
 
-        // Добавляем токен в базу
+        // Создаём и шифруем токен
         var changePasswordPayload = DI.CreateChangePasswordPayload(userIdGuid);
         var token = _protector.Protect(JsonSerializer.Serialize(changePasswordPayload));
 

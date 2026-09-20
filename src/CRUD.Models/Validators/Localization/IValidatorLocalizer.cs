@@ -5,7 +5,7 @@
 /// </summary>
 /// <remarks>
 /// <para>Используй ключи из <see cref="ValidatorLocalizerConstants"/>.</para>
-/// <para>Для использования локализации, необходимо вызвать <c><see cref="WebApi.Extensions.LocalizationServiceCollectionExtensions.AddReadyLocalization(IServiceCollection)"/></c> в <c>Program.cs</c>.</para>
+/// <para>Для использования локализации, необходимо вызвать <c><see cref="CRUD.WebApi.Extensions.DependencyInjection.LocalizationExtensions.AddCustomLocalization(IServiceCollection)"/></c> в <c>Program.cs</c>.</para>
 /// </remarks>
 public interface IValidatorLocalizer
 {

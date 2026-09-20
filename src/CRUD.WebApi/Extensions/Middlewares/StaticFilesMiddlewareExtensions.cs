@@ -13,7 +13,7 @@ public static class StaticFilesMiddlewareExtensions
     /// <remarks>
     /// <see cref="StaticFileExtensions.UseStaticFiles(IApplicationBuilder, StaticFileOptions)"/> и <see cref="DirectoryBrowserExtensions.UseDirectoryBrowser(IApplicationBuilder, DirectoryBrowserOptions)"/>.
     /// </remarks>
-    public static WebApplication UseReadyStaticFilesAndDirectoryBrowser(this WebApplication app)
+    public static WebApplication UseCustomStaticFilesAndDirectoryBrowser(this WebApplication app)
     {
         // Забавный момент, согласно документации, UseStaticFiles не использует сжатие при публикации, но в .NET 9 сжимает, т.к это на уровне SDK, немного непредсказуемое поведение, но меня устраивает
         // https://github.com/dotnet/aspnetcore/issues/59518

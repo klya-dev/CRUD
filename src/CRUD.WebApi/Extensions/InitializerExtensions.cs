@@ -16,7 +16,7 @@ public static class InitializerExtensions
     // this IServiceCollection - это тоже общая область касаемая сервисов (IHost.Services)
     // this WebApplication - это уже касается веб-приложений (наследуется от IHost)
 
-    // WebApplicationBuilder у меня есть в ProgramExtensions
+    // WebApplicationBuilder у меня есть в LoggingExtensions
     // А этот класс InitializerExtensions хочу сделать универсальным (IHost), чтобы его можно быть использовать не только веб-приложениями
     // Вряд ли, кроме веб-приложения будет кто-то это вызывать, но чисто для примера.
 

@@ -6,7 +6,7 @@ namespace CRUD.Models.Validators.Localization;
 /// Пользовательский <c>LanguageManager</c> для FluentValidation.
 /// </summary>
 /// <remarks>
-/// Указан в <see cref="WebApi.Extensions.LocalizationServiceCollectionExtensions.AddReadyLocalization(IServiceCollection)"/>.
+/// Указан в <see cref="CRUD.WebApi.Extensions.DependencyInjection.LocalizationExtensions.AddCustomLocalization(IServiceCollection)"/>.
 /// </remarks>
 public sealed class CustomValidationLanguageManager : FluentValidation.Resources.LanguageManager
 {

@@ -7,7 +7,7 @@ namespace CRUD.WebApi.Localization;
 /// </summary>
 /// <remarks>
 /// <para>Используй ключи из <see cref="ResourceLocalizerConstants"/>.</para>
-/// <para>Для использования локализации из ресурсов, необходимо вызвать <c><see cref="LocalizationServiceCollectionExtensions.AddReadyLocalization(IServiceCollection)"/></c> в <c>Program.cs</c>.</para>
+/// <para>Для использования локализации из ресурсов, необходимо вызвать <c><see cref="LocalizationExtensions.AddCustomLocalization(IServiceCollection)"/></c> в <c>Program.cs</c>.</para>
 /// </remarks>
 public interface IResourceLocalizer
 {

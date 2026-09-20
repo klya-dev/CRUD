@@ -175,7 +175,7 @@ public static class ProgramExtensions
     /// <remarks>
     /// <see cref="Serilog.SerilogApplicationBuilderExtensions.UseSerilogRequestLogging(IApplicationBuilder, Action{Serilog.AspNetCore.RequestLoggingOptions}?)"/>.
     /// </remarks>
-    public static void UseReadyRequestLogging(this WebApplication app)
+    public static void UseCustomRequestLogging(this WebApplication app)
     {
         app.UseSerilogRequestLogging((configuration) =>
         {

@@ -18,7 +18,7 @@ public static class PipelineMiddlewareExtensions
         if (app.Environment.IsDevelopment())
         {
             app.UseDeveloperExceptionPage(); // Этот Middleware и так захардкожен по дефолту для Development (https://github.com/dotnet/aspnetcore/blob/main/src/DefaultBuilder/src/WebApplicationBuilder.cs#L402-L405)
-            // Для API генерируется грамотный, красивый ответ application/problem+json, учитывая, что я выше добавил .AddProblemDetails()
+            // Для API генерируется грамотный, красивый ответ application/problem+json, учитывая, что я добавил .AddProblemDetails()
 
             app.MapOpenApi(); // Конечная точка "/openapi/v1.json"
             app.MapScalarApiReference();
@@ -32,7 +32,7 @@ public static class PipelineMiddlewareExtensions
 
         app.UseRequestLocalization(); // В обработчиках исключений используется локализация
 
-        // Добавить обработчики ошибок в pipeline (выше добавлены AddExceptionHandler)
+        // Добавить обработчики ошибок в pipeline (добавлены AddExceptionHandler)
         app.UseExceptionHandler(); // GlobalExceptionHandler, который скрывает внутренности включается только в Production, а остальные обработчики везде
 
         if (app.Environment.IsProduction())

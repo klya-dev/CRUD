@@ -40,7 +40,7 @@ var app = builder.Build();
 
 // Пропускаем ли логирование
 if (!programOptions.SkipLogging)
-    app.UseReadyRequestLogging();
+    app.UseCustomRequestLogging();
 
 if (app.Environment.IsDevelopment())
 {
@@ -49,7 +49,7 @@ if (app.Environment.IsDevelopment())
 else if (app.Environment.IsProduction())
 {
     // Добавить глобальный обработчик ошибок в pipeline, чтобы вместо трейса и других внутренностей была грамотно сформированная ошибка для клиента (выше добавлен AddExceptionHandler)
-    app.UseExceptionHandler(options => { }); // Если не прописать options исключение (https://github.com/dotnet/aspnetcore/issues/51888)
+    app.UseExceptionHandler(options => { }); // Если не прописать options - исключение (https://github.com/dotnet/aspnetcore/issues/51888)
     app.UseHsts();
 }
 
@@ -88,7 +88,5 @@ app.MapPrometheusScrapingEndpoint(); // Телеметрия (/metrics)
 app.MapShortCircuit(404, "robots.txt", "favicon.ico"); // Т.к у меня нет этих файлов, я могу уменьшить нагрузку на сервер, путём пропуска нескольких Middleware'ов (CORS, Endpoint...)
 // (https://andrewlock.net/exploring-the-dotnet-8-preview-short-circuit-routing | https://learn.microsoft.com/ru-ru/aspnet/core/fundamentals/routing?view=aspnetcore-9.0#short-circuit-middleware-after-routing)
 #endregion
-
-app.Logger.LogInformation("Приложение запущено.");
 
 await app.RunAsync();

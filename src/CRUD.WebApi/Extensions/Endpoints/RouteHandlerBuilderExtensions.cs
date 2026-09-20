@@ -1,9 +1,9 @@
-﻿namespace CRUD.WebApi.Extensions;
+﻿namespace CRUD.WebApi.Extensions.Endpoints;
 
 /// <summary>
-/// Расширения для эндпоинтов.
+/// Расширения для <see cref="RouteHandlerBuilder"/>.
 /// </summary>
-public static class EndpointExtensions
+public static class RouteHandlerBuilderExtensions
 {
     /// <summary>
     /// Добавляет фильтр <see cref="ValidationFilter{T}"/> и метадату ответа <see cref="OpenApiRouteHandlerBuilderExtensions.ProducesValidationProblem(RouteHandlerBuilder, int, string?)"/>.

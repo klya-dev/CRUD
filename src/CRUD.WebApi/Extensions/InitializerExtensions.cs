@@ -1,7 +1,7 @@
 ﻿namespace CRUD.WebApi.Extensions;
 
 /// <summary>
-/// Расширения для вызова инициализаторов и начальных сведений.
+/// Расширения для вызова инициализаторов и логирования начальных сведений.
 /// </summary>
 /// <remarks>
 /// Универсальное применение (<see cref="IHost"/>).
@@ -13,6 +13,7 @@ public static class InitializerExtensions
     // Поэтому правильным решением будет вызывать инициализаторы до каких-либо IHostedService прямо в Program.cs
 
     // this IHost - это общая инфраструктурная область (не только веб-приложения)
+    // this IServiceCollection - это тоже общая область касаемая сервисов (IHost.Services)
     // this WebApplication - это уже касается веб-приложений (наследуется от IHost)
 
     // WebApplicationBuilder у меня есть в ProgramExtensions

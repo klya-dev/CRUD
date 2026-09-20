@@ -1,14 +1,17 @@
-﻿namespace CRUD.WebApi.Extensions;
+﻿namespace CRUD.WebApi.Extensions.DependencyInjection;
 
-public static class LocalizationServiceCollectionExtensions
+/// <summary>
+/// <see cref="IServiceCollection"/> расширения локализации.
+/// </summary>
+public static class LocalizationExtensions
 {
     /// <summary>
-    /// Добавляет уже настроенную локализацию.
+    /// Добавляет и настраивает локализацию.
     /// </summary>
     /// <remarks>
     /// Не забывать вызвать <c><see cref="ApplicationBuilderExtensions.UseRequestLocalization(IApplicationBuilder)"/></c> в конфигурации приложения, чтобы язык сопоставлялся с заголовком "Accept-Language" в запросе.
     /// </remarks>
-    public static IServiceCollection AddReadyLocalization(this IServiceCollection services)
+    public static IServiceCollection AddCustomLocalization(this IServiceCollection services)
     {
         services.AddLocalization(options => options.ResourcesPath = "Resources");
         services.AddSingleton<IResourceLocalizer, ResourceLocalizer>();

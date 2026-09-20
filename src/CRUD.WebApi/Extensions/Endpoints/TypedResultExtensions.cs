@@ -1,9 +1,9 @@
 ﻿using FluentValidation.Results;
 
-namespace CRUD.WebApi.Extensions;
+namespace CRUD.WebApi.Extensions.Endpoints;
 
 /// <summary>
-/// Статический класс, предназначенный для расширений к <see cref="TypedResults"/>.
+/// Расширения для <see cref="TypedResults"/>.
 /// </summary>
 /// <remarks>
 /// <para>Расширения находятся в свойстве <see cref="TypedResults.Extensions"/>.</para>

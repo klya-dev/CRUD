@@ -1,5 +1,6 @@
-﻿using Serilog.Events;
-using Serilog.Enrichers.Sensitive;
+﻿using Serilog.Enrichers.Sensitive;
+using Serilog.Events;
+using Serilog.Formatting.Compact;
 
 namespace CRUD.WebApi.Extensions.DependencyInjection;
 
@@ -26,6 +27,27 @@ public static class LoggingExtensions
         builder.Logging.ClearProviders(); // Убираем ConsoleLoggerProvider, DebugLoggerProvider, EventSourceLoggerProvider, EventLogLoggerProvider
         builder.Host.UseSerilog((context, configuration) =>
         {
+            configuration.ReadFrom.Configuration(context.Configuration);
+
+            // В разработке текст, в проде JSON
+            if (builder.Environment.IsDevelopment())
+            {
+                configuration.WriteTo.Console(outputTemplate: "[{ApplicationName}] [{Timestamp:dd.MM.yyyy HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}");
+                configuration.WriteTo.File(Path.Combine(builder.Environment.ContentRootPath, s3Options.LogsDirectory, "log-.txt"),
+                    outputTemplate: "[{ApplicationName}] [{SourceContext}] [{Timestamp:dd.MM.yyyy HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: null);
+            }
+            else
+            {
+                var formatter = new RenderedCompactJsonFormatter();
+
+                configuration.WriteTo.Console(formatter);
+                configuration.WriteTo.File(formatter, Path.Combine(builder.Environment.ContentRootPath, s3Options.LogsDirectory, "log-.txt"),
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: null);
+            }
+
             configuration.Filter.ByExcluding(logEvent =>
             {
                 // Исключаем некоторые эндпоинты из логирования
@@ -38,12 +60,7 @@ public static class LoggingExtensions
                 }
                 return false;
             });
-            configuration.WriteTo.Console(outputTemplate: "[{ApplicationName}] [{Timestamp:dd.MM.yyyy HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}");
-            configuration.WriteTo.File(Path.Combine(builder.Environment.ContentRootPath, s3Options.LogsDirectory, "log-.txt"),
-                outputTemplate: "[{ApplicationName}] [{SourceContext}] [{Timestamp:dd.MM.yyyy HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}",
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: null);
-            configuration.ReadFrom.Configuration(context.Configuration);
+
             configuration.Enrich.WithSensitiveDataMasking(options =>
             {
                 options.MaskingOperators.Clear(); // По дефолту тут три оператора

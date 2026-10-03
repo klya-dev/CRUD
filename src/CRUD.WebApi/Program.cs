@@ -10,6 +10,7 @@ Log.Logger = new LoggerConfiguration()
 
 // CreateLogger (Logger) - будет два разных инстанса, один создаётся в начале: Log.Logger = ...CreateLogger()
 // А второй создаётся в UseSerilog. После создания в UseSerilog обновляется ссылка на Log.Logger, но тем сервисам, которым успели передать первый инстанс в конструктор, так и останутся с урезанным логгером
+// *Фабрика Serilog раздаёт логгеры в DI через Log.Logger
 
 // CreateBootstrapLogger (ReloadableLogger) - будет один инстанс, он создаётся в начале: Log.Logger = ...CreateBootstrapLogger()
 // В UseSerilog изменяются поля этого инстанса (донастраиваются), соответственно ссылка сохраняется и проблем таких, как в CreateLogger не будет

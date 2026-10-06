@@ -53,13 +53,14 @@ public static class ProgramExtensions
     }
 
     /// <summary>
-    /// Кэширование (OutputCache, HybridCache).
+    /// Кэширование (OutputCache, HybridCache, IDistributedCache).
     /// </summary>
     public static IServiceCollection AddCachingAndOptimization(this IServiceCollection services, IConfiguration configuration)
     {
         services
             .AddCustomOutputCache()
-            .AddCustomHybridCache(configuration);
+            .AddCustomHybridCache()
+            .AddCustomDistributedCache(configuration);
 
         return services;
     }

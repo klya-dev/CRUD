@@ -108,8 +108,8 @@ public sealed class IdempotencyFilter : IEndpointFilter
         string requestHash = Convert.ToHexString(bodyBytes);
 
         // Получаем кэшированный результат
-        string cacheKey = $"{CacheKeys.Idempotency}-{idempotencyKey}";
-        string? cachedResult = await cache.GetStringAsync(cacheKey, ct);
+        string cacheKey = $"{CacheKeys.Idempotency}-{idempotencyKey}"; // Лишняя аллокацая строки, лучше передавать в метод напрямую
+        string? cachedResult = await cache.GetStringAsync(cacheKey, ct); // Если бы я хотел использовать HybridCache, то там нет метода GetAsync, и чтобы просто получить значение из кэша, но не обращаться к источнику нужно использовать ключи (HybridCacheEntryFlags.DisableUnderlyingData)
         if (cachedResult != null)
         {
             // Десериализуем кэшированный Json

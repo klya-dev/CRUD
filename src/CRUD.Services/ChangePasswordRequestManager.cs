@@ -37,7 +37,7 @@ public sealed class ChangePasswordRequestManager : IChangePasswordRequestManager
         if (userId == Guid.Empty)
             throw new InvalidOperationException(ErrorMessages.EmptyUniqueIdentifier);
 
-        string cacheKey = $"{CacheKeys.RateLimitSendEmailPasswordChange}-{userId}";
+        string cacheKey = $"{CacheKeys.RateLimitSendEmailPasswordChange}-{userId}"; // Лишняя аллокация строки, лучше передавать в метод напрямую
 
         // Пытаемся получить время отправки последнего письма на смену пароля из кэша
         // Если ключа нет, вернется дефолтное значение DateTime (DateTime.MinValue)

@@ -54,11 +54,11 @@ public static class CacheExtensions
     /// <remarks>
     /// Внутреннее кэширование приложения с Memory + Redis.
     /// </remarks>
-    public static IServiceCollection AddCustomHybridCache(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddCustomHybridCache(this IServiceCollection services)
     {
         services.AddHybridCache(options =>
         {
-            options.MaximumPayloadBytes = 1024 * 1024; // Максимальный размер кэша в байтах
+            options.MaximumPayloadBytes = 1024 * 1024; // Максимальный размер записи кэша в байтах
             options.MaximumKeyLength = 1024; // Максимальная длина ключа в символах
             options.DefaultEntryOptions = new HybridCacheEntryOptions
             {
@@ -67,7 +67,18 @@ public static class CacheExtensions
             };
         });
 
-        // Подключение Redis к HybridCache
+        return services;
+    }
+
+    /// <summary>
+    /// Добавляет и настраивает IDistributedCache (Redis).
+    /// </summary>
+    /// <remarks>
+    /// Распределённое кэширование Redis.
+    /// </remarks>
+    public static IServiceCollection AddCustomDistributedCache(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Регистрируем реализацию IDistributedCache (это не настройка к HybridCache, это самостоятельная реализация IDistributedCache. HybridCache сам берёт эту реализацию из IDistributedCache)
         services.AddStackExchangeRedisCache(options =>
         {
             options.InstanceName = "localHybrid"; // Каждый ключ в кэше будет начинаться с этого префикса + полезно, если ферма приложений

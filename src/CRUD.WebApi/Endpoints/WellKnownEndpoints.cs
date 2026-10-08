@@ -27,7 +27,7 @@ public static class WellKnownEndpoints
             // Возвращаем ключи (в моём случае, всегда один)
             return Results.Json(new { keys = new[] { jwk } });
         })
-            .CacheOutput(builder => builder.NoCache()) // Без кэширования ответа, GetPublicKey сам кэширует. Поэтому для замены ключей нужно изменить конфигурацию, а IOptionsMonitor сам подтянет изменения на лету
+            .CacheOutput(builder => builder.NoCache()) // Без кэширования ответа, т.к GetPublicKey сам кэширует ключи. Для замены ключей нужно изменить конфигурацию, а IOptionsMonitor сам подтянет изменения на лету
             .WithSummary("Возвращает все публичные ключи для валидации JWT-токенов.")
             .WithDescription("Микросервисы должны брать публичные ключи из этой конечной точки.");
     }

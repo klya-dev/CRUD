@@ -21,12 +21,15 @@ public static class CacheExtensions
             options.AddBasePolicy(builder =>
                 builder.Expire(TimeSpan.FromSeconds(10)));
 
+            // Тут тоже будут учитываться дефолтные правила
             options.AddPolicy("Expire20", builder =>
                 builder.Expire(TimeSpan.FromSeconds(20)));
         });
 
-        // Можно подключить Redis к OutputCache, я отключил, т.к это не HybridCache, и если нет подключения к редису, то локальный кэш не будет перехватывать управление (будет долго отвечать на запрос)
-        //builder.Services.AddStackExchangeRedisOutputCache(options =>
+        // Можно подключить Redis к OutputCache, я отключил, т.к это не HybridCache, и если нет подключения к редису, то локальный кэш не будет перехватывать управление (нет подключения - будет долго отвечать на запрос + исключение) | Лень запускать докер вместе с Redis'ом :)
+        // Чтобы локальный кэш перехватывал управление при сбоях Redis нужно написать свою Fallback реализацию IOutputCacheStore. Можно без Fallback, просто написать реализацию, которая будет перехватывать исключения
+        // Эта регистрация не дополняет дефолтный OutputCache (Memory), а заменяет (регистрирует новую реализацию) OutputCache на распределённое кэширование (Redis)
+        //services.AddStackExchangeRedisOutputCache(options =>
         //{
         //    options.InstanceName = "localOutput";
 
@@ -35,13 +38,14 @@ public static class CacheExtensions
         //    {
         //        EndPoints = new StackExchange.Redis.EndPointCollection()
         //        {
-        //            { builder.Configuration.GetConnectionString("RedisConnection")! } // HostAndPort
+        //            { configuration.GetConnectionString("RedisConnection")! } // HostAndPort
         //        },
-        //        ConnectRetry = 0, // Ограничиваем количество попыток
+        //        ConnectRetry = 1, // Ограничиваем количество попыток
         //        ReconnectRetryPolicy = new StackExchange.Redis.ExponentialRetry(250), // Пауза между попытками
         //        AbortOnConnectFail = false, // Не выбрасывать исключения о таймауте
-        //        ConnectTimeout = 250, // Не больше 250 мс на подключение. Если, например, к редису не удалось подключиться во время запроса "/publications?count=1", то API ответит только через 250 мс + само подключение у Windows +- 2000 мс, т.к будет пытаться подключиться
-        //        SyncTimeout = 250 // Работает в паре с ConnectTimeout, иначе не меняется. Хотя в RedisConnectionHealthCheck без него работает
+        //        ConnectTimeout = 250, // Лимит на подключение
+        //        SyncTimeout = 250, // Лимит на выполнение синхронных команд (подключение уже установлено)
+        //        AsyncTimeout = 250 // Лимит на асинхронных команд (подключение уже установлено)
         //    };
         //});
 

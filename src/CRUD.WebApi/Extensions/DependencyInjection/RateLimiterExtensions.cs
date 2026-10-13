@@ -16,7 +16,9 @@ public static class RateLimiterExtensions
 
         services.AddRateLimiter(options =>
         {
-            // Глобальный лимитер
+            // Глобальный лимитер для всех конечных точек
+            // На каждый HTTP-запрос выполняется вся логика из options.GlobalLimiter
+            // Т.е если пришёл запрос от админа, то у него отдельный лимит, для других ситуаций (другой HTTP-запрос) другой лимит
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
             {
                 var userRole = httpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Role)?.Value;
@@ -54,6 +56,10 @@ public static class RateLimiterExtensions
                        Window = TimeSpan.FromSeconds(rateLimiterOptions.Global.Window)
                    });
             });
+
+            // Можно использовать PartitionedRateLimiter.CreateChained для цепочки лимитеров
+            // Это полезно для нескольких правил, например: "Не более 5 запросов в секунду" и "не более 100 запросов в час" - обязательно оба должны вернуть разрешение, иначе запрос запрещается
+            // Хороший пример https://learn.microsoft.com/ru-ru/aspnet/core/performance/rate-limit?view=aspnetcore-10.0#chain-limiters-in-a-named-policy
 
             // При достижении лимита
             options.OnRejected = async (context, ct) =>

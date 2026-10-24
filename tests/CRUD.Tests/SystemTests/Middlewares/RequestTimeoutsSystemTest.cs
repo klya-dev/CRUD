@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http.Timeouts;
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace CRUD.Tests.SystemTests.Middlewares;
 

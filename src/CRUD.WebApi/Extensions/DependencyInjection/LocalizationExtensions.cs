@@ -14,8 +14,8 @@ public static class LocalizationExtensions
     public static IServiceCollection AddCustomLocalization(this IServiceCollection services)
     {
         services.AddLocalization(options => options.ResourcesPath = "Resources");
-        services.AddSingleton<IResourceLocalizer, ResourceLocalizer>();
-        services.AddSingleton<IValidatorLocalizer, ValidatorLocalizer>();
+        services.AddSingleton<IResourceLocalizer, ResourceLocalizer>(); // Локализация ответов API на основе ресурсов (PublicationNotFound, NoChangesDetected) 
+        services.AddSingleton<IValidatorLocalizer, ValidatorLocalizer>(); // Локализация полей/правил валидаторов ("Постоянный или одноразовый API-ключ" - "Permanent or disposable API-key"); ("Неверный статус оплаты." - "Invalid payment status.")
 
         var supportedCultures = new[]
         {
@@ -27,12 +27,12 @@ public static class LocalizationExtensions
         {
             options.DefaultRequestCulture = new RequestCulture("ru");
 
-            options.SupportedCultures = supportedCultures;
-            options.SupportedUICultures = supportedCultures;
+            options.SupportedCultures = supportedCultures; // Форматы дат, чисел, валют
+            options.SupportedUICultures = supportedCultures; // Текстовые ресурсы, например: "ru" значит файл ресурсов "ru.resx"
 
             options.RequestCultureProviders =
             [
-                new AcceptLanguageHeaderRequestCultureProvider()
+                new AcceptLanguageHeaderRequestCultureProvider() // Принимаем язык только из заголовка. Из дефолтых провайдеров, есть ещё query и cookie
             ];
         });
 
